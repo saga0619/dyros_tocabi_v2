@@ -1,0 +1,24 @@
+TaskControlWarn: 500
+TaskControlStop: 1000
+
+TaskGainPCOM: [400, 400, 400, 400, 400, 400]
+TaskGainDCOM: [40, 40, 40, 40, 40, 40]
+TaskGainPPelvis: [400, 400, 400, 400, 400, 400]
+TaskGainDPelvis: [40, 40, 40, 40, 40, 40]
+TaskGainPUpperbody: [400, 400, 400, 400, 400, 400]
+TaskGainDUpperbody: [40, 40, 40, 40, 40, 40]
+TaskGainPFoot: [400, 400, 400, 400, 400, 400]
+TaskGainDFoot: [40, 40, 40, 40, 40, 40]
+TaskGainPHand: [400, 400, 400, 400, 400, 400]
+TaskGainDHand: [40, 40, 40, 40, 40, 40]
+
+
+
+#H1 H2 R7 R8 L8 L7 L3 L4 R4 R3
+#R5 R6 L6 L5 L1 L2 R2 R1 W1 W2
+#RL1 RL2 RL3 RL4 RL5 RL6 W3
+#LL1 LL2 LL3 LL4 LL5 LL6
+NM2CNT: [95, 95, 95, 95, 95, 95, 15.5, 15.5, 15.5, 15.5,
+        42, 42, 42, 42, 15.5, 15.5, 15.5, 15.5, 3.3, 3.3,
+        3.0, 4.3, 3.8, 3.46, 4.5, 8.33, 3.3,
+        3.0, 4.3, 3.8, 3.46, 4.5, 8.33]

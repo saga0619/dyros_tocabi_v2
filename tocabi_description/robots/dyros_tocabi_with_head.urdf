@@ -1,0 +1,2395 @@
+<robot name="dyros_tocabi_description">
+  <mujoco>
+      <compiler meshdir="../meshes/" balanceinertia="true"/>
+  </mujoco>
+  <link
+    name="Pelvis_Link">
+    <inertial>
+      <origin
+        xyz="-0.01591 0 0.01985"
+        rpy="0 0 0"/>
+      <mass
+        value="12.19525" />
+      <inertia
+        ixx="0.101833182"
+        ixy="-0.000070812"
+        ixz="-0.003831096"
+        iyy="0.072400662"
+        iyz="0.000079272"
+        izz="0.144478157" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/Pelvis_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0.019"
+        rpy="0 0 0" />
+      <geometry>
+		<cylinder length="0.088" radius="0.045"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0 0.1025 0.03"
+        rpy="0 0 0" />
+      <geometry>
+		<cylinder length="0.11" radius="0.045"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0 -0.1025 0.03"
+        rpy="0 0 0" />
+      <geometry>
+		<cylinder length="0.11" radius="0.045"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.0205 0 0"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.141 0.305 0.05"/>
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="R_HipRoll_Link">
+<inertial>
+      <origin
+        xyz="-0.06477 0 0.05149"
+        rpy="0 0 0" />
+      <mass
+        value="2.679" />
+      <inertia
+        ixx="0.01821"
+        ixy="-1.676E-07"
+        ixz="-0.0007745"
+        iyy="0.03121"
+        iyz="-4.53E-09"
+        izz="0.2928" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/HipRoll_R_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.1 0 0"
+        rpy="0 1.570796 0" />
+      <geometry>
+        <cylinder length="0.08" radius="0.045"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.016 0 0.085"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.154 0.1 0.02"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0.055 0 0.0475"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.012 0.072 0.095"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.087 0 0.0475"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.012 0.072 0.095"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_HipYaw_Joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.1025 -0.1225"
+      rpy="0 0 0" />
+    <parent
+      link="Pelvis_Link" />
+    <child
+      link="R_HipRoll_Link" />
+    <axis
+      xyz="0 0 1" />
+	<limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+	  
+  </joint>
+  <link
+    name="R_HipCenter_Link">
+	<inertial>
+      <origin
+        xyz="-0.04801 -0.0022 2E-05"
+        rpy="0 0 0" />
+      <mass
+        value="2.67" />
+      <inertia
+        ixx="0.3553"
+        ixy="1.725E-08"
+        ixz="-3.236E-06"
+        iyy="0.009161"
+        iyz="-4.778E-06"
+        izz="0.00876" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/HipCenter_R_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.0045 0 0"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.1045 0.06 0.095"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_HipRoll_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="1.38777878078145E-17 2.74984739744835E-16 4.49346870585602E-16" />
+    <parent
+      link="R_HipRoll_Link" />
+    <child
+      link="R_HipCenter_Link" />
+    <axis
+      xyz="1 0 0" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="R_Thigh_Link">
+    <inertial>
+      <origin
+        xyz="-0.00042 -0.00032 -0.18904"
+        rpy="0 0 0" />
+      <mass
+        value="5.366" />
+      <inertia
+        ixx="0.2987"
+        ixy="-4.284E-05"
+        ixz="-0.000196"
+        iyy="0.7088"
+        iyz="0.002406"
+        izz="0.00982" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/Thigh_R_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 -0.35"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.07763" radius="0.049"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0 0 -0.1923"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.2175" radius="0.06"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_HipPitch_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="-1.38777878078143E-17 -2.74984739744835E-16 -4.49346870585602E-16" />
+    <parent
+      link="R_HipCenter_Link" />
+    <child
+      link="R_Thigh_Link" />
+    <axis
+      xyz="0 1 0" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="R_Knee_Link">
+     <inertial>
+      <origin
+        xyz="0.00429 0.00214 -0.1428"
+        rpy="0 0 0" />
+      <mass
+        value="3.883" />
+      <inertia
+        ixx="0.1506"
+        ixy="-2.887E-05"
+        ixz="-0.002607"
+        iyy="0.5588"
+        iyz="-0.001486"
+        izz="0.007451" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/Knee_R_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 -0.175"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.200" radius="0.06"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_Knee_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.349999999999809"
+      rpy="0 0 0" />
+    <parent
+      link="R_Thigh_Link" />
+    <child
+      link="R_Knee_Link" />
+    <axis
+      xyz="0 1 0" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="R_AnkleCenter_Link">
+<inertial>
+      <origin
+        xyz="-0.00419 -0.0018 -0.0003"
+        rpy="0 0 0" />
+      <mass
+        value="2.51" />
+      <inertia
+        ixx="0.002857"
+        ixy="-1.422E-07"
+        ixz="2.222E-06"
+        iyy="0.4135"
+        iyz="4.611E-06"
+        izz="0.003345" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/AnkleCenter_R_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.0045 0 0"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.1045 0.06 0.095"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_AnklePitch_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.35"
+      rpy="-2.77555756156282E-17 -1.48042453629419E-16 5.37756273475549E-16" />
+    <parent
+      link="R_Knee_Link" />
+    <child
+      link="R_AnkleCenter_Link" />
+    <axis
+      xyz="0 1 0" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="R_AnkleRoll_Link">
+    <inertial>
+      <origin
+        xyz="-0.05196 0.00005 -0.0219"
+        rpy="0 0 0" />
+      <mass
+        value="1.26426" />
+      <inertia
+        ixx="0.418697"
+        ixy="1.5176E-08"
+        ixz="-0.001095976"
+        iyy="0.006211405"
+        iyz="-5.435E-08"
+        izz="0.008575514" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/AnkleRoll_R_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.08875 0 0"
+        rpy="0 -1.5707963 0" />
+      <geometry>
+		<cylinder length="0.0625" radius="0.045"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_AnkleRoll_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="R_AnkleCenter_Link" />
+    <child
+      link="R_AnkleRoll_Link" />
+    <axis
+      xyz="1 0 0" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="R_Foot_Link">
+    <inertial>
+      <origin
+        xyz="-0.0162 0.00008 -0.1209"
+        rpy="0 0 0" />
+      <mass
+        value="2.326" />
+      <inertia
+        ixx="0.003386409"
+        ixy="1.1237E-05"
+        ixz="-0.000526477"
+        iyy="0.012600125"
+        iyz="-1.976E-06"
+        izz="0.014296" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/Foot_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0.03 0 -0.145"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.3 0.17 0.027"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.08875 0 0"
+        rpy="0 -1.5707963 0" />
+      <geometry>
+		<cylinder length="0.0625" radius="0.045"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_Foot_Joint"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="R_AnkleRoll_Link" />
+    <child
+      link="R_Foot_Link" />
+    <axis
+      xyz="0 0 0" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint> 
+  <link
+    name="L_HipRoll_Link">
+    <inertial>
+      <origin
+        xyz="-0.06477 0 0.05149"
+        rpy="0 0 0" />
+      <mass
+        value="2.679" />
+      <inertia
+        ixx="0.01821"
+        ixy="-1.676E-07"
+        ixz="-0.0007745"
+        iyy="0.03121"
+        iyz="-4.53E-09"
+        izz="0.2928" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/HipRoll_L_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.1 0 0"
+        rpy="0 1.570796 0" />
+      <geometry>
+        <cylinder length="0.08" radius="0.045"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.016 0 0.085"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.154 0.1 0.02"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0.055 0 0.0475"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.012 0.072 0.095"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.087 0 0.0475"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.012 0.072 0.095"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_HipYaw_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0.1025 -0.1225"
+      rpy="0 0 0" />
+    <parent
+      link="Pelvis_Link" />
+    <child
+      link="L_HipRoll_Link" />
+    <axis
+      xyz="0 0 1" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint>
+
+  <link
+    name="L_HipCenter_Link">
+   <inertial>
+      <origin
+        xyz="-0.04801 0.0022 2E-05"
+        rpy="0 0 0" />
+      <mass
+        value="2.67" />
+      <inertia
+        ixx="0.3553"
+        ixy="1.725E-08"
+        ixz="-3.236E-06"
+        iyy="0.009161"
+        iyz="-4.778E-06"
+        izz="0.00876" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/HipCenter_L_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>    
+    <collision>
+      <origin
+        xyz="-0.0045 0 0"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.1045 0.06 0.095"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_HipRoll_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="2.77555756156289E-17 1.88969769143558E-16 1.36928250674653E-16" />
+    <parent
+      link="L_HipRoll_Link" />
+    <child
+      link="L_HipCenter_Link" />
+    <axis
+      xyz="1 0 0" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="L_Thigh_Link">
+   <inertial>
+      <origin
+        xyz="-0.00042 0.00032 -0.18904"
+        rpy="0 0 0" />
+      <mass
+        value="5.366" />
+      <inertia
+        ixx="0.2987"
+        ixy="-4.284E-05"
+        ixz="-0.000196"
+        iyy="0.7088"
+        iyz="0.002406"
+        izz="0.00982" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/Thigh_L_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 -0.35"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.07763" radius="0.049"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0 0 -0.1923"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.2175" radius="0.06"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_HipPitch_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="-2.77555756156289E-17 -1.88969769143558E-16 -1.36928250674653E-16" />
+    <parent
+      link="L_HipCenter_Link" />
+    <child
+      link="L_Thigh_Link" />
+    <axis
+      xyz="0 1 0" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint>
+
+  <link
+    name="L_Knee_Link">
+    <inertial>
+      <origin
+        xyz="0.00429 -0.00214 -0.1428"
+        rpy="0 0 0" />
+      <mass
+        value="3.883" />
+      <inertia
+        ixx="0.1506"
+        ixy="-2.887E-05"
+        ixz="-0.002607"
+        iyy="0.5588"
+        iyz="-0.001486"
+        izz="0.007451" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/Knee_L_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 -0.175"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.200" radius="0.06"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_Knee_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.350000000000191"
+      rpy="0 0 0" />
+    <parent
+      link="L_Thigh_Link" />
+    <child
+      link="L_Knee_Link" />
+    <axis
+      xyz="0 1 0" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="L_AnkleCenter_Link">
+     <inertial>
+      <origin
+        xyz="-0.00419 0.0018 -0.0003"
+        rpy="0 0 0" />
+      <mass
+        value="2.51" />
+      <inertia
+        ixx="0.002857"
+        ixy="-1.422E-07"
+        ixz="2.222E-06"
+        iyy="0.4135"
+        iyz="4.611E-06"
+        izz="0.003345" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/AnkleCenter_L_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.0045 0 0"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.1045 0.06 0.095"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_AnklePitch_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.350000000051828"
+      rpy="2.57102424745274E-31 -1.5978825624527E-16 1.89651504296143E-16" />
+    <parent
+      link="L_Knee_Link" />
+    <child
+      link="L_AnkleCenter_Link" />
+    <axis
+      xyz="0 1 0" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="L_AnkleRoll_Link">
+    <inertial>
+      <origin
+        xyz="-0.05196 0.00005 -0.0219"
+        rpy="0 0 0" />
+      <mass
+        value="1.26426" />
+      <inertia
+        ixx="0.418697"
+        ixy="1.5176E-08"
+        ixz="-0.001095976"
+        iyy="0.006211405"
+        iyz="-5.435E-08"
+        izz="0.008575514" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/AnkleRoll_L_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.08875 0 0"
+        rpy="0 -1.5707963 0" />
+      <geometry>
+		<cylinder length="0.0625" radius="0.045"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_AnkleRoll_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="-2.87406507911047E-31 1.5978825624527E-16 -1.89651504296143E-16" />
+    <parent
+      link="L_AnkleCenter_Link" />
+    <child
+      link="L_AnkleRoll_Link" />
+    <axis
+      xyz="1 0 0" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="L_Foot_Link">
+    <inertial>
+      <origin
+        xyz="-0.0162 0.00008 -0.1209"
+        rpy="0 0 0" />
+      <mass
+        value="2.326" />
+      <inertia
+        ixx="0.003386409"
+        ixy="1.1237E-05"
+        ixz="-0.000526477"
+        iyy="0.012600125"
+        iyz="-1.976E-06"
+        izz="0.014296" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/Foot_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0.03 0 -0.145"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.3 0.17 0.027"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.08875 0 0"
+        rpy="0 -1.5707963 0" />
+      <geometry>
+		<cylinder length="0.0625" radius="0.045"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_Foot_Joint"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="L_AnkleRoll_Link" />
+    <child
+      link="L_Foot_Link" />
+    <axis
+      xyz="0 0 0" />
+	  <limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="Waist1_Link">
+    <inertial>
+      <origin
+        xyz="0 0 -0.03647"
+        rpy="0 0 0" />
+      <mass
+        value="0.89722" />
+      <inertia
+        ixx="0.003744227"
+        ixy="-0.000023489"
+        ixz="0.000037149"
+        iyy="0.002030963"
+        iyz="-0.000424890"
+        izz="1.007723743" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/waist1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<visual>
+      <origin
+        xyz="0 0 -0.096"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.02" radius="0.05"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<collision>
+      <origin
+        xyz="0 0 -0.096"
+        rpy="0 0 0" />
+      <geometry>
+		<cylinder length="0.02" radius="0.05"/>
+      </geometry>	  
+    </collision>	
+	<collision>
+      <origin
+        xyz="0 0 -0.081"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.094 0.13 0.01"/>
+      </geometry>	  
+    </collision>
+	<collision>
+      <origin
+        xyz="0 0.06 -0.0405"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.094 0.01 0.091"/>
+      </geometry>	  
+    </collision>
+	<collision>
+      <origin
+        xyz="0 -0.06 -0.0405"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.094 0.01 0.091"/>
+      </geometry>	  
+    </collision>
+	
+  </link>
+  <joint
+    name="Waist1_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0.1779"
+      rpy="0 0 0" />
+    <parent
+      link="Pelvis_Link" />
+    <child
+      link="Waist1_Link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-2.094"
+      upper="2.094"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+   </joint>
+  <link
+    name="Waist2_Link">
+    <inertial>
+      <origin
+        xyz="-0.00029 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="3.752" />
+      <inertia
+        ixx="0.006020606"
+        ixy="0.000011504"
+        ixz="-0.000000053"
+        iyy="1.011708561"
+        iyz="0.000001147"
+        izz="0.007561688" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/waist2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    
+	<collision>
+      <origin
+        xyz="0 0 0"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.1" radius="0.055"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0.02 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.1 0.1 0.06"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.02 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.09 0.1 0.091"/>
+      </geometry>
+    </collision>
+	
+	
+  </link>
+  <joint
+    name="Waist2_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="Waist1_Link" />
+    <child
+      link="Waist2_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-2.094"
+      upper="2.094"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+<link
+    name="Upperbody_Link">
+    <inertial>
+      <origin
+        xyz="-0.03294 0 0.16798"
+        rpy="0 0 0" />
+      <mass
+        value="16.93384" />
+      <inertia
+        ixx="1.270791438"
+        ixy="0.000113985"
+        ixz="0.029533458"
+        iyy="0.238938452"
+        iyz="-0.000028977"
+        izz="0.179864207" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/upperbody.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<visual>
+	  <origin
+        xyz="-0.03 0 0.2"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.21 0.22 0.1"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	    <visual>
+      <origin
+        xyz="-0.03 0 0.115"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.21 0.11 0.07"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	    <visual>
+      <origin
+        xyz="-0.08 0 0.32"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.12 0.07 0.14"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.03 0 0.2"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.21 0.22 0.1"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.03 0 0.115"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.21 0.11 0.07"/>
+      </geometry>
+    </collision>
+	
+	<collision>
+      <origin
+        xyz="-0.08 0 0.32"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.12 0.07 0.14"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.115 0 0.0"
+        rpy="0 1.570796 0" />
+      <geometry>
+        <cylinder length="0.09" radius="0.054"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0.023 0.154 0.185"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.07" radius="0.040"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0.023 -0.154 0.185"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.07" radius="0.040"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Upperbody_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="Waist2_Link" />
+    <child
+      link="Upperbody_Link" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="-2.094"
+      upper="2.094"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  
+  <link
+    name="Neck_Link">
+    <inertial>
+      <origin
+        xyz="0.0 0 -0.0023"
+        rpy="0 0 0" />
+      <mass
+        value="0.248" />
+      <inertia
+        ixx="0.000058259"
+        ixy="-0.000000076"
+        ixz="0.000000268"
+        iyy="0.000036489"
+        iyz="-0.000001002"
+        izz="0.000058237" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/neck.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<collision>
+      <origin
+        xyz="0 0 0.05"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.043" radius="0.07"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Neck_Joint"
+    type="revolute">
+    <origin
+      xyz="-0.036 0.0 0.3795"
+      rpy="0 0 0" />
+    <parent
+      link="Upperbody_Link" />
+    <child
+      link="Neck_Link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.54"
+      upper="1.54"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+
+  <link
+    name="Head_Link">
+    <inertial>
+      <origin
+        xyz="-0.0036 0 0.1289"
+        rpy="0 0 0" />
+      <mass
+        value="3.46332" />
+      <inertia
+        ixx="0.020045929"
+        ixy="-0.000020568"
+        ixz="-0.001338538"
+        iyy="0.021593879"
+        iyz="0.000156360"
+        izz="0.014854138" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/head.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<collision>
+      <origin
+        xyz="0 0 0.05"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.043" radius="0.07"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Head_Joint"
+    type="revolute">
+    <origin
+      xyz="0.0 0.0 0.0275"
+      rpy="0 0 0" />
+    <parent
+      link="Neck_Link" />
+    <child
+      link="Head_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1.54"
+      upper="1.54"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  
+    <link
+    name="L_Shoulder1_Link">
+    <inertial>
+      <origin
+        xyz="-0.00003 0.00397 0.06029"
+        rpy="0 0 0" />
+      <mass
+        value="1.6762" />
+      <inertia
+        ixx="0.001925606"
+        ixy="0.000001433"
+        ixz="0.000002313"
+        iyy="0.001936576"
+        iyz="0.000078962"
+        izz="0.185330098" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/L_shoulder1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<collision>
+      <origin
+        xyz="0 0 0.05"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.11" radius="0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_Shoulder1_Joint"
+    type="revolute">
+    <origin
+      xyz="0.023 0.154 0.2275"
+      rpy="0 0 0" />
+    <parent
+      link="Upperbody_Link" />
+    <child
+      link="L_Shoulder1_Link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-2.09"
+      upper="1.54"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+
+  <link
+    name="L_Shoulder2_Link">
+    <inertial>
+      <origin
+        xyz="0.00107 0.0491 -0.00001"
+        rpy="0 0 0" />
+      <mass
+        value="0.4016" />
+      <inertia
+        ixx="0.000989903"
+        ixy="0.000028237"
+        ixz="-0.000000465"
+        iyy="0.184275853"
+        iyz="0.000000133"
+        izz="0.001067575" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/L_shoulder2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<collision>
+      <origin
+        xyz="0 0.040 0"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.05" radius="0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_Shoulder2_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0.0341 0.065"
+      rpy="0 0 0" />
+    <parent
+      link="L_Shoulder1_Link" />
+    <child
+      link="L_Shoulder2_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-3.14159"
+      upper="3.14159"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="L_Shoulder3_Link">
+    <inertial>
+      <origin
+        xyz="0.00262 0.04826 0.00023"
+        rpy="0 0 0" />
+      <mass
+        value="2.90141" />
+      <inertia
+        ixx="0.192093159"
+        ixy="-0.000365084"
+        ixz="-0.000002746"
+        iyy="0.002493784"
+        iyz="-0.000023821"
+        izz="0.008296854" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/L_shoulder3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<collision>
+      <origin
+        xyz="0 0.06 0"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.12" radius="0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_Shoulder3_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0.115 0"
+      rpy="0 0 0" />
+    <parent
+      link="L_Shoulder2_Link" />
+    <child
+      link="L_Shoulder3_Link" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="-1.9199"
+      upper="1.9199"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+
+  <link
+    name="L_Armlink_Link">
+    <inertial>
+      <origin
+        xyz="-0.01896 0.11642 -0.0119"
+        rpy="0 0 0" />
+      <mass
+        value="0.58517" />
+      <inertia
+        ixx="0.002878609"
+        ixy="0.000302586"
+        ixz="-0.000036001"
+        iyy="0.184381923"
+        iyz="0.000398377"
+        izz="0.003117058" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/L_arm.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<collision>
+      <origin
+        xyz="0 0.08 0"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.16" radius="0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_Armlink_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0.1281 0"
+      rpy="0 0 0" />
+    <parent
+      link="L_Shoulder3_Link" />
+    <child
+      link="L_Armlink_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-3.14159"
+      upper="3.14159"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="L_Elbow_Link">
+    <inertial>
+      <origin
+        xyz="-0.00136 0.05256 0.01764"
+        rpy="0 0 0" />
+      <mass
+        value="2.06511" />
+      <inertia
+        ixx="0.055865466"
+        ixy="0.000151764"
+        ixz="0.000055158"
+        iyy="0.001895543"
+        iyz="0.001530917"
+        izz="0.005958821" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/L_elbow.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+<collision>
+      <origin
+        xyz="0 0.08 0.0325"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.08" radius="0.04"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 1.570796 0" />
+      <geometry>
+        <cylinder length="0.08" radius="0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_Elbow_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0.207 -0.0325"
+      rpy="0 0 0" />
+    <parent
+      link="L_Armlink_Link" />
+    <child
+      link="L_Elbow_Link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-3.14159"
+      upper="2.8"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="L_Forearm_Link">
+    <inertial>
+      <origin
+        xyz="-0.01426 0.0767 0.00033"
+        rpy="0 0 0" />
+      <mass
+        value="0.35234" />
+      <inertia
+        ixx="0.001053636"
+        ixy="0.000084568"
+        ixz="0.000022117"
+        iyy="0.049889479"
+        iyz="0.000019539"
+        izz="0.001266418" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/L_forearm.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+		<collision>
+      <origin
+        xyz="0 0.05 0"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.1" radius="0.04"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0 0.1451 0"
+        rpy="0 1.570796 0" />
+      <geometry>
+        <cylinder length="0.08" radius="0.025"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_Forearm_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0.1244 0.0325"
+      rpy="0 0 0" />
+    <parent
+      link="L_Elbow_Link" />
+    <child
+      link="L_Forearm_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-3.14159"
+      upper="3.14159"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="L_Wrist1_Link">
+    <inertial>
+      <origin
+        xyz="-0.00158 0.02153 0.00003"
+        rpy="0 0 0" />
+      <mass
+        value="0.70923" />
+      <inertia
+        ixx="0.015205197"
+        ixy="0.000024218"
+        ixz="-0.000000263"
+        iyy="0.000396376"
+        iyz="0.000000688"
+        izz="0.000683187" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/L_wrist1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    	<collision>
+      <origin
+        xyz="0 0.046 0"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.06" radius="0.02"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_Wrist1_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0.1451 0"
+      rpy="0 0 0" />
+    <parent
+      link="L_Forearm_Link" />
+    <child
+      link="L_Wrist1_Link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-3.14159"
+      upper="3.14159"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="L_Wrist2_Link">
+    <inertial>
+      <origin
+        xyz="0.00063 0.0636 0.00178"
+        rpy="0 0 0" />
+      <mass
+        value="0.001" />
+      <inertia
+        ixx="0.000865450"
+        ixy="0"
+        ixz="0"
+        iyy="0.000696917"
+        iyz="0"
+        izz="0.015377823" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0.057 0"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.06 0.07 0.06"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<collision>
+      <origin
+        xyz="0 0.057 0"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.06 0.07 0.06"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="L_Wrist2_Joint"
+    type="revolute">
+    <origin
+      xyz="0 0.046 0"
+      rpy="0 0 0" />
+    <parent
+      link="L_Wrist1_Link" />
+    <child
+      link="L_Wrist2_Link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-2.094"
+      upper="2.094"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+
+  <link
+    name="R_Shoulder1_Link">
+    <inertial>
+      <origin
+        xyz="-0.00003 -0.00397 0.06029"
+        rpy="0 0 0" />
+      <mass
+        value="1.6762" />
+      <inertia
+        ixx="0.001925606"
+        ixy="-0.000001433"
+        ixz="0.000002313"
+        iyy="0.001936576"
+        iyz="-0.000078962"
+        izz="0.185330098" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/R_shoulder1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0.05"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.11" radius="0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_Shoulder1_Joint"
+    type="revolute">
+    <origin
+      xyz="0.023 -0.154 0.2275"
+      rpy="0 0 0" />
+    <parent
+      link="Upperbody_Link" />
+    <child
+      link="R_Shoulder1_Link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.54"
+      upper="2.09"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="R_Shoulder2_Link">
+    <inertial>
+      <origin
+        xyz="0.00107 -0.0491 -0.00001"
+        rpy="0 0 0" />
+      <mass
+        value="0.4016" />
+      <inertia
+        ixx="0.000989903"
+        ixy="-0.000028237"
+        ixz="-0.000000465"
+        iyy="0.184275853"
+        iyz="-0.000000133"
+        izz="0.001067575" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/R_shoulder2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<collision>
+      <origin
+        xyz="0 -0.040 0"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.05" radius="0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_Shoulder2_Joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.0341 0.065"
+      rpy="0 0 0" />
+    <parent
+      link="R_Shoulder1_Link" />
+    <child
+      link="R_Shoulder2_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="-3.14159"
+      upper="3.14159"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="R_Shoulder3_Link">
+    <inertial>
+      <origin
+        xyz="0.00262 -0.04826 0.00023"
+        rpy="0 0 0" />
+      <mass
+        value="2.90141" />
+      <inertia
+        ixx="0.192093159"
+        ixy="0.000365084"
+        ixz="-0.000002746"
+        iyy="0.002493784"
+        iyz="0.000023821"
+        izz="0.008296854" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/R_shoulder3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    
+	<collision>
+      <origin
+        xyz="0 -0.06 0"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.12" radius="0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_Shoulder3_Joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.115 0"
+      rpy="0 0 0" />
+    <parent
+      link="R_Shoulder2_Link" />
+    <child
+      link="R_Shoulder3_Link" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="-1.9199"
+      upper="1.9199"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="R_Armlink_Link">
+    <inertial>
+      <origin
+        xyz="-0.01896 -0.11642 -0.0119"
+        rpy="0 0 0" />
+      <mass
+        value="0.58517" />
+      <inertia
+        ixx="0.002878609"
+        ixy="-0.000302586"
+        ixz="-0.000036001"
+        iyy="0.184381923"
+        iyz="-0.000398377"
+        izz="0.003117058" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/R_arm.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<collision>
+      <origin
+        xyz="0 -0.08 0"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.16" radius="0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_Armlink_Joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.1281 0"
+      rpy="0 0 0" />
+    <parent
+      link="R_Shoulder3_Link" />
+    <child
+      link="R_Armlink_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="-3.14159"
+      upper="3.14159"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="R_Elbow_Link">
+    <inertial>
+      <origin
+        xyz="-0.00136 -0.05256 0.01764"
+        rpy="0 0 0" />
+      <mass
+        value="2.06511" />
+      <inertia
+        ixx="0.055865466"
+        ixy="-0.000151764"
+        ixz="0.000055158"
+        iyy="0.001895543"
+        iyz="-0.001530917"
+        izz="0.005958821" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/R_elbow.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	
+	<collision>
+      <origin
+        xyz="0 -0.08 0.0325"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.08" radius="0.04"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 1.570796 0" />
+      <geometry>
+        <cylinder length="0.08" radius="0.04"/>
+      </geometry>
+    </collision>
+	
+  </link>
+  <joint
+    name="R_Elbow_Joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.207 -0.0325"
+      rpy="0 0 0" />
+    <parent
+      link="R_Armlink_Link" />
+    <child
+      link="R_Elbow_Link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-2.967"
+      upper="3.14159"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="R_Forearm_Link">
+    <inertial>
+      <origin
+        xyz="-0.01426 -0.0767 0.00033"
+        rpy="0 0 0" />
+      <mass
+        value="0.35234" />
+      <inertia
+        ixx="0.001053636"
+        ixy="-0.000084568"
+        ixz="0.000022117"
+        iyy="0.049889479"
+        iyz="-0.000019539"
+        izz="0.001266418" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/R_forearm.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<collision>
+      <origin
+        xyz="0 -0.05 0"
+        rpy="1.570796 0 0" />
+      <geometry>
+        <cylinder length="0.1" radius="0.04"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0 -0.1451 0"
+        rpy="0 1.570796 0" />
+      <geometry>
+        <cylinder length="0.08" radius="0.025"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_Forearm_Joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.1244 0.0325"
+      rpy="0 0 0" />
+    <parent
+      link="R_Elbow_Link" />
+    <child
+      link="R_Forearm_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="-3.14159"
+      upper="3.14159"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="R_Wrist1_Link">
+    <inertial>
+      <origin
+        xyz="-0.00158 -0.02153 0.00003"
+        rpy="0 0 0" />
+      <mass
+        value="0.70923" />
+      <inertia
+        ixx="0.015205197"
+        ixy="-0.000024218"
+        ixz="-0.000000263"
+        iyy="0.000396376"
+        iyz="-0.000000688"
+        izz="0.000683187" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/R_wrist1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+	<collision>
+      <origin
+        xyz="0 -0.046 0"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.06" radius="0.02"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_Wrist1_Joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.1451 0"
+      rpy="0 0 0" />
+    <parent
+      link="R_Forearm_Link" />
+    <child
+      link="R_Wrist1_Link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-3.14159"
+      upper="3.14159"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>
+  <link
+    name="R_Wrist2_Link">
+    <inertial>
+      <origin
+        xyz="0.00063 -0.0636 0.00178"
+        rpy="0 0 0" />
+      <mass
+        value="0.001" />
+      <inertia
+        ixx="0.000865450"
+        ixy="0"
+        ixz="0"
+        iyy="0.000696917"
+        iyz="0"
+        izz="0.015377823" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 -0.057 0"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.06 0.07 0.06"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 -0.057 0"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.06 0.07 0.06"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_Wrist2_Joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.046 0"
+      rpy="0 0 0" />
+    <parent
+      link="R_Wrist1_Link" />
+    <child
+      link="R_Wrist2_Link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-2.094"
+      upper="2.094"
+      effort="500"
+      velocity="100" />
+	<dynamics
+      damping="5" />
+  </joint>  
+
+  
+  
+</robot>

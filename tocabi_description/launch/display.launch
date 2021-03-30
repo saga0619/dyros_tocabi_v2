@@ -1,0 +1,11 @@
+<launch>
+  <!--arg name="model" /-->
+  <!--arg name="gui" default="False" /-->
+  <param name="robot_description" textfile="$(find tocabi_description)/robots/dyros_tocabi.urdf" />
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+    <remap from="/joint_states" to="/tocabi/jointstates"/>
+  </node>
+  <!--node name="high_noon" pkg="eye_of_dragon" type="high_noon" /-->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find tocabi_description)/urdf.rviz" />
+</launch>
