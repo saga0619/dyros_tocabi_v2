@@ -6,8 +6,8 @@
 > This project is upgraded version of [TOCABI controller](https://github.com/saga0619/dyros_tocabi)
 > Ethercat Master is divided from tocabi controller for stability, unlike previous version.
 > Communications between processes are established with shared memory and ros topics.
-> Real-time scheduling is applied to all main thread, and cpu must be isolated for real-time scheduling.
-> With isolcpus command, realtime stability improves  (No losing data with isolcpus.. )
+> Real-time scheduling is applied to all main thread. 
+> For strict real-time scheduling performance, cpu must be isolated for real-time scheduling with isolcpus command, realtime stability improves  (No losing data with isolcpus.. )
 
 ----------------------------------------
 
