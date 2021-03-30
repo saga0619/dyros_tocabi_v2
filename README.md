@@ -33,7 +33,7 @@
 ### All-in-One installation
 ```sh
 cd dyros_tocabi
-./install_prereq.sh
+sudo ./install_prereq.sh
 ```
 
 ### Individual installation
