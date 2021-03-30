@@ -26,6 +26,10 @@
 -----------------------------------------
 
 ## Prerequisities
+> This project was developed in Ubuntu 18.04, with Ros Melodic.
+> Realrobot mode is developed on Xenomai 3.0.10, linux-4.14.134
+> Simulation mode is available with mujoco, license is required. 
+
 ### All-in-One installation
 ```sh
 cd dyros_tocabi
