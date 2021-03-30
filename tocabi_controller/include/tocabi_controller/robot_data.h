@@ -12,7 +12,6 @@ using namespace std;
 
 struct RobotData
 {
-
     float control_time_;
     RigidBodyDynamics::Model model_;
     LinkData link_[LINK_NUMBER + 1];
