@@ -9,13 +9,13 @@
 ----------------------------------------
 
 + Dyros Tocabi V2
-++ tocabi controller
-++ tocabi description
-+++ description package for TOCABI (urdf, xml, safety settings ... )
-++ tocabi ecat
-+++ Tocabi Ethercat Master based on SOEM
-++ tocabi msgs
-+++ ROS Message definitons required for task command and status check 
+ + tocabi controller
+ + tocabi description
++ description package for TOCABI (urdf, xml, safety settings ... )
+ + tocabi ecat
+  + Tocabi Ethercat Master based on SOEM
+ + tocabi msgs
+  + ROS Message definitons required for task command and status check 
 
 -----------------------------------------
 
