@@ -4,7 +4,10 @@
 
 ![TOCABI_IMAGE](./resource/TOCABI3.png)
 > This project is upgraded version of [TOCABI controller](https://github.com/saga0619/dyros_tocabi)
-> 
+> Ethercat Master is divided from tocabi controller for stability, unlike previous version.
+> Communications between processes are established with shared memory and ros topics.
+> Real-time scheduling is applied to all main thread. 
+> For strict real-time scheduling performance, cpu must be isolated for real-time scheduling with isolcpus command, realtime stability improves  (No losing data with isolcpus.. )
 
 ----------------------------------------
 
@@ -23,10 +26,14 @@
 -----------------------------------------
 
 ## Prerequisities
+> This project was developed in Ubuntu 18.04, with Ros Melodic.
+> Realrobot mode is developed on Xenomai 3.0.10, linux-4.14.134
+> Simulation mode is available with mujoco, license is required. 
+
 ### All-in-One installation
 ```sh
 cd dyros_tocabi
-./install_prereq.sh
+sudo ./install_prereq.sh
 ```
 
 ### Individual installation
