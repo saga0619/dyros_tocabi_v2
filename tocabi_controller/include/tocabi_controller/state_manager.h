@@ -13,13 +13,10 @@ public:
     ~StateManager();
 
     void *stateThread(void);
-    static void *thread_helper(void *context)
-    {
-        return ((StateManager *)context)->stateThread();
-    }
+    static void *thread_helper(void *context) { return ((StateManager *)context)->stateThread(); }
     void getJointData();
     void getSensorData();
-    void storeState();
+    void storeState(RobotData &robotd_);
 
     void stateEstimate();
     //private functions
@@ -33,8 +30,10 @@ public:
     int link_id_[LINK_NUMBER + 1];
 
     Eigen::MatrixVVd A_;
-    Eigen::MatrixVVd A_inv;
+    Eigen::MatrixVVd A_inv_;
     Eigen::MatrixXd A_temp_;
+    Eigen::MatrixVVd Motor_inertia;
+    Eigen::MatrixVVd Motor_inertia_inverse;
 
     RigidBodyDynamics::Model model_, model_2;
 

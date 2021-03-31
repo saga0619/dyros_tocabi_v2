@@ -3,10 +3,8 @@
 #include <rbdl/rbdl.h>
 #include <rbdl/addons/urdfreader/urdfreader.h>
 
-
 #include "tocabi_controller/tocabi.h"
 #include "math_type_define.h"
-
 
 using namespace std;
 using namespace Eigen;
@@ -24,16 +22,13 @@ public:
   void pos_Update(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_);
 
   // Set Contact point, Contact jacobian
-  void Set_Contact(RigidBodyDynamics::Model &model_, Eigen::VectorQVQd &q_virtual_, Eigen::Vector3d &Contact_position);
+  //void Set_Contact(Eigen::VectorQVQd &q_virtual_, Eigen::Vector3d &Contact_position);
 
   // Set Contact point, Contact jacobian
-  void Set_Contact(Eigen::VectorQVQd &q_virtual_, Eigen::Vector3d &Contact_position);
-
-  // Set Contact point, Contact jacobian
-  void Set_Contact(Eigen::VectorQVQd &q_virtual_, Eigen::VectorVQd &q_dot_virtual, Eigen::Vector3d &Contact_position);
+  //void Set_Contact(Eigen::VectorQVQd &q_virtual_, Eigen::VectorVQd &q_dot_virtual, Eigen::Vector3d &Contact_position);
 
   // Set Sensor Position
-  void Set_Sensor_Position(Eigen::VectorQVQd &q_virtual_, Eigen::Vector3d &Sensor_position);
+  //void Set_Sensor_Position(Eigen::VectorQVQd &q_virtual_, Eigen::Vector3d &Sensor_position);
 
   // update Jacobian matrix of local position at link.
   void Set_Jacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_, Eigen::Vector3d &Jacobian_position);
@@ -88,7 +83,7 @@ public:
 
   bool Check_name(RigidBodyDynamics::Model &model_);
 
-  void Get_PointPos(Eigen::VectorQVQd &q_virtual_, Eigen::VectorVQd &q_dot_virtual, Eigen::Vector3d &local_pos, Eigen::Vector3d &global_pos, Eigen::Vector6d &global_velocity6D);
+  //void Get_PointPos(Eigen::VectorQVQd &q_virtual_, Eigen::VectorVQd &q_dot_virtual, Eigen::Vector3d &local_pos, Eigen::Vector3d &global_pos, Eigen::Vector6d &global_velocity6D);
 
   //constant variables
   int id;
@@ -100,9 +95,6 @@ public:
 
   //inertial matrix
   Eigen::Matrix3d inertia;
-
-  //local contact point
-  Eigen::Vector3d contact_point;
 
   //local sensor point
   Eigen::Vector3d sensor_point;
@@ -117,20 +109,11 @@ public:
   //global COM position of body
   Eigen::Vector3d xipos;
 
-  //global position of contact point at body
-  Eigen::Vector3d xpos_contact;
-
   //global position of sensor at body
   Eigen::Vector3d xpos_sensor;
 
   //cartesian velocity of body
   Eigen::Vector3d v;
-
-  //cartesian velocity of contact point at body
-  Eigen::Vector3d v_contact;
-
-  //cartesian velocity of contact point at body
-  Eigen::Vector3d w_contact;
 
   //rotational velocity of body
   Eigen::Vector3d w;
@@ -140,7 +123,7 @@ public:
 
   Eigen::Matrix6Vf Jac;
   Eigen::Matrix6Vf Jac_COM;
-  Eigen::Matrix6Vf Jac_Contact;
+
 
   //realtime traj of cartesian & orientation.
   //)) traj is outcome of cubic or quintic function, which will be used to make fstar!
@@ -190,7 +173,23 @@ public:
   Eigen::Vector3d max_p_acc_;
   Eigen::Vector3d max_p_vel_;
 
-  RigidBodyDynamics::Model *model;
+  //RigidBodyDynamics::Model *model;
 
   Eigen::MatrixXd j_temp;
+};
+
+class EndEffector : public LinkData
+{
+public:
+  // Set Contact point, Contact jacobian
+  void Set_Contact(RigidBodyDynamics::Model &model_, Eigen::VectorQVQd &q_virtual_, Eigen::Vector3d &Contact_position);
+  //cartesian velocity of contact point at body
+  Eigen::Vector3d v_contact;
+  //cartesian velocity of contact point at body
+  Eigen::Vector3d w_contact;
+  Eigen::Matrix6Vf Jac_Contact;
+  //global position of contact point at body
+  Eigen::Vector3d xpos_contact;
+  //local contact point
+  Eigen::Vector3d contact_point;
 };

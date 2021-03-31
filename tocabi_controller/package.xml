@@ -61,6 +61,9 @@
   <build_depend>tocabi_description</build_depend>
   <build_export_depend>tocabi_description</build_export_depend>
   <exec_depend>tocabi_description</exec_depend>
+  <build_depend>tocabi_msgs</build_depend>
+  <build_export_depend>tocabi_msgs</build_export_depend>
+  <exec_depend>tocabi_msgs</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

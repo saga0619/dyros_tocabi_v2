@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   tocabi_ecat
   tocabi_description
+  tocabi_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -131,6 +132,10 @@ add_library(${PROJECT_NAME}_lib
   src/state_manager.cpp
 )
 
+#add_library(wbc_lib
+#  src/wholebody_controller.cpp
+#)
+
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
@@ -149,7 +154,6 @@ add_executable(${PROJECT_NAME} src/main.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(link_lib
   ${catkin_LIBRARIES}
@@ -157,11 +161,15 @@ target_link_libraries(link_lib
   -lrbdl_urdfreader
   )
 
+
 target_link_libraries(${PROJECT_NAME}_lib
   link_lib
   -lpthread
 )
+
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
 ${PROJECT_NAME}_lib
 )
+
+add_dependencies(link_lib ${catkin_EXPORTED_TARGETS})

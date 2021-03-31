@@ -3,22 +3,6 @@
 
 using namespace std;
 
-void init_shm()
-{
-
-    if ((shm_msg_id = shmget(shm_msg_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
-    {
-        std::cout << "shm mtx failed " << std::endl;
-        exit(0);
-    }
-
-    if ((shm_msgs_ = (SHMmsgs *)shmat(shm_msg_id, NULL, 0)) == (SHMmsgs *)-1)
-    {
-        std::cout << "shmat failed " << std::endl;
-        exit(0);
-    }
-}
-
 StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
 {
     cout << "Init StateManager" << endl;
@@ -54,6 +38,8 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
             total_mass += link_[i].Mass;
         }
 
+        
+        /*
         link_[Right_Foot].contact_point << 0.03, 0, -0.1585;
         link_[Right_Foot].sensor_point << 0.0, 0.0, -0.09;
         link_[Left_Foot].contact_point << 0.03, 0, -0.1585;
@@ -63,12 +49,10 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
         link_[Right_Hand].sensor_point << 0.0, 0.0, 0.0;
         link_[Left_Hand].contact_point << 0, 0.0, -0.035;
         link_[Left_Hand].sensor_point << 0.0, 0.0, 0.0;
+        */      
 
-        for (int i = 0; i < LINK_NUMBER; i++)
-        {
-            link_local_[i] = link_[i];
-            link_local_[i].model = &model_;
-        }
+
+        memcpy(link_local_, link_, sizeof(LinkData) * LINK_NUMBER);
     }
 }
 
@@ -81,16 +65,16 @@ void *StateManager::stateThread(void)
 {
     cout << "StateManager Thread Entered" << endl;
 
-
     std::this_thread::sleep_for(std::chrono::seconds(1));
-
-
 
     volatile int rcv_tcnt = 0;
     rcv_tcnt = shm_msgs_->t_cnt;
     cout << "first packet " << rcv_tcnt << endl;
     volatile int cycle_count_ = rcv_tcnt;
     volatile int cc_zero_ = 0;
+
+    RobotData_origin test_, test2_;
+
     while (!shm_msgs_->shutdown)
     {
         cycle_count_++;
@@ -102,7 +86,7 @@ void *StateManager::stateThread(void)
 
         if (rcv_tcnt + 1 != shm_msgs_->t_cnt)
         {
-            std::cout << "missed packet : " << shm_msgs_->t_cnt - rcv_tcnt << std::endl;
+            //std::cout << "missed packet : " << shm_msgs_->t_cnt - rcv_tcnt << std::endl;
         }
         rcv_tcnt = shm_msgs_->t_cnt;
 
@@ -128,9 +112,10 @@ void *StateManager::stateThread(void)
 
         updateKinematics(model_2, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
 
+
         auto t1 = chrono::steady_clock::now();
 
-        storeState();
+        storeState(dc_.rd_);
 
         auto d1 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t1);
 
@@ -138,8 +123,17 @@ void *StateManager::stateThread(void)
         static int max = 0;
         static int min = 10000000;
         static float avg = 0;
-
+        static int cnt = 0;
+        static int cnt2 = 0;
+        static int cnt3 = 0;
         total += d1.count();
+
+        if (d1.count() > 15)
+        {
+            cnt3 = d1.count();
+            cnt++;
+            cnt2 = rcv_tcnt;
+        }
 
         if (max < d1.count())
             max = d1.count();
@@ -153,7 +147,7 @@ void *StateManager::stateThread(void)
         if (rcv_tcnt % 33 == 0)
         {
             printf("\33[2K\r");
-            printf("%8d %8d avg : %7.3f max : %4d min : %4d", rcv_tcnt, cycle_count_, avg, max, min);
+            printf("%8d %8d avg : %7.3f max : %4d min : %4d, cnt : %4d, cnt2 : %4d, cnt3 : %4d ", rcv_tcnt, cycle_count_, avg, max, min, cnt, cnt2, cnt3);
             fflush(stdout);
         }
     }
@@ -177,9 +171,33 @@ void StateManager::getSensorData()
 {
 }
 
-void StateManager::storeState()
+void StateManager::storeState(RobotData &rd_dst)
 {
-    memcpy(&dc_.rd_, &rd_, sizeof(RobotData));
+    memcpy(&rd_dst.model_, &model_, sizeof(RigidBodyDynamics::Model));
+
+    for (int i = 0; i < (LINK_NUMBER + 1); i++)
+    {
+        memcpy(&rd_dst.link_[i].Jac, &link_[i].Jac, sizeof(Matrix6Vf));
+        memcpy(&rd_dst.link_[i].Jac_COM, &link_[i].Jac_COM, sizeof(Matrix6Vf));
+
+        memcpy(&rd_dst.link_[i].xpos, &link_[i].xpos, sizeof(Vector3d));
+        memcpy(&rd_dst.link_[i].xipos, &link_[i].xipos, sizeof(Vector3d));
+        memcpy(&rd_dst.link_[i].Rotm, &link_[i].Rotm, sizeof(Matrix3d));
+        memcpy(&rd_dst.link_[i].v, &link_[i].v, sizeof(Vector3d));
+        memcpy(&rd_dst.link_[i].w, &link_[i].w, sizeof(Vector3d));
+
+        //xpos xipos rotm v w
+    }
+
+    memcpy(&rd_dst.A_, &A_, sizeof(MatrixVVf));
+    memcpy(&rd_dst.A_inv_, &A_inv_, sizeof(MatrixVVf));
+    memcpy(&rd_dst.Motor_inertia, &Motor_inertia, sizeof(MatrixVVf));
+    memcpy(&rd_dst.Motor_inertia_inverse, &Motor_inertia_inverse, sizeof(MatrixVVf));
+    memcpy(&rd_dst.q_, &q_, sizeof(VectorQd));
+    memcpy(&rd_dst.q_dot_, &q_dot_, sizeof(VectorQd));
+    memcpy(&rd_dst.q_virtual_, &q_virtual_, sizeof(VectorQVQd));
+    memcpy(&rd_dst.q_dot_virtual_, &q_dot_virtual_, sizeof(VectorVQd));
+    memcpy(&rd_dst.q_ddot_virtual_, &q_ddot_virtual_, sizeof(VectorVQd));
 }
 
 void StateManager::updateKinematics_local(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual_f, const Eigen::VectorXd &q_dot_virtual_f, const Eigen::VectorXd &q_ddot_virtual_f)
@@ -231,7 +249,7 @@ void StateManager::updateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
     RigidBodyDynamics::CompositeRigidBodyAlgorithm(model_l, q_virtual_f, A_temp_, false);
 
     A_ = A_temp_;
-    A_inv = A_.inverse();
+    A_inv_ = A_.inverse();
     for (int i = 0; i < MODEL_DOF + 1; i++)
     {
         link_p[i].pos_Update(model_l, q_virtual_f);

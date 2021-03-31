@@ -5,6 +5,7 @@
 // constexpr size_t MAX_DOF=50;
 
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 #include <Eigen/Geometry>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <Eigen/SVD>
@@ -42,6 +43,8 @@ namespace Eigen
   typedef Matrix<lScalar, MODEL_DOF_QVIRTUAL, 1> VectorQVQf;
   typedef Matrix<lScalar, MODEL_DOF_VIRTUAL, 1> VectorVQf;
   typedef Matrix<lScalar, MODEL_DOF, 1> VectorQf;
+
+  //typedef SparseMatrix<lScalar, 6, MODEL_DOF_VIRTUAL> sp
 
 
   EIGEN_MAKE_TYPEDEFS(rScalar, d, 5, 5)
