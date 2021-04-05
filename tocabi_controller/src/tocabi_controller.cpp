@@ -2,7 +2,7 @@
 
 using namespace std;
 
-TocabiController::TocabiController(DataContainer &dc_global) : dc(dc_global)
+TocabiController::TocabiController(DataContainer &dc_global, StateManager &stm_global) : dc(dc_global), stm(stm_global)
 {
     cout << "TocabiController Initialized" << endl;
 }
@@ -24,5 +24,10 @@ void *TocabiController::thread2()
 
 void *TocabiController::thread3()
 {
-    
+
+}
+
+void TocabiController::SetCommand()
+{
+
 }

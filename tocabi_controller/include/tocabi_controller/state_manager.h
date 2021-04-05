@@ -1,6 +1,10 @@
 #include <rbdl/rbdl.h>
 #include <rbdl/addons/urdfreader/urdfreader.h>
 #include "tocabi_controller/robot_data.h"
+#include "mujoco_ros_msgs/SimStatus.h"
+#include "mujoco_ros_msgs/JointSet.h"
+#include "std_msgs/String.h"
+
 #include <ros/ros.h>
 #include <ros/package.h>
 
@@ -17,7 +21,8 @@ public:
     void getJointData();
     void getSensorData();
     void storeState(RobotData &robotd_);
-
+    void calcNonlinear();
+    
     void stateEstimate();
     //private functions
 
@@ -55,4 +60,29 @@ public:
     Eigen::VectorQVQd q_virtual_;
     Eigen::VectorVQd q_dot_virtual_;
     Eigen::VectorVQd q_ddot_virtual_;
+
+    //simulation mode setup
+    bool sim_mode_ = false;
+
+    void ConnectSim();
+    void GetSimData();  
+    void SendCommand(VectorQf command, std::vector<bool> command_mode);
+
+
+    ros::Subscriber mujoco_sim_status_sub_;
+    ros::Subscriber mujoco_sim_command_sub_;
+    ros::Publisher mujoco_sim_command_pub_;
+    ros::Publisher mujoco_joint_set_pub_;
+
+    mujoco_ros_msgs::JointSet mujoco_joint_set_msg_;
+
+    void simCommandCallback(const std_msgs::StringConstPtr &msg);
+    void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);
+
+    float sim_time_;
+    float sim_time_before_;
+
+    bool mujoco_ready = false;
+    bool mujoco_init_receive = false;
+    bool mujoco_reset = false;
 };

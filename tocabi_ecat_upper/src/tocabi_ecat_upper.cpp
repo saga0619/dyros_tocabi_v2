@@ -1,4 +1,4 @@
-#include "tocabi_ecat/tocabi_ecat.h"
+#include "tocabi_ecat_upper/tocabi_ecat.h"
 
 void ethercatCheck()
 {
@@ -108,8 +108,6 @@ void *ethercatThread1(void *data)
 {
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
-
-    string ifname_str = "enp4s0";
 
     const char *ifname = ifname_str.c_str();
 

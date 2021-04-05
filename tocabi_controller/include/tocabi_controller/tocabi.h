@@ -102,7 +102,7 @@ namespace TOCABI
 
     const std::string ACTUATOR_NAME[MODEL_DOF] = {"L_HipYaw_Motor", "L_HipRoll_Motor", "L_HipPitch_Motor", "L_Knee_Motor", "L_AnklePitch_Motor", "L_AnkleRoll_Motor", "R_HipYaw_Motor", "R_HipRoll_Motor", "R_HipPitch_Motor", "R_Knee_Motor", "R_AnklePitch_Motor", "R_AnkleRoll_Motor", "Waist1_Motor", "Waist2_Motor", "Upperbody_Motor", "L_Shoulder1_Motor", "L_Shoulder2_Motor", "L_Shoulder3_Motor", "L_Armlink_Motor", "L_Elbow_Motor", "L_Forearm_Motor", "L_Wrist1_Motor", "L_Wrist2_Motor", "Neck_Motor", "Head_Motor", "R_Shoulder1_Motor", "R_Shoulder2_Motor", "R_Shoulder3_Motor", "R_Armlink_Motor", "R_Elbow_Motor", "R_Forearm_Motor", "R_Wrist1_Motor", "R_Wrist2_Motor"};
 
-    static constexpr const char *LINK_NAME[MODEL_DOF+1] = {
+    static constexpr const char *LINK_NAME[MODEL_DOF + 1] = {
         "Pelvis_Link", "Waist1_Link", "Waist2_Link", "Upperbody_Link",
         "L_HipRoll_Link", "L_HipCenter_Link", "L_Thigh_Link", "L_Knee_Link", "L_AnkleCenter_Link", "L_AnkleRoll_Link",
         "R_HipRoll_Link", "R_HipCenter_Link", "R_Thigh_Link", "R_Knee_Link", "R_AnkleCenter_Link", "R_AnkleRoll_Link",
@@ -122,19 +122,18 @@ namespace TOCABI
         "R_Shoulder1_Joint", "R_Shoulder2_Joint", "R_Shoulder3_Joint", "R_Armlink_Joint",
         "R_Elbow_Joint", "R_Forearm_Joint", "R_Wrist1_Joint", "R_Wrist2_Joint"};
 
+    const int Pelvis = 0;
+    const int Upper_Body = 3;
+    const int Left_Foot = 9;
+    const int Right_Foot = 15;
+    const int Left_Hand = 23;
+    const int Right_Hand = 31;
+    const int Head = 33;
+    const int COM_id = 34;
+
+    const int LEFT = 0;
+    const int RIGHT = 1;
 } // namespace TOCABI
-
-const int Pelvis = 0;
-const int Upper_Body = 3;
-const int Left_Foot = 9;
-const int Right_Foot = 15;
-const int Left_Hand = 23;
-const int Right_Hand = 31;
-const int Head = 33;
-const int COM_id = 34;
-
-const int LEFT = 0;
-const int RIGHT = 1;
 
 //static atomic
 const std::string cred("\033[0;31m");

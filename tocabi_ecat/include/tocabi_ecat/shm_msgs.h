@@ -4,7 +4,7 @@
 #include <sys/ipc.h>
 
 //per link
-//Jac * 4 
+//Jac * 4
 //33 * 6 * 39 * 4
 
 #define MODEL_DOF 33
@@ -29,13 +29,11 @@ typedef struct SHMmsgs
     float torqueCommand[MODEL_DOF];
     float positionCommand[MODEL_DOF];
 
-
     std::atomic<int> t_cnt;
     std::atomic<bool> controllerReady;
     std::atomic<bool> reading;
 
     std::atomic<bool> shutdown;
-
 
     float lat_avg, lat_min, lat_max, lat_dev;
     float send_avg, send_min, send_max, send_dev;
@@ -46,6 +44,11 @@ SHMmsgs *shm_msgs_;
 int shm_msg_id;
 key_t shm_msg_key = 7056;
 
+enum ECOMMAND
+{
+    POSITION = 11,
+    TORQUE = 22
+};
 
 // Joint state
 // 0 : ELMO_ERROR,
@@ -61,22 +64,22 @@ key_t shm_msg_key = 7056;
 // 10 : SAFETY_VELOCITY_LIMIT,
 // 11 : SAFETY_JOINT_LIMIT,
 // 12 : SAFETY_TORQUE_LIMIT,
-enum ESTATE{
-ERROR,
-OPERATION_READY,
-COMMUTATION_INITIALIZE,
-COMMUTATION_DONE,
-ZP_SEARCHING_ZP,
-ZP_SEARCH_COMPLETE,
-ZP_MANUAL_REQUIRED,
-ZP_NOT_ENOUGH_HOMMING,
-ZP_GOTO_ZERO,
-ZP_SUCCESS,
-SAFETY_VELOCITY_LIMIT,
-SAFETY_JOINT_LIMIT,
-SAFETY_TORQUE_LIMIT,
+enum ESTATE
+{
+    ERROR,
+    OPERATION_READY,
+    COMMUTATION_INITIALIZE,
+    COMMUTATION_DONE,
+    ZP_SEARCHING_ZP,
+    ZP_SEARCH_COMPLETE,
+    ZP_MANUAL_REQUIRED,
+    ZP_NOT_ENOUGH_HOMMING,
+    ZP_GOTO_ZERO,
+    ZP_SUCCESS,
+    SAFETY_VELOCITY_LIMIT,
+    SAFETY_JOINT_LIMIT,
+    SAFETY_TORQUE_LIMIT,
 };
-
 
 void init_shm()
 {
@@ -92,4 +95,12 @@ void init_shm()
         std::cout << "shmat failed " << std::endl;
         exit(0);
     }
+}
+
+
+void SendCommand(float *torque_command, float *position_command, int *mode)
+{
+    shm_msgs_->commanding = true;
+
+    shm_msgs_->commanding = false;
 }

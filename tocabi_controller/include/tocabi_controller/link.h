@@ -13,85 +13,70 @@ class LinkData
 {
 public:
   // Update link i of rbdl link id. name : link name, mass : link mass, xipos : local center of mass position
-  void initialize(RigidBodyDynamics::Model &model_, int id_, std::string name_, double mass, Eigen::Vector3d &local_com_position);
+  virtual void Initialize(RigidBodyDynamics::Model &model_, int id_, std::string name_, double mass, Eigen::Vector3d &local_com_position);
 
-  // Update COM jacobian
-  void COM_Jac_Update(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_);
+  bool CheckName(RigidBodyDynamics::Model &model_);
 
   // Update xpos, xipos, rotm.
-  void pos_Update(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_);
-
-  // Set Contact point, Contact jacobian
-  //void Set_Contact(Eigen::VectorQVQd &q_virtual_, Eigen::Vector3d &Contact_position);
-
-  // Set Contact point, Contact jacobian
-  //void Set_Contact(Eigen::VectorQVQd &q_virtual_, Eigen::VectorVQd &q_dot_virtual, Eigen::Vector3d &Contact_position);
-
-  // Set Sensor Position
-  //void Set_Sensor_Position(Eigen::VectorQVQd &q_virtual_, Eigen::Vector3d &Sensor_position);
-
-  // update Jacobian matrix of local position at link.
-  void Set_Jacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_, Eigen::Vector3d &Jacobian_position);
-
-  // update Point Jacobian matrix of local position at link.
-  void Set_Jacobian_custom(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_, Eigen::Vector3d &Jacobian_position);
+  void UpdatePosition(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_);
 
   // update link velocity(6D, translation and rotation) from jacobian matrix Jac.
-  void vw_Update(const Eigen::VectorVQd &q_dot_virtual);
+  void UpdateVW(const Eigen::VectorVQd &q_dot_virtual);
+
+  // Update COM jacobian
+  void UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_);
+
 
   // set link Trajectory of id i.
-  void Set_Trajectory(Eigen::Vector3d position_desired, Eigen::Vector3d velocity_desired, Eigen::Matrix3d rotation_desired, Eigen::Vector3d rotational_velocity_desired);
+  void SetTrajectory(Eigen::Vector3d position_desired, Eigen::Vector3d velocity_desired, Eigen::Matrix3d rotation_desired, Eigen::Vector3d rotational_velocity_desired);
 
   // set realtime trajectory of link from quintic spline.
-  void Set_Trajectory_from_quintic(double current_time, double start_time, double end_time);
+  void SetTrajectoryQuintic(double current_time, double start_time, double end_time);
 
   // set realtime trajectory of link from quintic spline.
-  void Set_Trajectory_from_quintic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_desired);
+  void SetTrajectoryQuintic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_desired);
 
   // set realtime trajectory of link from quintic spline.
-  void Set_Trajectory_from_quintic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_init, Eigen::Vector3d pos_desired);
+  void SetTrajectoryQuintic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_init, Eigen::Vector3d pos_desired);
 
   // set realtime trajectory of link from quintic spline.
-  void Set_Trajectory_from_quintic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_init, Eigen::Vector3d vel_init, Eigen::Vector3d pos_desired, Eigen::Vector3d vel_desired);
+  void SetTrajectoryQuintic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_init, Eigen::Vector3d vel_init, Eigen::Vector3d pos_desired, Eigen::Vector3d vel_desired);
 
-  void Set_Trajectory_from_quintic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_init, Eigen::Vector3d vel_init, Eigen::Vector3d acc_init, Eigen::Vector3d pos_desired, Eigen::Vector3d vel_desired, Eigen::Vector3d acc_des);
-
-  // set realtime trajectory of link from cubic spline.
-  void Set_Trajectory_from_cubic(double current_time, double start_time, double end_time);
+  void SetTrajectoryQuintic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_init, Eigen::Vector3d vel_init, Eigen::Vector3d acc_init, Eigen::Vector3d pos_desired, Eigen::Vector3d vel_desired, Eigen::Vector3d acc_des);
 
   // set realtime trajectory of link from cubic spline.
-  void Set_Trajectory_from_cubic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_desired);
+  void SetTrajectoryCubic(double current_time, double start_time, double end_time);
 
   // set realtime trajectory of link from cubic spline.
-  void Set_Trajectory_from_cubic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_init, Eigen::Vector3d pos_desired);
+  void SetTrajectoryCubic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_desired);
 
   // set realtime trajectory of link from cubic spline.
-  void Set_Trajectory_from_cubic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_init, Eigen::Vector3d vel_init, Eigen::Vector3d pos_desired, Eigen::Vector3d vel_desired);
+  void SetTrajectoryCubic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_init, Eigen::Vector3d pos_desired);
+
+  // set realtime trajectory of link from cubic spline.
+  void SetTrajectoryCubic(double current_time, double start_time, double end_time, Eigen::Vector3d pos_init, Eigen::Vector3d vel_init, Eigen::Vector3d pos_desired, Eigen::Vector3d vel_desired);
 
   // set realtime trajectory of rotation of link
-  void Set_Trajectory_rotation(double current_time, double start_time, double end_time, bool local_);
+  void SetTrajectoryRotation(double current_time, double start_time, double end_time, bool local_);
 
   // set realtime trajectory of rotation of link
-  void Set_Trajectory_rotation(double current_time, double start_time, double end_time, Eigen::Matrix3d rot_desired, bool local_);
+  void SetTrajectoryRotation(double current_time, double start_time, double end_time, Eigen::Matrix3d rot_desired, bool local_);
 
   // set link initial position and rotation. initial position for task control.
-  void Set_initpos();
+  void SetInitialWithPosition();
 
-  void Set_initpos_local();
+  void SetInitialWithTrajectory();
 
-  void Set_initTask();
-
-  bool Check_name(RigidBodyDynamics::Model &model_);
 
   //void Get_PointPos(Eigen::VectorQVQd &q_virtual_, Eigen::VectorVQd &q_dot_virtual, Eigen::Vector3d &local_pos, Eigen::Vector3d &global_pos, Eigen::Vector6d &global_velocity6D);
 
   //constant variables
   int id;
-  double Mass;
+  double mass;
   std::string name;
 
   //local COM position of body
-  Eigen::Vector3d COM_position;
+  Eigen::Vector3d com_position;
 
   //inertial matrix
   Eigen::Matrix3d inertia;
@@ -101,7 +86,7 @@ public:
 
   //changing variables
   //rotation matrix
-  Eigen::Matrix3d Rotm;
+  Eigen::Matrix3d rotm;
 
   //global position of body
   Eigen::Vector3d xpos;
@@ -121,9 +106,8 @@ public:
   //fstar of current link
   Eigen::Vector6d fstar;
 
-  Eigen::Matrix6Vf Jac;
-  Eigen::Matrix6Vf Jac_COM;
-
+  Eigen::Matrix6Vf jac;
+  Eigen::Matrix6Vf jac_com;
 
   //realtime traj of cartesian & orientation.
   //)) traj is outcome of cubic or quintic function, which will be used to make fstar!
@@ -181,15 +165,29 @@ public:
 class EndEffector : public LinkData
 {
 public:
+  void Initialize(LinkData &lk_, float x_length, float y_length, float min_force, float friction_ratio, float friction_ratio_z);
+  void UpdateLinkData(LinkData &lk_);
   // Set Contact point, Contact jacobian
-  void Set_Contact(RigidBodyDynamics::Model &model_, Eigen::VectorQVQd &q_virtual_, Eigen::Vector3d &Contact_position);
+  void SetContact(RigidBodyDynamics::Model &model_, Eigen::VectorQVQd &q_virtual_);
   //cartesian velocity of contact point at body
   Eigen::Vector3d v_contact;
   //cartesian velocity of contact point at body
   Eigen::Vector3d w_contact;
-  Eigen::Matrix6Vf Jac_Contact;
+  Eigen::Matrix6Vf jac_contact;
   //global position of contact point at body
   Eigen::Vector3d xpos_contact;
   //local contact point
   Eigen::Vector3d contact_point;
+  Eigen::Vector3d sensor_point;
+
+  double friction_ratio;
+  double friction_ratio_z;
+
+  double cs_x_length;
+  double cs_y_length;
+
+  double contact_force_minimum;
+
+  bool contact;
+
 };

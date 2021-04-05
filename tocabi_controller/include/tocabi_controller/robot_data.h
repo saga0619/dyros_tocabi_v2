@@ -58,6 +58,7 @@ struct RobotKinematicsData
 struct RobotData_origin
 {
     //Com com_;
+
     LinkData link_[LINK_NUMBER + 1];
     double orientation;
     double roll, pitch, yaw;
@@ -243,6 +244,9 @@ struct RobotData
 {
     float control_time_;
     RigidBodyDynamics::Model model_;
+
+    vector<unique_ptr<LinkData>> link__;
+
     LinkData link_[LINK_NUMBER + 1];
     EndEffector ee_[ENDEFFECTOR_NUMBER];
 
@@ -258,7 +262,7 @@ struct RobotData
     Eigen::VectorVQd q_dot_virtual_;
     Eigen::VectorVQd q_ddot_virtual_;
 
-    /////////////////////////////////////////////
+    ///////////////////////////////////////////
 
     Eigen::VectorVQd q_dot_virtual_lpf;
     Eigen::VectorQd q_ext_;
@@ -268,6 +272,25 @@ struct RobotData
     Eigen::VectorQd torque_elmo_;
 
     Eigen::VectorQd torque_desired;
+
+    ///////////////////////////
+    //Dynamics Data
+
+    MatrixXf J_C;
+    MatrixXf J_C_INV_T;
+
+    MatrixVVf N_C;
+    MatrixQQf W, W_inv;
+    MatrixXf Lambda_c;
+    MatrixXf qr_V2;
+
+    VectorVQf G;
+    MatrixXf P_C;
+
+    VectorQf torque_grav;
+
+    VectorVQf non_linear;
+    Vector3f grav_ref;
 
     //EndEffector ee_[ENDEFFECTOR_NUMBER]; //ee_ : 0: Left 1: Right
 

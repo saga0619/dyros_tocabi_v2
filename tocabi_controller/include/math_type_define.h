@@ -46,7 +46,6 @@ namespace Eigen
 
   //typedef SparseMatrix<lScalar, 6, MODEL_DOF_VIRTUAL> sp
 
-
   EIGEN_MAKE_TYPEDEFS(rScalar, d, 5, 5)
   EIGEN_MAKE_TYPEDEFS(rScalar, d, 6, 6)
   EIGEN_MAKE_TYPEDEFS(rScalar, d, 7, 7)
@@ -69,6 +68,9 @@ namespace Eigen
 
   typedef Matrix<rScalar, MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL> MatrixVVd;
   typedef Matrix<lScalar, MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL> MatrixVVf;
+  typedef Matrix<lScalar, MODEL_DOF, MODEL_DOF> MatrixQQf;
+  typedef Matrix<lScalar, MODEL_DOF, MODEL_DOF_VIRTUAL> MatrixQVf;
+  typedef Matrix<lScalar, MODEL_DOF_VIRTUAL, MODEL_DOF> MatrixVQf;
 
   typedef Matrix<rScalar, 12, 1> Vector12d;
 
@@ -242,10 +244,10 @@ namespace DyrosMath
   }
 
   static Eigen::Vector3d multiplyIsometry3dVector3d(Eigen::Isometry3d A,
-                                      Eigen::Vector3d B)
+                                                    Eigen::Vector3d B)
   {
     Eigen::Vector3d AB;
-    AB = A.linear()*B + A.translation();
+    AB = A.linear() * B + A.translation();
     return AB;
   }
 
@@ -375,7 +377,6 @@ namespace DyrosMath
     return result;
   }
 
-
   static Eigen::Matrix3d Add_vel_to_Rotm(Eigen::Matrix3d Rotm, Eigen::Vector3d Rot_Vel, double d_time_)
   {
     Eigen::Quaterniond qtemp(Rotm);
@@ -385,7 +386,7 @@ namespace DyrosMath
     Rotm = res.normalized().toRotationMatrix();
     return Rotm;
   }
-/*
+  /*
   static Eigen::MatrixXd glsSVD_U(Eigen::MatrixXd A)
   {
     int size_row, size_col;
@@ -859,7 +860,7 @@ namespace DyrosMath
     if (rank == 0)
     {
       std::cout << "WARN::Input Matrix seems to be zero matrix" << std::endl;
-      std::pair<Eigen::MatrixXd, Eigen::MatrixXd> ret(A,A);
+      std::pair<Eigen::MatrixXd, Eigen::MatrixXd> ret(A, A);
       return ret;
     }
     else
@@ -938,6 +939,63 @@ namespace DyrosMath
         Rpsinv2.topLeftCorner(rank, rank) = R.inverse();
 
         Eigen::MatrixXd P;
+        P = qr.householderQ().transpose();
+
+        V2 = P.block(rank, 0, P.rows() - rank, P.cols());
+
+        //cols -> cols * cols
+        //V2 = qr.colsPermutation().block(rank,0,cols - rank, rows - rank)
+
+        return qr.colsPermutation() * Rpsinv2 * qr.householderQ().transpose();
+      }
+    }
+  }
+
+  
+  static Eigen::MatrixXf pinv_QR(const Eigen::MatrixXf &A, Eigen::MatrixXf &V2) //faster than pinv_SVD,
+  {
+    //FullPivHouseholderQR<MatrixXd> qr(A);
+    //qr.compute(A);
+    //qr.setThreshold(10e-10);
+    //return qr.inverse();
+
+    Eigen::ColPivHouseholderQR<Eigen::MatrixXf> qr(A);
+    //qr.setThreshold(10e-10);
+    int rank = qr.rank();
+
+    int cols, rows;
+
+    cols = A.cols();
+    rows = A.rows();
+
+    if (rank == 0)
+    {
+      std::cout << "WARN::Input Matrix seems to be zero matrix" << std::endl;
+      return A;
+    }
+    else
+    {
+      if (cols > rows)
+      {
+        //ColPivHouseholderQR<MatrixXd> qr(A.transpose());
+        //qr.compute(A.transpose());
+        Eigen::MatrixXf R = qr.matrixQR().topLeftCorner(rank, rank).template triangularView<Eigen::Upper>();
+        Eigen::MatrixXf Rpsinv2(rows, cols);
+
+        Rpsinv2.setZero();
+        Rpsinv2.topLeftCorner(rank, rank) = R.inverse();
+        return (qr.colsPermutation() * Rpsinv2 * qr.householderQ().transpose()).transpose();
+      }
+      else
+      {
+        //ColPivHouseholderQR<MatrixXd> qr(A);
+        //qr.compute(A);
+        Eigen::MatrixXf R = qr.matrixQR().topLeftCorner(rank, rank).template triangularView<Eigen::Upper>();
+        Eigen::MatrixXf Rpsinv2(cols, rows);
+        Rpsinv2.setZero();
+        Rpsinv2.topLeftCorner(rank, rank) = R.inverse();
+
+        Eigen::MatrixXf P;
         P = qr.householderQ().transpose();
 
         V2 = P.block(rank, 0, P.rows() - rank, P.cols());

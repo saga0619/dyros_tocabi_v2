@@ -1,4 +1,4 @@
-#include "tocabi_ecat/tocabi_ecat.h"
+#include "tocabi_ecat_upper/tocabi_ecat.h"
 #include <cstring>
 
 static int latency_target_fd = -1;
@@ -70,7 +70,7 @@ int main(void)
     
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
-    CPU_SET(7, &cpuset);
+    CPU_SET(6, &cpuset);
 
     ret = pthread_attr_setaffinity_np(&attr, sizeof(cpuset), &cpuset);
     if (ret)

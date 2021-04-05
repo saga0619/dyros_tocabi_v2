@@ -41,7 +41,8 @@ int main(void)
     pthread_attr_t attr, attr2;
     pthread_t thread1, thread2;
     int ret;
-    //set_latency_target();
+
+    //set_latency_target(); //if you are not using xenomai, use this function. 
 
     /* Initialize pthread attributes (default values) */
     ret = pthread_attr_init(&attr);

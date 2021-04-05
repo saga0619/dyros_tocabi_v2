@@ -2,6 +2,7 @@
 #include <thread>
 
 using namespace std;
+using namespace TOCABI;
 
 StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
 {
@@ -34,26 +35,24 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
 
         for (int i = 0; i < LINK_NUMBER; i++)
         {
-            link_[i].initialize(model_2, link_id_[i], TOCABI::LINK_NAME[i], model_2.mBodies[link_id_[i]].mMass, model_2.mBodies[link_id_[i]].mCenterOfMass);
-            total_mass += link_[i].Mass;
+            link_[i].Initialize(model_2, link_id_[i], TOCABI::LINK_NAME[i], model_2.mBodies[link_id_[i]].mMass, model_2.mBodies[link_id_[i]].mCenterOfMass);
+            total_mass += link_[i].mass;
         }
-
-        
-        /*
-        link_[Right_Foot].contact_point << 0.03, 0, -0.1585;
-        link_[Right_Foot].sensor_point << 0.0, 0.0, -0.09;
-        link_[Left_Foot].contact_point << 0.03, 0, -0.1585;
-        link_[Left_Foot].sensor_point << 0.0, 0.0, -0.09;
-
-        link_[Right_Hand].contact_point << 0, 0.0, -0.035;
-        link_[Right_Hand].sensor_point << 0.0, 0.0, 0.0;
-        link_[Left_Hand].contact_point << 0, 0.0, -0.035;
-        link_[Left_Hand].sensor_point << 0.0, 0.0, 0.0;
-        */      
-
 
         memcpy(link_local_, link_, sizeof(LinkData) * LINK_NUMBER);
     }
+
+    if (sim_mode_)
+    {
+        mujoco_sim_status_sub_ = dc_.nh.subscribe("/mujoco_ros_interface/sim_status", 1, &StateManager::simStatusCallback, this, ros::TransportHints().tcpNoDelay(true));
+        mujoco_joint_set_pub_ = dc_.nh.advertise<mujoco_ros_msgs::JointSet>("/mujoco_ros_interface/joint_set", 100);
+
+        mujoco_sim_command_pub_ = dc_.nh.advertise<std_msgs::String>("/mujoco_ros_interface/sim_command_con2sim", 100);
+        mujoco_sim_command_sub_ = dc_.nh.subscribe("/mujoco_ros_interface/sim_command_sim2con", 100, &StateManager::simCommandCallback, this);
+
+        mujoco_joint_set_msg_.position.resize(MODEL_DOF);
+        mujoco_joint_set_msg_.torque.resize(MODEL_DOF);
+        }
 }
 
 StateManager::~StateManager()
@@ -111,7 +110,6 @@ void *StateManager::stateThread(void)
         stateEstimate();
 
         updateKinematics(model_2, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
-
 
         auto t1 = chrono::steady_clock::now();
 
@@ -171,18 +169,27 @@ void StateManager::getSensorData()
 {
 }
 
+void StateManager::ConnectSim()
+{
+}
+
+void StateManager::GetSimData()
+{
+    ros::spinOnce();
+}
+
 void StateManager::storeState(RobotData &rd_dst)
 {
     memcpy(&rd_dst.model_, &model_, sizeof(RigidBodyDynamics::Model));
 
     for (int i = 0; i < (LINK_NUMBER + 1); i++)
     {
-        memcpy(&rd_dst.link_[i].Jac, &link_[i].Jac, sizeof(Matrix6Vf));
-        memcpy(&rd_dst.link_[i].Jac_COM, &link_[i].Jac_COM, sizeof(Matrix6Vf));
+        memcpy(&rd_dst.link_[i].jac, &link_[i].jac, sizeof(Matrix6Vf));
+        memcpy(&rd_dst.link_[i].jac_com, &link_[i].jac_com, sizeof(Matrix6Vf));
 
         memcpy(&rd_dst.link_[i].xpos, &link_[i].xpos, sizeof(Vector3d));
         memcpy(&rd_dst.link_[i].xipos, &link_[i].xipos, sizeof(Vector3d));
-        memcpy(&rd_dst.link_[i].Rotm, &link_[i].Rotm, sizeof(Matrix3d));
+        memcpy(&rd_dst.link_[i].rotm, &link_[i].rotm, sizeof(Matrix3d));
         memcpy(&rd_dst.link_[i].v, &link_[i].v, sizeof(Vector3d));
         memcpy(&rd_dst.link_[i].w, &link_[i].w, sizeof(Vector3d));
 
@@ -211,26 +218,23 @@ void StateManager::updateKinematics_local(RigidBodyDynamics::Model &model_l, Lin
    * */
     RigidBodyDynamics::UpdateKinematicsCustom(model_l, &q_virtual_f, &q_dot_virtual_f, &q_ddot_virtual_f);
 
-    link_p[Pelvis].pos_Update(model_l, q_virtual_f);
-    link_p[Right_Foot].pos_Update(model_l, q_virtual_f);
-    link_p[Left_Foot].pos_Update(model_l, q_virtual_f);
-    link_p[Right_Hand].pos_Update(model_l, q_virtual_f);
-    link_p[Left_Hand].pos_Update(model_l, q_virtual_f);
+    link_p[Pelvis].UpdatePosition(model_l, q_virtual_f);
+    link_p[Right_Foot].UpdatePosition(model_l, q_virtual_f);
+    link_p[Left_Foot].UpdatePosition(model_l, q_virtual_f);
+    link_p[Right_Hand].UpdatePosition(model_l, q_virtual_f);
+    link_p[Left_Hand].UpdatePosition(model_l, q_virtual_f);
 
-    Eigen::Vector3d zero;
-    zero.setZero();
+    link_p[Pelvis].UpdateJacobian(model_l, q_virtual_f);
+    link_p[Right_Foot].UpdateJacobian(model_l, q_virtual_f);
+    link_p[Left_Foot].UpdateJacobian(model_l, q_virtual_f);
+    link_p[Right_Hand].UpdateJacobian(model_l, q_virtual_f);
+    link_p[Left_Hand].UpdateJacobian(model_l, q_virtual_f);
 
-    link_p[Pelvis].Set_Jacobian(model_l, q_virtual_f, zero);
-    link_p[Right_Foot].Set_Jacobian(model_l, q_virtual_f, zero);
-    link_p[Left_Foot].Set_Jacobian(model_l, q_virtual_f, zero);
-    link_p[Right_Hand].Set_Jacobian(model_l, q_virtual_f, zero);
-    link_p[Left_Hand].Set_Jacobian(model_l, q_virtual_f, zero);
-
-    link_p[Pelvis].vw_Update(q_dot_virtual_f);
-    link_p[Right_Foot].vw_Update(q_dot_virtual_f);
-    link_p[Left_Foot].vw_Update(q_dot_virtual_f);
-    link_p[Right_Hand].vw_Update(q_dot_virtual_f);
-    link_p[Left_Hand].vw_Update(q_dot_virtual_f);
+    link_p[Pelvis].UpdateVW(q_dot_virtual_f);
+    link_p[Right_Foot].UpdateVW(q_dot_virtual_f);
+    link_p[Left_Foot].UpdateVW(q_dot_virtual_f);
+    link_p[Right_Hand].UpdateVW(q_dot_virtual_f);
+    link_p[Left_Hand].UpdateVW(q_dot_virtual_f);
 }
 
 void StateManager::updateKinematics(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual_f, const Eigen::VectorXd &q_dot_virtual_f, const Eigen::VectorXd &q_ddot_virtual_f)
@@ -252,19 +256,13 @@ void StateManager::updateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
     A_inv_ = A_.inverse();
     for (int i = 0; i < MODEL_DOF + 1; i++)
     {
-        link_p[i].pos_Update(model_l, q_virtual_f);
+        link_p[i].UpdatePosition(model_l, q_virtual_f);
     }
     Eigen::Vector3d zero;
     zero.setZero();
     for (int i = 0; i < MODEL_DOF + 1; i++)
     {
-        link_p[i].Set_Jacobian(model_l, q_virtual_f, zero);
-    }
-
-    for (int i = 0; i < MODEL_DOF + 1; i++)
-    {
-
-        link_p[i].COM_Jac_Update(model_l, q_virtual_f);
+        link_p[i].UpdateJacobian(model_l, q_virtual_f);
     }
     //COM link information update ::
     double com_mass;
@@ -291,30 +289,30 @@ void StateManager::updateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
 
     for (int i = 0; i < LINK_NUMBER; i++)
     {
-        jacobian_com += link_p[i].Jac_COM.topRows(3) * link_p[i].Mass;
+        jacobian_com += link_p[i].jac_com.topRows(3) * link_p[i].mass;
     }
 
-    link_p[COM_id].Mass = com_mass;
+    link_p[COM_id].mass = com_mass;
     link_p[COM_id].xpos = com_pos;
     link_p[COM_id].v = com_vel;
 
-    link_p[COM_id].Jac.setZero(6, MODEL_DOF_VIRTUAL);
+    link_p[COM_id].jac.setZero(6, MODEL_DOF_VIRTUAL);
 
-    //link_p[COM_id].Jac.block(0, 0, 2, MODEL_DOF + 6) = jacobian_com.block(0, 0, 2, MODEL_DOF + 6) / com_.mass;
-    //link_p[COM_id].Jac.block(2, 0, 4, MODEL_DOF + 6) = link_p[Pelvis].Jac.block(2, 0, 4, MODEL_DOF + 6);
+    //link_p[COM_id].jac.block(0, 0, 2, MODEL_DOF + 6) = jacobian_com.block(0, 0, 2, MODEL_DOF + 6) / com_.mass;
+    //link_p[COM_id].jac.block(2, 0, 4, MODEL_DOF + 6) = link_p[Pelvis].jac.block(2, 0, 4, MODEL_DOF + 6);
 
-    link_p[COM_id].Jac.block(0, 0, 3, MODEL_DOF_VIRTUAL) = jacobian_com.block(0, 0, 3, MODEL_DOF_VIRTUAL) / com_mass;
-    link_p[COM_id].Jac.block(3, 0, 3, MODEL_DOF_VIRTUAL) = link_p[Pelvis].Jac.block(3, 0, 3, MODEL_DOF_VIRTUAL);
+    link_p[COM_id].jac.block(0, 0, 3, MODEL_DOF_VIRTUAL) = jacobian_com.block(0, 0, 3, MODEL_DOF_VIRTUAL) / com_mass;
+    link_p[COM_id].jac.block(3, 0, 3, MODEL_DOF_VIRTUAL) = link_p[Pelvis].jac.block(3, 0, 3, MODEL_DOF_VIRTUAL);
 
-    link_p[COM_id].Jac_COM.block(0, 0, 3, MODEL_DOF_VIRTUAL) = jacobian_com / com_mass;
+    link_p[COM_id].jac_com.block(0, 0, 3, MODEL_DOF_VIRTUAL) = jacobian_com / com_mass;
 
     link_p[COM_id].xpos = com_pos;
     //link_p[COM_id].xpos(2) = link_p[Pelvis].xpos(2);
-    link_p[COM_id].Rotm = link_p[Pelvis].Rotm;
+    link_p[COM_id].rotm = link_p[Pelvis].rotm;
 
     for (int i = 0; i < LINK_NUMBER + 1; i++)
     {
-        link_p[i].vw_Update(q_dot_virtual_f);
+        link_p[i].UpdateVW(q_dot_virtual_f);
     }
 }
 
@@ -323,4 +321,9 @@ void StateManager::stateEstimate()
     q_virtual_ = q_virtual_local_;
     q_dot_virtual_ = q_dot_virtual_local_;
     q_ddot_virtual_ = q_ddot_virtual_local_;
+}
+
+void StateManager::calcNonlinear()
+{
+    //RigidBodyDynamics::NonlinearEffects(model_,)
 }
