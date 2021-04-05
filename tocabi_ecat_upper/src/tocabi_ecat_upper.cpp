@@ -104,7 +104,7 @@ void elmoInit()
     memset(ElmoSafteyMode, 0, sizeof(int) * ELMO_DOF);
 }
 
-void *ethercatThread1(void *data) 
+void *ethercatThread1(void *data)
 {
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
@@ -122,7 +122,7 @@ void *ethercatThread1(void *data)
         if (ec_config_init(FALSE) > 0) // TRUE when using configtable to init slaves, FALSE otherwise
         {
             printf("ELMO : %d slaves found and configured.\n", ec_slavecount); // ec_slavecount -> slave num
-            if (ec_slavecount == ELMO_DOF)
+            if (ec_slavecount == ELMO_DOF_LOWER)
             {
                 ecat_number_ok = true;
             }
@@ -175,7 +175,7 @@ void *ethercatThread1(void *data)
             expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
             printf("ELMO : Request operational state for all slaves. Calculated workcounter : %d\n", expectedWKC);
 
-            if (expectedWKC != 3 * ELMO_DOF)
+            if (expectedWKC != 3 * ELMO_DOF_LOWER)
             {
                 std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << creset << std::endl;
                 ecat_WKC_ok = true;
@@ -507,13 +507,7 @@ void *ethercatThread1(void *data)
                                     findZeroPoint(fz_group1[i]);
                                 }
                             }
-                            else if (fz_group == 1)
-                            {
-                                for (int i = 0; i < 3; i++)
-                                {
-                                    findZeroPoint(fz_group2[i]);
-                                }
-                            }
+
                             for (int i = 0; i < ec_slavecount; i++)
                                 hommingElmo_before[i] = hommingElmo[i];
                         }
@@ -541,26 +535,10 @@ void *ethercatThread1(void *data)
                             fz_group1_check = fz_group1_check && (elmofz[fz_group1[i]].result == ElmoHommingStatus::SUCCESS);
                         }
 
-                        fz_group2_check = true;
-                        for (int i = 0; i < 3; i++)
-                        {
-                            fz_group2_check = fz_group2_check && (elmofz[fz_group2[i]].result == ElmoHommingStatus::SUCCESS);
-                        }
-                        fz_group3_check = true;
-                        for (int i = 0; i < 12; i++)
-                        {
-                            fz_group3_check = fz_group3_check && (elmofz[fz_group3[i]].result == ElmoHommingStatus::SUCCESS);
-                        }
-
                         if (fz_group1_check && (fz_group == 0))
                         {
                             cout << "ELMO : arm zp done " << endl;
                             fz_group++;
-                        }
-                        if (fz_group2_check && (fz_group == 1))
-                        {
-                            fz_group++;
-                            cout << "ELMO : waist zp done" << endl;
                         }
 
                         static bool low_verbose = true;
@@ -570,7 +548,7 @@ void *ethercatThread1(void *data)
                             low_verbose = false;
                         }
 
-                        if (fz_group1_check && fz_group2_check)
+                        if (fz_group1_check)
                         {
                             if (!fz_group3_check)
                             {

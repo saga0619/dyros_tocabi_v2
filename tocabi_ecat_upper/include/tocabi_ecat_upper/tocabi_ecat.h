@@ -170,8 +170,8 @@ volatile int wkc;
 boolean inOP;
 uint8 currentgroup = 0;
 
-char commutation_cache_file[] = "/home/dyros/.tocabi_bootlog/commutationlog";
-char zeropoint_cache_file[] = "/home/dyros/.tocabi_bootlog/zeropointlog";
+char commutation_cache_file[] = "/home/dyros/.tocabi_bootlog/commutationlog_upper";
+char zeropoint_cache_file[] = "/home/dyros/.tocabi_bootlog/zeropointlog_upper";
 int stateElmo[ELMO_DOF];
 int stateElmo_before[ELMO_DOF];
 
