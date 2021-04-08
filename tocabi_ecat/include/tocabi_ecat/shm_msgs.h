@@ -33,6 +33,7 @@ typedef struct SHMmsgs
     float positionCommand[MODEL_DOF];
 
     std::atomic<int> t_cnt;
+    std::atomic<int> t_cnt2;
     std::atomic<bool> controllerReady;
     std::atomic<bool> reading;
 
@@ -40,6 +41,9 @@ typedef struct SHMmsgs
 
     float lat_avg, lat_min, lat_max, lat_dev;
     float send_avg, send_min, send_max, send_dev;
+
+    float lat_avg2, lat_min2, lat_max2, lat_dev2;
+    float send_avg2, send_min2, send_max2, send_dev2;
 
 } SHMmsgs;
 

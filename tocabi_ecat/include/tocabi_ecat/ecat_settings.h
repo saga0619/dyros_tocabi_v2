@@ -16,7 +16,7 @@
 
 #define ELMO_DOF 33
 
-#define ELMO_DOF_UPPER 18
+#define ELMO_DOF_UPPER 9
 
 #define ELMO_DOF_LOWER ELMO_DOF - ELMO_DOF_UPPER
 

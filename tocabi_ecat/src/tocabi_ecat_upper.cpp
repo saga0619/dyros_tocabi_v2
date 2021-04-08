@@ -1,7 +1,7 @@
 #include "tocabi_ecat/tocabi_ecat_upper.h"
 
-#define PART_ELMO_DOF ELMO_DOF_UPPER
-#define START_N 0
+const int PART_ELMO_DOF = ELMO_DOF_UPPER;
+const int START_N = 0;
 
 
 void ethercatCheck()
@@ -1162,11 +1162,11 @@ void sendJointStatus()
     memcpy(&shm_msgs_->torqueActual[ELMO_DOF_LOWER], &torque_[ELMO_DOF_LOWER], sizeof(float) * PART_ELMO_DOF);
     memcpy(&shm_msgs_->status[ELMO_DOF_LOWER], &joint_state_[ELMO_DOF_LOWER], sizeof(int) * PART_ELMO_DOF);*/
 
-    memcpy(&shm_msgs_->pos, &q_elmo_, sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->posExt, &q_ext_elmo_, sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->vel, &q_dot_elmo_, sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->torqueActual, &torque_elmo_, sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->status, &joint_state_elmo_, sizeof(int) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->pos[START_N], &q_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->posExt[START_N], &q_ext_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->vel[START_N], &q_dot_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->torqueActual[START_N], &torque_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->status[START_N], &joint_state_elmo_[START_N], sizeof(int) * PART_ELMO_DOF);
 
 }
 

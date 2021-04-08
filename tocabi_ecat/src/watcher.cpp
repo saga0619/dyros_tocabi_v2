@@ -23,13 +23,18 @@ int main()
 {
   init_shm();
 
+  printf("\n\n\n\n\n");
+
   while (true)
   {
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
-    printf("\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r cnt %10d lat avg %6.3f max %6.3f min %6.3f dev %6.4f, send avg %6.3f max %6.3f min %6.3f dev %6.4f\n", (int)shm_msgs_->t_cnt,
+    printf("\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r cnt %10d lat avg %6.3f max %6.3f min %6.3f dev %6.4f, send avg %6.3f max %6.3f min %6.3f dev %6.4f\n", (int)shm_msgs_->t_cnt,
            shm_msgs_->lat_avg / 1000.0, shm_msgs_->lat_max / 1000.0, shm_msgs_->lat_min / 1000.0, shm_msgs_->lat_dev / 1000.0,
            shm_msgs_->send_avg / 1000.0, shm_msgs_->send_max / 1000.0, shm_msgs_->send_min / 1000.0, shm_msgs_->send_dev / 1000.0);
+    printf("cnt %10d lat avg %6.3f max %6.3f min %6.3f dev %6.4f, send avg %6.3f max %6.3f min %6.3f dev %6.4f\n", (int)shm_msgs_->t_cnt2,
+           shm_msgs_->lat_avg2 / 1000.0, shm_msgs_->lat_max2 / 1000.0, shm_msgs_->lat_min2 / 1000.0, shm_msgs_->lat_dev2 / 1000.0,
+           shm_msgs_->send_avg2 / 1000.0, shm_msgs_->send_max2 / 1000.0, shm_msgs_->send_min2 / 1000.0, shm_msgs_->send_dev2 / 1000.0);
     int i = 0;
     printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]]);
     printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]]);

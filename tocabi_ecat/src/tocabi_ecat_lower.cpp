@@ -1,7 +1,10 @@
 #include "tocabi_ecat/tocabi_ecat_lower.h"
 
-#define PART_ELMO_DOF ELMO_DOF_LOWER
-#define START_N ELMO_DOF_UPPER
+//#define PART_ELMO_DOF ELMO_DOF_LOWER
+//#define START_N ELMO_DOF_UPPER
+
+const int PART_ELMO_DOF = ELMO_DOF_LOWER;
+const int START_N = ELMO_DOF_UPPER;
 
 void ethercatCheck()
 {
@@ -178,7 +181,7 @@ void *ethercatThread1(void *data)
 
             if (expectedWKC != 3 * PART_ELMO_DOF)
             {
-                std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << creset << std::endl;
+                std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << 3 * PART_ELMO_DOF << creset << std::endl;
                 ecat_WKC_ok = true;
             }
 
@@ -866,10 +869,10 @@ void *ethercatThread1(void *data)
                     total_dev1 += sqrt(((lat - lavg) * (lat - lavg)));
                     ldev = total_dev1 / cycle_count;
 
-                    shm_msgs_->lat_avg = lavg;
-                    shm_msgs_->lat_max = lmax;
-                    shm_msgs_->lat_min = lmin;
-                    shm_msgs_->lat_dev = ldev;
+                    shm_msgs_->lat_avg2 = lavg;
+                    shm_msgs_->lat_max2 = lmax;
+                    shm_msgs_->lat_min2 = lmin;
+                    shm_msgs_->lat_dev2 = ldev;
 
                     //sat = latency2.count();
                     total2 += sat;
@@ -886,10 +889,10 @@ void *ethercatThread1(void *data)
                     total_dev2 += sqrt(((sat - savg) * (sat - savg)));
                     sdev = total_dev2 / cycle_count;
 
-                    shm_msgs_->send_avg = savg;
-                    shm_msgs_->send_max = smax;
-                    shm_msgs_->send_min = smin;
-                    shm_msgs_->send_dev = sdev;
+                    shm_msgs_->send_avg2 = savg;
+                    shm_msgs_->send_max2 = smax;
+                    shm_msgs_->send_min2 = smin;
+                    shm_msgs_->send_dev2 = sdev;
 
                     cycle_count++;
                     /*
@@ -1123,7 +1126,7 @@ void initSharedMemory()
         std::cout << "SHM_LOCK enabled" << std::endl;
     }
 
-    shm_msgs_->t_cnt = 0;
+    shm_msgs_->t_cnt2 = 0;
     shm_msgs_->controllerReady = false;
     shm_msgs_->statusWriting = false;
     shm_msgs_->commanding = false;
@@ -1134,19 +1137,19 @@ void initSharedMemory()
     //float lat_avg, lat_min, lat_max, lat_dev;
     //float send_avg, send_min, send_max, send_dev;
 
-    shm_msgs_->lat_avg = 0;
-    shm_msgs_->lat_min = 0;
-    shm_msgs_->lat_max = 100000;
-    shm_msgs_->lat_dev = 0;
+    shm_msgs_->lat_avg2 = 0;
+    shm_msgs_->lat_min2 = 0;
+    shm_msgs_->lat_max2 = 100000;
+    shm_msgs_->lat_dev2 = 0;
 
-    shm_msgs_->send_avg = 0;
-    shm_msgs_->send_min = 0;
-    shm_msgs_->send_max = 100000;
-    shm_msgs_->send_dev = 0;
+    shm_msgs_->send_avg2 = 0;
+    shm_msgs_->send_min2 = 0;
+    shm_msgs_->send_max2 = 100000;
+    shm_msgs_->send_dev2 = 0;
 }
 void sendJointStatus()
 {
-    shm_msgs_->t_cnt = cycle_count;
+    shm_msgs_->t_cnt2 = cycle_count;
 
     // memcpy(&shm_msgs_->pos, q_, sizeof(float) * ELMO_DOF_LOWER);
     // memcpy(&shm_msgs_->posExt, q_ext_, sizeof(float) * ELMO_DOF_LOWER);
