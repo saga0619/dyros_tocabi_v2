@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 
 #include <ethercat.h>
-#include "tocabi_ecat_upper/ecat_settings.h"
+#include "tocabi_ecat/ecat_settings.h"
 #include "tocabi_ecat/shm_msgs.h"
 
 using namespace std;

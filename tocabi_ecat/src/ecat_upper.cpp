@@ -1,4 +1,4 @@
-#include "tocabi_ecat/tocabi_ecat.h"
+#include "tocabi_ecat/tocabi_ecat_upper.h"
 #include <cstring>
 
 static int latency_target_fd = -1;
@@ -41,8 +41,7 @@ int main(void)
     pthread_attr_t attr, attr2;
     pthread_t thread1, thread2;
     int ret;
-
-    //set_latency_target(); //if you are not using xenomai, use this function. 
+    //set_latency_target();
 
     /* Initialize pthread attributes (default values) */
     ret = pthread_attr_init(&attr);

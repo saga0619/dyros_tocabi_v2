@@ -1,4 +1,4 @@
-#include "tocabi_ecat_upper/tocabi_ecat.h"
+#include "tocabi_ecat/tocabi_ecat_upper.h"
 
 void ethercatCheck()
 {
@@ -109,11 +109,9 @@ void *ethercatThread1(void *data)
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
 
-    const char *ifname = ifname_str.c_str();
-
-    if (ec_init(ifname))
+    if (ec_init(ifname_upper))
     {
-        printf("ELMO : ec_init on %s succeeded.\n", ifname);
+        printf("ELMO : ec_init on %s succeeded.\n", ifname_upper);
         elmoInit();
         initSharedMemory();
         /* find and auto-config slaves */
@@ -936,7 +934,7 @@ void *ethercatThread1(void *data)
     }
     else
     {
-        printf("ELMO : No socket connection on %s\nExcecute as root\n", ifname);
+        printf("ELMO : No socket connection on %s\nExcecute as root\n", ifname_upper);
     }
 
     deleteSharedMemory();

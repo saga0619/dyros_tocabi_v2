@@ -1,4 +1,6 @@
-#include "tocabi_ecat_lower/tocabi_ecat.h"
+#include "tocabi_ecat/tocabi_ecat_lower.h"
+
+const int starting_joint = Upperbody_Joint;
 
 void ethercatCheck()
 {
@@ -109,11 +111,9 @@ void *ethercatThread1(void *data)
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
 
-    const char *ifname = ifname_str.c_str();
-
-    if (ec_init(ifname))
+    if (ec_init(ifname_lower))
     {
-        printf("ELMO : ec_init on %s succeeded.\n", ifname);
+        printf("ELMO : ec_init on %s succeeded.\n", ifname_lower);
         elmoInit();
         initSharedMemory();
         /* find and auto-config slaves */
@@ -254,19 +254,19 @@ void *ethercatThread1(void *data)
                                 if (elmost[i].state == ELMO_NOTFAULT)
                                 {
                                     elmost[i].commutation_required = true;
-                                    joint_state_elmo_[i] = ESTATE::COMMUTATION_INITIALIZE;
+                                    joint_state_elmo_[i + starting_joint] = ESTATE::COMMUTATION_INITIALIZE;
                                 }
                                 else if (elmost[i].state == ELMO_FAULT)
                                 {
                                     //cout << "slave : " << i << " commutation check complete at first" << endl;
                                     elmost[i].commutation_not_required = true;
-                                    joint_state_elmo_[i] = ESTATE::COMMUTATION_DONE;
+                                    joint_state_elmo_[i + starting_joint] = ESTATE::COMMUTATION_DONE;
                                 }
                                 else if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
                                     //cout << "slave : " << i << " commutation check complete with operation enable" << endl;
                                     elmost[i].commutation_not_required = true;
-                                    joint_state_elmo_[i] = ESTATE::COMMUTATION_DONE;
+                                    joint_state_elmo_[i + starting_joint] = ESTATE::COMMUTATION_DONE;
                                     elmost[i].commutation_ok = true;
                                 }
                                 else
@@ -279,7 +279,7 @@ void *ethercatThread1(void *data)
                             {
                                 if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
-                                    joint_state_elmo_[i] = ESTATE::COMMUTATION_DONE;
+                                    joint_state_elmo_[i + starting_joint] = ESTATE::COMMUTATION_DONE;
                                     //cout << "slave : " << i << " commutation check complete with operation enable 2" << endl;
                                     elmost[i].commutation_ok = true;
                                     elmost[i].commutation_required = false;
@@ -295,13 +295,13 @@ void *ethercatThread1(void *data)
                         if (check_commutation_first)
                         {
                             cout << "Commutation Status : " << endl;
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                                 printf("--");
                             cout << endl;
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                                 printf("%2d", (i - i % 10) / 10);
                             printf("\n");
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                                 printf("%2d", i % 10);
                             cout << endl;
                             cout << endl;
@@ -311,7 +311,7 @@ void *ethercatThread1(void *data)
                         if (query_check_state)
                         {
                             printf("\x1b[A\x1b[A\33[2K\r");
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                             {
                                 if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
@@ -323,7 +323,7 @@ void *ethercatThread1(void *data)
                                 }
                             }
                             cout << endl;
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                                 printf("--");
                             cout << endl;
                             fflush(stdout);
@@ -474,15 +474,6 @@ void *ethercatThread1(void *data)
                         if (de_zp_upper_switch)
                         {
                             cout << "starting upper zp" << endl;
-                            for (int i = 0; i < 8; i++)
-                                cout << "L" << i << "\t";
-                            for (int i = 0; i < 8; i++)
-                                cout << "R" << i << "\t";
-                            cout << endl;
-                            elmofz[R_Shoulder3_Joint].findZeroSequence = 7;
-                            elmofz[R_Shoulder3_Joint].initTime = control_time_real_;
-                            elmofz[L_Shoulder3_Joint].findZeroSequence = 7;
-                            elmofz[L_Shoulder3_Joint].initTime = control_time_real_;
 
                             for (int i = 0; i < ec_slavecount; i++)
                                 hommingElmo_before[starting_joint + i] = hommingElmo[starting_joint + i];
@@ -719,6 +710,15 @@ void *ethercatThread1(void *data)
                         }
                     }
 
+                    for (int i = 0; i < ec_slavecount; i++)
+                    {
+                        q_[i] = q_elmo_[JointMap[i]];
+                        q_dot_[i] = q_dot_elmo_[JointMap[i]];
+                        torque_[i] = torque_elmo_[JointMap[i]];
+                        q_ext_[i] = q_ext_elmo_[JointMap[i]];
+                        joint_state_[i] = joint_state_elmo_[JointMap[i]];
+                    }
+
                     sendJointStatus();
 
                     /*
@@ -940,7 +940,7 @@ void *ethercatThread1(void *data)
     }
     else
     {
-        printf("ELMO : No socket connection on %s\nExcecute as root\n", ifname);
+        printf("ELMO : No socket connection on %s\nExcecute as root\n", ifname_lower);
     }
 
     deleteSharedMemory();
@@ -1061,7 +1061,7 @@ bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord)
 }
 void checkJointSafety()
 {
-    for (int i = 0; i < ELMO_DOF; i++)
+    for (int i = 0; i < ELMO_DOF_LOWER; i++)
     {
         if ((joint_lower_limit[starting_joint + i] > q_elmo_[starting_joint + i]) || (joint_upper_limit[starting_joint + i] < q_elmo_[starting_joint + i]))
         {
@@ -1139,18 +1139,19 @@ void initSharedMemory()
 void sendJointStatus()
 {
     shm_msgs_->t_cnt = cycle_count;
-    memcpy(&shm_msgs_->pos[starting_joint], &q_elmo_[starting_joint], sizeof(float) * ELMO_DOF_LOWER);
-    memcpy(&shm_msgs_->posExt[starting_joint], &q_ext_elmo_[starting_joint], sizeof(float) * ELMO_DOF_LOWER);
-    memcpy(&shm_msgs_->vel[starting_joint], &q_dot_elmo_[starting_joint], sizeof(float) * ELMO_DOF_LOWER);
-    memcpy(&shm_msgs_->torqueActual[starting_joint], &torque_elmo_[starting_joint], sizeof(float) * ELMO_DOF_LOWER);
-    memcpy(&shm_msgs_->status[starting_joint], &joint_state_elmo_[starting_joint], sizeof(int) * ELMO_DOF_LOWER);
+
+    memcpy(&shm_msgs_->pos, q_, sizeof(float) * ELMO_DOF_LOWER);
+    memcpy(&shm_msgs_->posExt, q_ext_, sizeof(float) * ELMO_DOF_LOWER);
+    memcpy(&shm_msgs_->vel, q_dot_, sizeof(float) * ELMO_DOF_LOWER);
+    memcpy(&shm_msgs_->torqueActual, torque_, sizeof(float) * ELMO_DOF_LOWER);
+    memcpy(&shm_msgs_->status, joint_state_, sizeof(int) * ELMO_DOF_LOWER);
 }
 
 void getJointCommand()
 {
-    memcpy(&command_mode_[starting_joint], &shm_msgs_->commandMode[starting_joint], sizeof(int) * ELMO_DOF_LOWER);
-    memcpy(&q_desired_elmo_[starting_joint], &shm_msgs_->positionCommand[starting_joint], sizeof(float) * ELMO_DOF_LOWER);
-    memcpy(&torque_desired_elmo_[starting_joint], &shm_msgs_->torqueCommand[starting_joint], sizeof(float) * ELMO_DOF_LOWER);
+    memcpy(command_mode_, &shm_msgs_->commandMode, sizeof(int) * ELMO_DOF_LOWER);
+    memcpy(q_desired_, &shm_msgs_->positionCommand, sizeof(float) * ELMO_DOF_LOWER);
+    memcpy(torque_desired_, &shm_msgs_->torqueCommand, sizeof(float) * ELMO_DOF_LOWER);
 }
 
 void deleteSharedMemory()

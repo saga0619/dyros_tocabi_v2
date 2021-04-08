@@ -42,17 +42,17 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
         memcpy(link_local_, link_, sizeof(LinkData) * LINK_NUMBER);
     }
 
-    if (sim_mode_)
-    {
-        mujoco_sim_status_sub_ = dc_.nh.subscribe("/mujoco_ros_interface/sim_status", 1, &StateManager::simStatusCallback, this, ros::TransportHints().tcpNoDelay(true));
-        mujoco_joint_set_pub_ = dc_.nh.advertise<mujoco_ros_msgs::JointSet>("/mujoco_ros_interface/joint_set", 100);
+    // if (sim_mode_)
+    // {
+    //     mujoco_sim_status_sub_ = dc_.nh.subscribe("/mujoco_ros_interface/sim_status", 1, &StateManager::simStatusCallback, this, ros::TransportHints().tcpNoDelay(true));
+    //     mujoco_joint_set_pub_ = dc_.nh.advertise<mujoco_ros_msgs::JointSet>("/mujoco_ros_interface/joint_set", 100);
 
-        mujoco_sim_command_pub_ = dc_.nh.advertise<std_msgs::String>("/mujoco_ros_interface/sim_command_con2sim", 100);
-        mujoco_sim_command_sub_ = dc_.nh.subscribe("/mujoco_ros_interface/sim_command_sim2con", 100, &StateManager::simCommandCallback, this);
+    //     mujoco_sim_command_pub_ = dc_.nh.advertise<std_msgs::String>("/mujoco_ros_interface/sim_command_con2sim", 100);
+    //     mujoco_sim_command_sub_ = dc_.nh.subscribe("/mujoco_ros_interface/sim_command_sim2con", 100, &StateManager::simCommandCallback, this);
 
-        mujoco_joint_set_msg_.position.resize(MODEL_DOF);
-        mujoco_joint_set_msg_.torque.resize(MODEL_DOF);
-        }
+    //     mujoco_joint_set_msg_.position.resize(MODEL_DOF);
+    //     mujoco_joint_set_msg_.torque.resize(MODEL_DOF);
+    // }
 }
 
 StateManager::~StateManager()

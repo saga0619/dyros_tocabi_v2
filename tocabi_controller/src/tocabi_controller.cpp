@@ -27,7 +27,8 @@ void *TocabiController::thread3()
 
 }
 
+/*
 void TocabiController::SetCommand()
 {
 
-}
+}*/

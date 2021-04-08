@@ -76,8 +76,8 @@ public:
 
     mujoco_ros_msgs::JointSet mujoco_joint_set_msg_;
 
-    void simCommandCallback(const std_msgs::StringConstPtr &msg);
-    void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);
+    //void simCommandCallback(const std_msgs::StringConstPtr &msg);
+    //void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);
 
     float sim_time_;
     float sim_time_before_;

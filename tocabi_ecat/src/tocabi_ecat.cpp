@@ -104,7 +104,7 @@ void elmoInit()
     memset(ElmoSafteyMode, 0, sizeof(int) * ELMO_DOF);
 }
 
-void *ethercatThread1(void *data) 
+void *ethercatThread1(void *data)
 {
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
@@ -739,6 +739,15 @@ void *ethercatThread1(void *data)
                         }
                     }
 
+                    for (int i = 0; i < ELMO_DOF; i++)
+                    {
+                        q_[i] = q_elmo_[JointMap[i]];
+                        q_dot_[i] = q_dot_elmo_[JointMap[i]];
+                        torque_[i] = torque_elmo_[JointMap[i]];
+                        q_ext_[i] = q_ext_elmo_[JointMap[i]];
+                        joint_state_[i] = joint_state_elmo_[JointMap[i]];
+                    }
+
                     sendJointStatus();
 
                     /*
@@ -1164,10 +1173,10 @@ void initSharedMemory()
 void sendJointStatus()
 {
     shm_msgs_->t_cnt = cycle_count;
-    memcpy(&shm_msgs_->pos, q_elmo_, sizeof(float) * MODEL_DOF);
-    memcpy(&shm_msgs_->posExt, q_ext_elmo_, sizeof(float) * MODEL_DOF);
-    memcpy(&shm_msgs_->vel, q_dot_elmo_, sizeof(float) * MODEL_DOF);
-    memcpy(&shm_msgs_->torqueActual, torque_elmo_, sizeof(float) * MODEL_DOF);
+    memcpy(&shm_msgs_->pos, q_, sizeof(float) * MODEL_DOF);
+    memcpy(&shm_msgs_->posExt, q_ext_, sizeof(float) * MODEL_DOF);
+    memcpy(&shm_msgs_->vel, q_dot_, sizeof(float) * MODEL_DOF);
+    memcpy(&shm_msgs_->torqueActual, torque_, sizeof(float) * MODEL_DOF);
     memcpy(&shm_msgs_->status, joint_state_elmo_, sizeof(int) * MODEL_DOF);
 }
 

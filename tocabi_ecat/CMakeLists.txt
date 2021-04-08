@@ -9,7 +9,8 @@ add_compile_options(-std=c++11 -O3)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED
+tocabi_ecat)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -124,6 +125,14 @@ add_library(tocabi_ecat_lib
   src/tocabi_ecat.cpp
 )
 
+add_library(tocabi_ecat_lower_lib
+  src/tocabi_ecat_lower.cpp
+)
+
+add_library(tocabi_ecat_upper_lib
+  src/tocabi_ecat_upper.cpp
+)
+
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
@@ -133,7 +142,16 @@ add_library(tocabi_ecat_lib
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(tocabi_ecat src/main.cpp)
+
+add_executable(tocabi_ecat_lower src/ecat_lower.cpp)
+
+add_executable(tocabi_ecat_upper src/ecat_upper.cpp)
+
+
 add_executable(watcher src/watcher.cpp)
+
+
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -147,6 +165,18 @@ add_executable(watcher src/watcher.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(tocabi_ecat
   tocabi_ecat_lib
+  ${catkin_LIBRARIES}
+  -lsoem
+  -pthread
+)
+target_link_libraries(tocabi_ecat_lower
+  tocabi_ecat_lower_lib
+  ${catkin_LIBRARIES}
+  -lsoem
+  -pthread
+)
+target_link_libraries(tocabi_ecat_upper
+  tocabi_ecat_upper_lib
   ${catkin_LIBRARIES}
   -lsoem
   -pthread
@@ -206,3 +236,6 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+
+add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
