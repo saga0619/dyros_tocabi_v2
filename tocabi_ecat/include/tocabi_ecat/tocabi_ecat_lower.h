@@ -281,17 +281,17 @@ float q_dot_elmo_[ELMO_DOF];  //sendstate
 float torque_elmo_[ELMO_DOF]; //sendstate
 float q_ext_elmo_[ELMO_DOF];
 
-int joint_state_[ELMO_DOF]; //sendstate
-float q_[ELMO_DOF];      //sendstate
-float q_dot_[ELMO_DOF];  //sendstate
-float torque_[ELMO_DOF]; //sendstate
-float q_ext_[ELMO_DOF];
-
 int command_mode_[ELMO_DOF];
 float torque_desired_elmo_[ELMO_DOF]; //get torque command
 float q_desired_elmo_[ELMO_DOF];      //get joint command
 
 //int command_mode_[ELMO_DOF];
+
+int joint_state_[ELMO_DOF]; //sendstate
+float q_[ELMO_DOF];      //sendstate
+float q_dot_[ELMO_DOF];  //sendstate
+float torque_[ELMO_DOF]; //sendstate
+float q_ext_[ELMO_DOF];
 
 float torque_desired_[ELMO_DOF]; //get torque command
 float q_desired_[ELMO_DOF];      //get joint command

@@ -293,13 +293,13 @@ void *ethercatThread1(void *data)
                         if (check_commutation_first)
                         {
                             cout << "Commutation Status : " << endl;
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                                 printf("--");
                             cout << endl;
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                                 printf("%2d", (i - i % 10) / 10);
                             printf("\n");
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                                 printf("%2d", i % 10);
                             cout << endl;
                             cout << endl;
@@ -309,7 +309,7 @@ void *ethercatThread1(void *data)
                         if (query_check_state)
                         {
                             printf("\x1b[A\x1b[A\33[2K\r");
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                             {
                                 if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
@@ -321,7 +321,7 @@ void *ethercatThread1(void *data)
                                 }
                             }
                             cout << endl;
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                                 printf("--");
                             cout << endl;
                             fflush(stdout);
@@ -713,6 +713,15 @@ void *ethercatThread1(void *data)
                         }
                     }
 
+                    for (int i = 0; i < ec_slavecount; i++)
+                    {
+                        q_[15 + i] = q_elmo_[JointMap[15 + i]];
+                        q_dot_[15 + i] = q_dot_elmo_[JointMap[15 + i]];
+                        torque_[15 + i] = torque_elmo_[JointMap[15 + i]];
+                        q_ext_[15 + i] = q_ext_elmo_[JointMap[15 + i]];
+                        joint_state_[15 + i] = joint_state_elmo_[JointMap[15 + i]];
+                    }
+
                     sendJointStatus();
 
                     /*
@@ -977,14 +986,14 @@ void *ethercatThread2(void *data)
             else if ((ch % 256 == 'p'))
             {
                 std::cout << "------------------------------------------------------" << std::endl;
-                for (int i = 0; i < ELMO_DOF; i++)
+                for (int i = 0; i < ec_slavecount; i++)
                 { //std::cout << i << ELMO_NAME[i] <<
                     printf("%4d   %20s  %12f  ext : %12f\n", i, ELMO_NAME[i].c_str(), (double)q_elmo_[i], (double)q_ext_elmo_[i]);
                 }
             }
             else if ((ch % 256 == 'h'))
             {
-                for (int i = 0; i < ELMO_DOF; i++)
+                for (int i = 0; i < ec_slavecount; i++)
                     std::cout << i << ELMO_NAME[i] << "\t" << hommingElmo[i] << std::endl;
             }
 
@@ -1060,7 +1069,7 @@ bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord)
 }
 void checkJointSafety()
 {
-    for (int i = 0; i < ELMO_DOF; i++)
+    for (int i = 0; i < ec_slavecount; i++)
     {
         if ((joint_lower_limit[i] > q_elmo_[i]) || (joint_upper_limit[i] < q_elmo_[i]))
         {
@@ -1138,11 +1147,11 @@ void initSharedMemory()
 void sendJointStatus()
 {
     shm_msgs_->t_cnt = cycle_count;
-    memcpy(&shm_msgs_->pos, q_elmo_, sizeof(float) * MODEL_DOF);
-    memcpy(&shm_msgs_->posExt, q_ext_elmo_, sizeof(float) * MODEL_DOF);
-    memcpy(&shm_msgs_->vel, q_dot_elmo_, sizeof(float) * MODEL_DOF);
-    memcpy(&shm_msgs_->torqueActual, torque_elmo_, sizeof(float) * MODEL_DOF);
-    memcpy(&shm_msgs_->status, joint_state_elmo_, sizeof(int) * MODEL_DOF);
+    memcpy(&shm_msgs_->pos, q_, sizeof(float) * MODEL_DOF);
+    memcpy(&shm_msgs_->posExt, q_ext_, sizeof(float) * MODEL_DOF);
+    memcpy(&shm_msgs_->vel, q_dot_, sizeof(float) * MODEL_DOF);
+    memcpy(&shm_msgs_->torqueActual, torque_, sizeof(float) * MODEL_DOF);
+    memcpy(&shm_msgs_->status, joint_state_, sizeof(int) * MODEL_DOF);
 }
 
 void getJointCommand()
@@ -1220,7 +1229,7 @@ bool saveZeroPoint()
     auto const cache_time = (chrono::system_clock::now()).time_since_epoch().count();
     comfs.write(reinterpret_cast<char const *>(&cache_time), sizeof cache_time);
 
-    for (int i = 0; i < ELMO_DOF; i++)
+    for (int i = 0; i < ELMO_DOF_UPPER; i++)
         comfs.write(reinterpret_cast<char const *>(&q_zero_elmo_[i]), sizeof(double));
 
     comfs.close();
@@ -1240,8 +1249,8 @@ bool loadZeroPoint()
     std::chrono::system_clock::rep file_time_rep;
 
     ifs.read(reinterpret_cast<char *>(&file_time_rep), sizeof file_time_rep);
-    double getzp[ELMO_DOF];
-    for (int i = 0; i < ELMO_DOF; i++)
+    double getzp[ELMO_DOF_UPPER];
+    for (int i = 0; i < ELMO_DOF_UPPER; i++)
         ifs.read(reinterpret_cast<char *>(&getzp[i]), sizeof(double));
 
     ifs.close();

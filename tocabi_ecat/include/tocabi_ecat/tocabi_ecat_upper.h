@@ -290,6 +290,17 @@ double q_zero_point[ELMO_DOF];
 double q_zero_elmo_[ELMO_DOF];
 double q_zero_mod_elmo_[ELMO_DOF];
 
+
+int joint_state_[ELMO_DOF]; //sendstate
+float q_[ELMO_DOF];      //sendstate
+float q_dot_[ELMO_DOF];  //sendstate
+float torque_[ELMO_DOF]; //sendstate
+float q_ext_[ELMO_DOF];
+
+float torque_desired_[ELMO_DOF]; //get torque command
+float q_desired_[ELMO_DOF];      //get joint command
+
+
 void *ethercatThread1(void *data);
 void *ethercatThread2(void *data);
 void ethercatCheck();
