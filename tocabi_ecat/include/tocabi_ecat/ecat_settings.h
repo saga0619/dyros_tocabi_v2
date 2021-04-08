@@ -16,9 +16,9 @@
 
 #define ELMO_DOF 33
 
-#define ELMO_DOF_LOWER 15
-
 #define ELMO_DOF_UPPER 18
+
+#define ELMO_DOF_LOWER ELMO_DOF - ELMO_DOF_UPPER
 
 #define LEG_DOF 12
 
@@ -29,10 +29,14 @@
 #define PERIOD_NS 500000
 #define SEC_IN_NSEC 1000000000
 
+#define FORCE_CONTROL_MODE true
+
 const char ifname_lower[] = "eno2";
 const char ifname_upper[] = "enp4s0";
 
-enum
+const int starting_point = ELMO_DOF_UPPER;
+
+enum ELMO
 {
     Head_Joint,
     Neck_Joint,
@@ -68,14 +72,9 @@ enum
     L_AnklePitch_Joint,
     L_AnkleRoll_Joint
 };
-const std::string ELMO_NAME[ELMO_DOF] = {
-    "Head_Joint", "Neck_Joint", "R_Wrist1_Joint", "R_Wrist2_Joint", "L_Wrist2_Joint", "L_Wrist1_Joint", "L_Shoulder3_Joint", "L_Armlink_Joint",
-    "R_Armlink_Joint", "R_Shoulder3_Joint", "R_Elbow_Joint", "R_Forearm_Joint", "L_Forearm_Joint", "L_Elbow_Joint", "L_Shoulder1_Joint", "L_Shoulder2_Joint",
-    "R_Shoulder2_Joint", "R_Shoulder1_Joint", "Upperbody_Joint", "Waist2_Joint", "R_HipYaw_Joint", "R_HipRoll_Joint", "R_HipPitch_Joint",
-    "R_Knee_Joint", "R_AnklePitch_Joint", "R_AnkleRoll_Joint", "Waist1_Joint", "L_HipYaw_Joint", "L_HipRoll_Joint", "L_HipPitch_Joint",
-    "L_Knee_Joint", "L_AnklePitch_Joint", "L_AnkleRoll_Joint"};
 
-const int JointMap[ELMO_DOF] = {
+enum MODEL
+{
     L_HipYaw_Joint,
     L_HipRoll_Joint,
     L_HipPitch_Joint,
@@ -108,7 +107,87 @@ const int JointMap[ELMO_DOF] = {
     R_Elbow_Joint,
     R_Forearm_Joint,
     R_Wrist1_Joint,
-    R_Wrist2_Joint};
+    R_Wrist2_Joint
+};
+
+const std::string ELMO_NAME[ELMO_DOF] = {
+    "Head_Joint", "Neck_Joint", "R_Wrist1_Joint", "R_Wrist2_Joint", "L_Wrist2_Joint", "L_Wrist1_Joint", "L_Shoulder3_Joint", "L_Armlink_Joint",
+    "R_Armlink_Joint", "R_Shoulder3_Joint", "R_Elbow_Joint", "R_Forearm_Joint", "L_Forearm_Joint", "L_Elbow_Joint", "L_Shoulder1_Joint", "L_Shoulder2_Joint",
+    "R_Shoulder2_Joint", "R_Shoulder1_Joint", "Upperbody_Joint", "Waist2_Joint", "R_HipYaw_Joint", "R_HipRoll_Joint", "R_HipPitch_Joint",
+    "R_Knee_Joint", "R_AnklePitch_Joint", "R_AnkleRoll_Joint", "Waist1_Joint", "L_HipYaw_Joint", "L_HipRoll_Joint", "L_HipPitch_Joint",
+    "L_Knee_Joint", "L_AnklePitch_Joint", "L_AnkleRoll_Joint"};
+
+//pos[i] = pos_elmo[JointMap[i]]
+const int JointMap[ELMO_DOF] = {
+    ELMO::L_HipYaw_Joint,
+    ELMO::L_HipRoll_Joint,
+    ELMO::L_HipPitch_Joint,
+    ELMO::L_Knee_Joint,
+    ELMO::L_AnklePitch_Joint,
+    ELMO::L_AnkleRoll_Joint,
+    ELMO::R_HipYaw_Joint,
+    ELMO::R_HipRoll_Joint,
+    ELMO::R_HipPitch_Joint,
+    ELMO::R_Knee_Joint,
+    ELMO::R_AnklePitch_Joint,
+    ELMO::R_AnkleRoll_Joint,
+    ELMO::Waist1_Joint,
+    ELMO::Waist2_Joint,
+    ELMO::Upperbody_Joint,
+    ELMO::L_Shoulder1_Joint,
+    ELMO::L_Shoulder2_Joint,
+    ELMO::L_Shoulder3_Joint,
+    ELMO::L_Armlink_Joint,
+    ELMO::L_Elbow_Joint,
+    ELMO::L_Forearm_Joint,
+    ELMO::L_Wrist1_Joint,
+    ELMO::L_Wrist2_Joint,
+    ELMO::Neck_Joint,
+    ELMO::Head_Joint,
+    ELMO::R_Shoulder1_Joint,
+    ELMO::R_Shoulder2_Joint,
+    ELMO::R_Shoulder3_Joint,
+    ELMO::R_Armlink_Joint,
+    ELMO::R_Elbow_Joint,
+    ELMO::R_Forearm_Joint,
+    ELMO::R_Wrist1_Joint,
+    ELMO::R_Wrist2_Joint};
+
+//pos_elmo[i] = pos[JointMap[i]]
+const int JointMap2[ELMO_DOF] = {
+    MODEL::Head_Joint,
+    MODEL::Neck_Joint,
+    MODEL::R_Wrist1_Joint,
+    MODEL::R_Wrist2_Joint,
+    MODEL::L_Wrist2_Joint,
+    MODEL::L_Wrist1_Joint,
+    MODEL::L_Shoulder3_Joint,
+    MODEL::L_Armlink_Joint,
+    MODEL::R_Armlink_Joint,
+    MODEL::R_Shoulder3_Joint,
+    MODEL::R_Elbow_Joint,
+    MODEL::R_Forearm_Joint,
+    MODEL::L_Forearm_Joint,
+    MODEL::L_Elbow_Joint,
+    MODEL::L_Shoulder1_Joint,
+    MODEL::L_Shoulder2_Joint,
+    MODEL::R_Shoulder2_Joint,
+    MODEL::R_Shoulder1_Joint,
+    MODEL::Upperbody_Joint,
+    MODEL::Waist2_Joint,
+    MODEL::R_HipYaw_Joint,
+    MODEL::R_HipRoll_Joint,
+    MODEL::R_HipPitch_Joint,
+    MODEL::R_Knee_Joint,
+    MODEL::R_AnklePitch_Joint,
+    MODEL::R_AnkleRoll_Joint,
+    MODEL::Waist1_Joint,
+    MODEL::L_HipYaw_Joint,
+    MODEL::L_HipRoll_Joint,
+    MODEL::L_HipPitch_Joint,
+    MODEL::L_Knee_Joint,
+    MODEL::L_AnklePitch_Joint,
+    MODEL::L_AnkleRoll_Joint};
 
 const double CNT2RAD[ELMO_DOF] =
     {

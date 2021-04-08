@@ -22,6 +22,9 @@ typedef struct SHMmsgs
     float pos[MODEL_DOF];
     float posExt[MODEL_DOF];
 
+    float pos_virtual[7]; //virtual pos(3) + virtual quat(4)
+    float vel_virtual[6]; //virtual vel(3) + virtual twist(3)
+    
     //command val
 
     std::atomic<bool> commanding;

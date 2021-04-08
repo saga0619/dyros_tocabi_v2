@@ -1,5 +1,9 @@
 #include "tocabi_ecat/tocabi_ecat_upper.h"
 
+#define PART_ELMO_DOF ELMO_DOF_UPPER
+#define START_N 0
+
+
 void ethercatCheck()
 {
     if (inOP && ((wkc < expectedWKC) || ec_group[currentgroup].docheckstate))
@@ -120,7 +124,7 @@ void *ethercatThread1(void *data)
         if (ec_config_init(FALSE) > 0) // TRUE when using configtable to init slaves, FALSE otherwise
         {
             printf("ELMO : %d slaves found and configured.\n", ec_slavecount); // ec_slavecount -> slave num
-            if (ec_slavecount == ELMO_DOF_UPPER)
+            if (ec_slavecount == PART_ELMO_DOF)
             {
                 ecat_number_ok = true;
             }
@@ -173,7 +177,7 @@ void *ethercatThread1(void *data)
             expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
             printf("ELMO : Request operational state for all slaves. Calculated workcounter : %d\n", expectedWKC);
 
-            if (expectedWKC != 3 * ELMO_DOF_UPPER)
+            if (expectedWKC != 3 * PART_ELMO_DOF)
             {
                 std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << creset << std::endl;
                 ecat_WKC_ok = true;
@@ -228,6 +232,7 @@ void *ethercatThread1(void *data)
 
                 while (!de_shutdown)
                 {
+
                     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
                     ts.tv_nsec += PERIOD_NS;
@@ -341,6 +346,7 @@ void *ethercatThread1(void *data)
                         {
                             std::chrono::milliseconds commutation_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - st_start_time);
                             cout << "ELMO : All slaves Operational in " << commutation_time.count() << "ms" << endl;
+
                             if (commutation_time.count() < 500)
                             {
 
@@ -379,6 +385,8 @@ void *ethercatThread1(void *data)
                             }
                             else
                             {
+                                if (FORCE_CONTROL_MODE)
+                                    break;
                                 cout << "ELMO : ZeroPoint load failed. Ready to Search Zero Point " << endl;
                                 de_zp_sequence = true;
                             }
@@ -715,11 +723,11 @@ void *ethercatThread1(void *data)
 
                     for (int i = 0; i < ec_slavecount; i++)
                     {
-                        q_[15 + i] = q_elmo_[JointMap[15 + i]];
-                        q_dot_[15 + i] = q_dot_elmo_[JointMap[15 + i]];
-                        torque_[15 + i] = torque_elmo_[JointMap[15 + i]];
-                        q_ext_[15 + i] = q_ext_elmo_[JointMap[15 + i]];
-                        joint_state_[15 + i] = joint_state_elmo_[JointMap[15 + i]];
+                        q_[JointMap2[i]] = q_elmo_[i];
+                        q_dot_[JointMap2[i]] = q_dot_elmo_[i];
+                        torque_[JointMap2[i]] = torque_elmo_[i];
+                        q_ext_[JointMap2[i]] = q_ext_elmo_[i];
+                        joint_state_[JointMap2[i]] = joint_state_elmo_[i];
                     }
 
                     sendJointStatus();
@@ -1146,19 +1154,27 @@ void initSharedMemory()
 }
 void sendJointStatus()
 {
-    shm_msgs_->t_cnt = cycle_count; 
-    memcpy(&shm_msgs_->pos[ELMO_DOF_LOWER], &q_[ELMO_DOF_LOWER], sizeof(float) * ELMO_DOF_UPPER);
-    memcpy(&shm_msgs_->posExt[ELMO_DOF_LOWER], &q_ext_[ELMO_DOF_LOWER], sizeof(float) * ELMO_DOF_UPPER);
-    memcpy(&shm_msgs_->vel[ELMO_DOF_LOWER], &q_dot_[ELMO_DOF_LOWER], sizeof(float) * ELMO_DOF_UPPER);
-    memcpy(&shm_msgs_->torqueActual[ELMO_DOF_LOWER], &torque_[ELMO_DOF_LOWER], sizeof(float) * ELMO_DOF_UPPER);
-    memcpy(&shm_msgs_->status[ELMO_DOF_LOWER], &joint_state_[ELMO_DOF_LOWER], sizeof(int) * ELMO_DOF_UPPER);
+    shm_msgs_->t_cnt = cycle_count;
+    /*
+    memcpy(&shm_msgs_->pos[ELMO_DOF_LOWER], &q_[ELMO_DOF_LOWER], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->posExt[ELMO_DOF_LOWER], &q_ext_[ELMO_DOF_LOWER], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->vel[ELMO_DOF_LOWER], &q_dot_[ELMO_DOF_LOWER], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->torqueActual[ELMO_DOF_LOWER], &torque_[ELMO_DOF_LOWER], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->status[ELMO_DOF_LOWER], &joint_state_[ELMO_DOF_LOWER], sizeof(int) * PART_ELMO_DOF);*/
+
+    memcpy(&shm_msgs_->pos, &q_elmo_, sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->posExt, &q_ext_elmo_, sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->vel, &q_dot_elmo_, sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->torqueActual, &torque_elmo_, sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->status, &joint_state_elmo_, sizeof(int) * PART_ELMO_DOF);
+
 }
 
 void getJointCommand()
 {
-    memcpy(command_mode_, &shm_msgs_->commandMode, sizeof(int) * MODEL_DOF);
-    memcpy(q_desired_elmo_, &shm_msgs_->positionCommand, sizeof(float) * MODEL_DOF);
-    memcpy(torque_desired_elmo_, &shm_msgs_->torqueCommand, sizeof(float) * MODEL_DOF);
+    memcpy(command_mode_, &shm_msgs_->commandMode, sizeof(int) * PART_ELMO_DOF);
+    memcpy(q_desired_elmo_, &shm_msgs_->positionCommand, sizeof(float) * PART_ELMO_DOF);
+    memcpy(torque_desired_elmo_, &shm_msgs_->torqueCommand, sizeof(float) * PART_ELMO_DOF);
 }
 
 void deleteSharedMemory()
@@ -1229,7 +1245,7 @@ bool saveZeroPoint()
     auto const cache_time = (chrono::system_clock::now()).time_since_epoch().count();
     comfs.write(reinterpret_cast<char const *>(&cache_time), sizeof cache_time);
 
-    for (int i = 0; i < ELMO_DOF_UPPER; i++)
+    for (int i = 0; i < PART_ELMO_DOF; i++)
         comfs.write(reinterpret_cast<char const *>(&q_zero_elmo_[i]), sizeof(double));
 
     comfs.close();
@@ -1249,8 +1265,8 @@ bool loadZeroPoint()
     std::chrono::system_clock::rep file_time_rep;
 
     ifs.read(reinterpret_cast<char *>(&file_time_rep), sizeof file_time_rep);
-    double getzp[ELMO_DOF_UPPER];
-    for (int i = 0; i < ELMO_DOF_UPPER; i++)
+    double getzp[PART_ELMO_DOF];
+    for (int i = 0; i < PART_ELMO_DOF; i++)
         ifs.read(reinterpret_cast<char *>(&getzp[i]), sizeof(double));
 
     ifs.close();
