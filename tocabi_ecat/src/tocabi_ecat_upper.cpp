@@ -120,7 +120,7 @@ void *ethercatThread1(void *data)
         if (ec_config_init(FALSE) > 0) // TRUE when using configtable to init slaves, FALSE otherwise
         {
             printf("ELMO : %d slaves found and configured.\n", ec_slavecount); // ec_slavecount -> slave num
-            if (ec_slavecount == ELMO_DOF_LOWER)
+            if (ec_slavecount == ELMO_DOF_UPPER)
             {
                 ecat_number_ok = true;
             }
@@ -173,7 +173,7 @@ void *ethercatThread1(void *data)
             expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
             printf("ELMO : Request operational state for all slaves. Calculated workcounter : %d\n", expectedWKC);
 
-            if (expectedWKC != 3 * ELMO_DOF_LOWER)
+            if (expectedWKC != 3 * ELMO_DOF_UPPER)
             {
                 std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << creset << std::endl;
                 ecat_WKC_ok = true;
@@ -1146,12 +1146,12 @@ void initSharedMemory()
 }
 void sendJointStatus()
 {
-    shm_msgs_->t_cnt = cycle_count;
-    memcpy(&shm_msgs_->pos, q_, sizeof(float) * MODEL_DOF);
-    memcpy(&shm_msgs_->posExt, q_ext_, sizeof(float) * MODEL_DOF);
-    memcpy(&shm_msgs_->vel, q_dot_, sizeof(float) * MODEL_DOF);
-    memcpy(&shm_msgs_->torqueActual, torque_, sizeof(float) * MODEL_DOF);
-    memcpy(&shm_msgs_->status, joint_state_, sizeof(int) * MODEL_DOF);
+    shm_msgs_->t_cnt = cycle_count; 
+    memcpy(&shm_msgs_->pos[ELMO_DOF_LOWER], &q_[ELMO_DOF_LOWER], sizeof(float) * ELMO_DOF_UPPER);
+    memcpy(&shm_msgs_->posExt[ELMO_DOF_LOWER], &q_ext_[ELMO_DOF_LOWER], sizeof(float) * ELMO_DOF_UPPER);
+    memcpy(&shm_msgs_->vel[ELMO_DOF_LOWER], &q_dot_[ELMO_DOF_LOWER], sizeof(float) * ELMO_DOF_UPPER);
+    memcpy(&shm_msgs_->torqueActual[ELMO_DOF_LOWER], &torque_[ELMO_DOF_LOWER], sizeof(float) * ELMO_DOF_UPPER);
+    memcpy(&shm_msgs_->status[ELMO_DOF_LOWER], &joint_state_[ELMO_DOF_LOWER], sizeof(int) * ELMO_DOF_UPPER);
 }
 
 void getJointCommand()
