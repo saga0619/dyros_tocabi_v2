@@ -1282,7 +1282,7 @@ bool loadZeroPoint()
 
     //check commutation time save point
 
-    memset(&joint_state_elmo_[START_N], ESTATE::ZP_SUCCESS, sizeof(int) * ELMO_DOF_LOWER);
+    memset(joint_state_elmo_, ESTATE::ZP_SUCCESS, sizeof(int) * ELMO_DOF);
 
     return true;
 }

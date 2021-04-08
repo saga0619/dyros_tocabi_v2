@@ -36,45 +36,42 @@ const char ifname_upper[] = "enp4s0";
 
 const int starting_point = ELMO_DOF_UPPER;
 
-namespace ELMO
+enum ELMO
 {
-    enum ELMO
-    {
-        Head_Joint,
-        Neck_Joint,
-        R_Wrist1_Joint,
-        R_Wrist2_Joint,
-        L_Wrist2_Joint,
-        L_Wrist1_Joint,
-        L_Shoulder3_Joint,
-        L_Armlink_Joint,
-        R_Armlink_Joint,
-        R_Shoulder3_Joint,
-        R_Elbow_Joint,
-        R_Forearm_Joint,
-        L_Forearm_Joint,
-        L_Elbow_Joint,
-        L_Shoulder1_Joint,
-        L_Shoulder2_Joint,
-        R_Shoulder2_Joint,
-        R_Shoulder1_Joint,
-        Upperbody_Joint,
-        Waist2_Joint,
-        R_HipYaw_Joint,
-        R_HipRoll_Joint,
-        R_HipPitch_Joint,
-        R_Knee_Joint,
-        R_AnklePitch_Joint,
-        R_AnkleRoll_Joint,
-        Waist1_Joint,
-        L_HipYaw_Joint,
-        L_HipRoll_Joint,
-        L_HipPitch_Joint,
-        L_Knee_Joint,
-        L_AnklePitch_Joint,
-        L_AnkleRoll_Joint
-    };
-}
+    Head_Joint,
+    Neck_Joint,
+    R_Wrist1_Joint,
+    R_Wrist2_Joint,
+    L_Wrist2_Joint,
+    L_Wrist1_Joint,
+    L_Shoulder3_Joint,
+    L_Armlink_Joint,
+    R_Armlink_Joint,
+    R_Shoulder3_Joint,
+    R_Elbow_Joint,
+    R_Forearm_Joint,
+    L_Forearm_Joint,
+    L_Elbow_Joint,
+    L_Shoulder1_Joint,
+    L_Shoulder2_Joint,
+    R_Shoulder2_Joint,
+    R_Shoulder1_Joint,
+    Upperbody_Joint,
+    Waist2_Joint,
+    R_HipYaw_Joint,
+    R_HipRoll_Joint,
+    R_HipPitch_Joint,
+    R_Knee_Joint,
+    R_AnklePitch_Joint,
+    R_AnkleRoll_Joint,
+    Waist1_Joint,
+    L_HipYaw_Joint,
+    L_HipRoll_Joint,
+    L_HipPitch_Joint,
+    L_Knee_Joint,
+    L_AnklePitch_Joint,
+    L_AnkleRoll_Joint
+};
 
 namespace MODEL
 {
