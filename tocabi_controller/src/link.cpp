@@ -1,11 +1,11 @@
 #include <tocabi_controller/link.h>
 
-void LinkData::Initialize(RigidBodyDynamics::Model &model_, int id_, std::string name_, double mass_, Eigen::Vector3d &local_com_position)
+void LinkData::Initialize(RigidBodyDynamics::Model &model_, int id_, double mass_, const Eigen::Vector3d &local_com_position)
 {
     id = id_;
     mass = mass_;
     com_position = local_com_position;
-    name = name_;
+    //name = name_;
     rotm.setZero();
     inertia.setZero();
 
@@ -35,6 +35,16 @@ void LinkData::UpdateVW(const Eigen::VectorVQd &q_dot_virtual)
     v = vw.segment(0, 3);
     w = vw.segment(3, 3);
 }
+/*
+Eigen::Matrix6Vd LinkData::GetJac()
+{
+
+    return jac.cast<Eigen::rScalar>();
+}
+Eigen::Matrix6Vd LinkData::GetJacCOM()
+{
+    return jac_com.cast<Eigen::rScalar>();
+}*/
 
 void LinkData::UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_)
 {
@@ -43,15 +53,40 @@ void LinkData::UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::Vec
     jac_com.setZero();
     RigidBodyDynamics::CalcPointJacobian6D(model_, q_virtual_, id, model_.mBodies[id].mCenterOfMass, j_temp, false);
 
-    jac_com.block(0, 0, 3, MODEL_DOF_VIRTUAL) = j_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL).cast<float>(); //*E_T_;
-    jac_com.block(3, 0, 3, MODEL_DOF_VIRTUAL) = j_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL).cast<float>();
+    jac_com.block(0, 0, 3, MODEL_DOF_VIRTUAL) = j_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL).cast<Eigen::lScalar>(); //*E_T_;
+    jac_com.block(3, 0, 3, MODEL_DOF_VIRTUAL) = j_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL).cast<Eigen::lScalar>();
 
     j_temp.setZero();
 
     RigidBodyDynamics::CalcPointJacobian6D(model_, q_virtual_, id, Eigen::Vector3d::Zero(), j_temp, false);
 
-    jac.block<3, MODEL_DOF + 6>(0, 0) = j_temp.block<3, MODEL_DOF + 6>(3, 0).cast<float>();
-    jac.block<3, MODEL_DOF + 6>(3, 0) = j_temp.block<3, MODEL_DOF + 6>(0, 0).cast<float>();
+    jac.block<3, MODEL_DOF + 6>(0, 0) = j_temp.block<3, MODEL_DOF + 6>(3, 0).cast<Eigen::lScalar>();
+    jac.block<3, MODEL_DOF + 6>(3, 0) = j_temp.block<3, MODEL_DOF + 6>(0, 0).cast<Eigen::lScalar>();
+}
+
+void LinkData::UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_, const Eigen::VectorVQd &q_dot_virtual_)
+{
+    j_temp.setZero();
+
+    jac_com.setZero();
+    RigidBodyDynamics::CalcPointJacobian6D(model_, q_virtual_, id, model_.mBodies[id].mCenterOfMass, j_temp, false);
+
+    jac_com.block(0, 0, 3, MODEL_DOF_VIRTUAL) = j_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL).cast<Eigen::lScalar>(); //*E_T_;
+    jac_com.block(3, 0, 3, MODEL_DOF_VIRTUAL) = j_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL).cast<Eigen::lScalar>();
+
+    j_temp.setZero();
+
+    RigidBodyDynamics::CalcPointJacobian6D(model_, q_virtual_, id, Eigen::Vector3d::Zero(), j_temp, false);
+
+    jac.block<3, MODEL_DOF + 6>(0, 0) = j_temp.block<3, MODEL_DOF + 6>(3, 0).cast<Eigen::lScalar>();
+    jac.block<3, MODEL_DOF + 6>(3, 0) = j_temp.block<3, MODEL_DOF + 6>(0, 0).cast<Eigen::lScalar>();
+
+    Eigen::Vector6d vw = RigidBodyDynamics::CalcPointVelocity6D(model_,q_virtual_,q_dot_virtual_,id,Eigen::Vector3d::Zero(), false);
+
+    v = vw.segment(3, 3);
+    w = vw.segment(0, 3);
+
+
 }
 
 void LinkData::SetTrajectory(Eigen::Vector3d position_desired, Eigen::Vector3d velocity_desired, Eigen::Matrix3d rotation_desired, Eigen::Vector3d rotational_velocity_desired)
@@ -233,15 +268,15 @@ void EndEffector::SetContact(RigidBodyDynamics::Model &model_, Eigen::VectorQVQd
     //mtx_rbdl.unlock();
     // jac_Contact.block<3,MODEL_DOF+6>(0,0)=fj_.block<3,MODEL_DOF+6>(3,0)*E_T_;
     // jac_Contact.block<3,MODEL_DOF+6>(3,0)=fj_.block<3,MODEL_DOF+6>(0,0)*E_T_;
-    jac_contact.block<3, MODEL_DOF + 6>(0, 0) = j_temp.block<3, MODEL_DOF + 6>(3, 0).cast<float>();
-    jac_contact.block<3, MODEL_DOF + 6>(3, 0) = j_temp.block<3, MODEL_DOF + 6>(0, 0).cast<float>();
+    jac_contact.block<3, MODEL_DOF + 6>(0, 0) = j_temp.block<3, MODEL_DOF + 6>(3, 0).cast<Eigen::lScalar>();
+    jac_contact.block<3, MODEL_DOF + 6>(3, 0) = j_temp.block<3, MODEL_DOF + 6>(0, 0).cast<Eigen::lScalar>();
 
     // jac_Contact.block<3,3>(0,3)= -
     // DyrosMath::skm(RigidBodyDynamics::CalcBodyToBaseCoordinates(model_,q_virtual_,id,Contact_position,false)
     // - link_[0].xpos);
 }
 
-void EndEffector::Initialize(LinkData &lk_, float x_length, float y_length, float min_force, float friction_ratio_, float friction_ratio_z_)
+void EndEffector::InitializeEE(LinkData &lk_, float x_length, float y_length, float min_force, float friction_ratio_, float friction_ratio_z_)
 {
     id = lk_.id;
     mass = lk_.mass;

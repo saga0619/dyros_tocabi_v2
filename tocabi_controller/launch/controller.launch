@@ -1,0 +1,6 @@
+<launch>
+    <node name="tocabi_controller" pkg="tocabi_controller" type="tocabi_controller" output="screen">
+        <param name="sim_mode" value="true"/>
+        <param name="urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi.urdf"/>
+    </node>    
+</launch>

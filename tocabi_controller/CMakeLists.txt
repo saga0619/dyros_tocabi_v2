@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tocabi_controller)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11 -O3)
+add_compile_options(-std=c++17 -Ofast)
+
+## if -dVE-march=native  -mavx -mfma
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -11,6 +13,9 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
   eigen_conversions
+  sensor_msgs
+  std_msgs
+  tf
   tocabi_ecat
   tocabi_description
   tocabi_msgs
@@ -18,7 +23,9 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-
+#SET(CUSTOM_RBDL_PATH "" CACHE PATH "Path to specific RBDL Installation")
+#FIND_PACKAGE(Eigen3 REQUIRED)
+#FIND_PACKAGE(RBDL COMPONENTS URDFREADER REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -130,6 +137,7 @@ add_library(link_lib
 
 add_library(${PROJECT_NAME}_lib
   src/state_manager.cpp
+  src/tocabi_controller.cpp
 )
 
 #add_library(wbc_lib
@@ -145,6 +153,7 @@ add_library(${PROJECT_NAME}_lib
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME} src/main.cpp)
+add_executable(rbdl_test src/simple_example.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -154,6 +163,12 @@ add_executable(${PROJECT_NAME} src/main.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
+
+target_link_libraries(rbdl_test
+  ${catkin_LIBRARIES}
+  -lrbdl
+  -lrbdl_urdfreader
+  )
 
 target_link_libraries(link_lib
   ${catkin_LIBRARIES}

@@ -9,8 +9,7 @@ add_compile_options(-std=c++11 -O3)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED
-tocabi_ecat)
+find_package(catkin REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -146,7 +145,6 @@ add_executable(tocabi_ecat src/main.cpp)
 add_executable(tocabi_ecat_lower src/ecat_lower.cpp)
 
 add_executable(tocabi_ecat_upper src/ecat_upper.cpp)
-
 
 add_executable(watcher src/watcher.cpp)
 

@@ -1,0 +1,150 @@
+<robot name="dyros_tocabi_description">
+<link
+    name="Pelvis_Link">
+    <inertial>
+      <origin
+        xyz="0.07809 0 0.03985"
+        rpy="0 0 0"/>
+      <mass
+        value="12.19525" />
+      <inertia
+        ixx="0.101833182"
+        ixy="-0.000070812"
+        ixz="-0.003831096"
+        iyy="0.072400662"
+        iyz="0.000079272"
+        izz="0.144478157" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0.11 0 0.02"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/Pelvis_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0.11 0 0.039"
+        rpy="0 0 0" />
+      <geometry>
+		<cylinder length="0.088" radius="0.045"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0.11 0.1025 0.05"
+        rpy="0 0 0" />
+      <geometry>
+		<cylinder length="0.11" radius="0.045"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0.11 -0.1025 0.05"
+        rpy="0 0 0" />
+      <geometry>
+		<cylinder length="0.11" radius="0.045"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.0895 0 0.02"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.141 0.305 0.05"/>
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="R_HipRoll_Link">
+<inertial>
+      <origin
+        xyz="-0.06477 0 0.05149"
+        rpy="0 0 0" />
+      <mass
+        value="2.679" />
+      <inertia
+        ixx="0.01821"
+        ixy="-1.676E-07"
+        ixz="-0.0007745"
+        iyy="0.03121"
+        iyz="-4.53E-09"
+        izz="0.2928" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tocabi_description/meshes/HipRoll_R_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.1 0 0"
+        rpy="0 1.570796 0" />
+      <geometry>
+        <cylinder length="0.08" radius="0.045"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.016 0 0.085"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.154 0.1 0.02"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="0.055 0 0.0475"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.012 0.072 0.095"/>
+      </geometry>
+    </collision>
+	<collision>
+      <origin
+        xyz="-0.087 0 0.0475"
+        rpy="0 0 0" />
+      <geometry>
+		<box size="0.012 0.072 0.095"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="R_HipYaw_Joint"
+    type="revolute">
+    <origin
+      xyz="0.11 -0.1025 -0.1025"
+      rpy="0 0 0" />
+    <parent
+      link="Pelvis_Link" />
+    <child
+      link="R_HipRoll_Link" />
+    <axis
+      xyz="0 0 1" />
+	<limit
+	  lower="-3.14"
+	  upper="3.14"
+      effort="500"
+      velocity="100" />
+    <dynamics
+      damping="5" />
+	  
+  </joint>
+
+</robot>

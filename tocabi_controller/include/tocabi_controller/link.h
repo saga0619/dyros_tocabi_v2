@@ -11,9 +11,11 @@ using namespace Eigen;
 
 class LinkData
 {
+
 public:
+  ~LinkData(){j_temp.resize(0, 0);};
   // Update link i of rbdl link id. name : link name, mass : link mass, xipos : local center of mass position
-  virtual void Initialize(RigidBodyDynamics::Model &model_, int id_, std::string name_, double mass, Eigen::Vector3d &local_com_position);
+  void Initialize(RigidBodyDynamics::Model &model_, int id_, double mass, const Eigen::Vector3d &local_com_position);
 
   bool CheckName(RigidBodyDynamics::Model &model_);
 
@@ -26,6 +28,8 @@ public:
   // Update COM jacobian
   void UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_);
 
+  // Update COM jac + jac + vel
+  void UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_, const Eigen::VectorVQd &q_dot_virtual_);
 
   // set link Trajectory of id i.
   void SetTrajectory(Eigen::Vector3d position_desired, Eigen::Vector3d velocity_desired, Eigen::Matrix3d rotation_desired, Eigen::Vector3d rotational_velocity_desired);
@@ -67,6 +71,11 @@ public:
 
   void SetInitialWithTrajectory();
 
+  Eigen::Matrix6Vf jac;
+  Eigen::Matrix6Vf jac_com;
+
+  //Eigen::Matrix6Vd GetJac();
+  //Eigen::Matrix6Vd GetJacCOM();
 
   //void Get_PointPos(Eigen::VectorQVQd &q_virtual_, Eigen::VectorVQd &q_dot_virtual, Eigen::Vector3d &local_pos, Eigen::Vector3d &global_pos, Eigen::Vector6d &global_velocity6D);
 
@@ -105,9 +114,6 @@ public:
 
   //fstar of current link
   Eigen::Vector6d fstar;
-
-  Eigen::Matrix6Vf jac;
-  Eigen::Matrix6Vf jac_com;
 
   //realtime traj of cartesian & orientation.
   //)) traj is outcome of cubic or quintic function, which will be used to make fstar!
@@ -158,14 +164,13 @@ public:
   Eigen::Vector3d max_p_vel_;
 
   //RigidBodyDynamics::Model *model;
-
   Eigen::MatrixXd j_temp;
 };
 
 class EndEffector : public LinkData
 {
 public:
-  void Initialize(LinkData &lk_, float x_length, float y_length, float min_force, float friction_ratio, float friction_ratio_z);
+  void InitializeEE(LinkData &lk_, float x_length, float y_length, float min_force, float friction_ratio, float friction_ratio_z);
   void UpdateLinkData(LinkData &lk_);
   // Set Contact point, Contact jacobian
   void SetContact(RigidBodyDynamics::Model &model_, Eigen::VectorQVQd &q_virtual_);
@@ -189,5 +194,4 @@ public:
   double contact_force_minimum;
 
   bool contact;
-
 };
