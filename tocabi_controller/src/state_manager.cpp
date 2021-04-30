@@ -35,7 +35,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
 
         for (int i = 0; i < LINK_NUMBER; i++)
         {
-            link_[i].Initialize(model_2, link_id_[i], model_2.mBodies[link_id_[i]].mMass, model_2.mBodies[link_id_[i]].mCenterOfMass);
+            link_[i].Initialize(model_2, link_id_[i]);
             total_mass_ += link_[i].mass;
         }
         dc_.rd_.total_mass_ = total_mass_;
@@ -66,20 +66,20 @@ StateManager::~StateManager()
     cout << "StateManager Terminate" << endl;
 }
 
-void *StateManager::stateThread(void)
+void *StateManager::stateThread()
 {
     cout << "StateManager Thread Entered" << endl;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    volatile int rcv_tcnt = -1;
+    int rcv_tcnt = -1;
 
     //Checking Connect//
 
     //Check Coonnect Complete//
     rcv_tcnt = dc_.tc_shm_->t_cnt;
     //cout << "first packet " << rcv_tcnt << endl;
-    volatile int cycle_count_ = rcv_tcnt;
+    int cycle_count_ = rcv_tcnt;
     int stm_count_ = 0;
 
     int64_t total = 0;
@@ -312,11 +312,11 @@ void StateManager::updateKinematics_local(RigidBodyDynamics::Model &model_l, Lin
     link_p[Right_Hand].UpdateJacobian(model_l, q_virtual_f);
     link_p[Left_Hand].UpdateJacobian(model_l, q_virtual_f);
 
-    link_p[Pelvis].UpdateVW(q_dot_virtual_f);
-    link_p[Right_Foot].UpdateVW(q_dot_virtual_f);
-    link_p[Left_Foot].UpdateVW(q_dot_virtual_f);
-    link_p[Right_Hand].UpdateVW(q_dot_virtual_f);
-    link_p[Left_Hand].UpdateVW(q_dot_virtual_f);
+    link_p[Pelvis].UpdateVW(model_l, q_virtual_f, q_dot_virtual_f);
+    link_p[Right_Foot].UpdateVW(model_l, q_virtual_f, q_dot_virtual_f);
+    link_p[Left_Foot].UpdateVW(model_l, q_virtual_f, q_dot_virtual_f);
+    link_p[Right_Hand].UpdateVW(model_l, q_virtual_f, q_dot_virtual_f);
+    link_p[Left_Hand].UpdateVW(model_l, q_virtual_f, q_dot_virtual_f);
 }
 
 void StateManager::updateKinematics(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual_f, const Eigen::VectorXd &q_dot_virtual_f, const Eigen::VectorXd &q_ddot_virtual_f)

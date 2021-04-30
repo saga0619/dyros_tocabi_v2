@@ -7,7 +7,7 @@
 class TocabiController
 {
 public:
-    TocabiController(DataContainer &dc_global, StateManager &stm_global);
+    TocabiController(StateManager &stm_global);
 
     ~TocabiController();
     void *thread1();

@@ -2,7 +2,7 @@
 
 using namespace std;
 
-TocabiController::TocabiController(DataContainer &dc_global, StateManager &stm_global) : dc_(dc_global), stm_(stm_global), rd_(dc_global.rd_)
+TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc_), stm_(stm_global), rd_(stm_global.dc_.rd_)
 {
     cout << "TocabiController Initialized" << endl;
 }

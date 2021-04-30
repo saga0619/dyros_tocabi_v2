@@ -1,24 +1,14 @@
 #include <tocabi_controller/link.h>
 
-void LinkData::Initialize(RigidBodyDynamics::Model &model_, int id_, double mass_, const Eigen::Vector3d &local_com_position)
+void LinkData::Initialize(RigidBodyDynamics::Model &model_, int id_)
 {
     id = id_;
-    mass = mass_;
-    com_position = local_com_position;
-    //name = name_;
-    rotm.setZero();
-    inertia.setZero();
+    mass = model_.mBodies[id_].mMass;
 
+    com_position = model_.mBodies[id_].mCenterOfMass;
     inertia = model_.mBodies[id_].mInertia;
-    jac.setZero();
-    jac_com.setZero();
 
-    j_temp.setZero(6, MODEL_DOF_VIRTUAL);
-}
-
-bool LinkData::CheckName(RigidBodyDynamics::Model &model_)
-{
-    return (model_.GetBodyName(id) == name);
+    
 }
 
 void LinkData::UpdatePosition(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_)
@@ -28,12 +18,12 @@ void LinkData::UpdatePosition(RigidBodyDynamics::Model &model_, const Eigen::Vec
     rotm = (RigidBodyDynamics::CalcBodyWorldOrientation(model_, q_virtual_, id, false)).transpose();
 }
 
-void LinkData::UpdateVW(const Eigen::VectorVQd &q_dot_virtual)
+void LinkData::UpdateVW(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_, const Eigen::VectorVQd &q_dot_virtual_)
 {
-    Eigen::Vector6d vw;
-    vw = jac.cast<double>() * q_dot_virtual;
-    v = vw.segment(0, 3);
-    w = vw.segment(3, 3);
+    Eigen::Vector6d vw = RigidBodyDynamics::CalcPointVelocity6D(model_, q_virtual_, q_dot_virtual_, id, Eigen::Vector3d::Zero(), false);
+
+    v = vw.segment(3, 3);
+    w = vw.segment(0, 3);
 }
 /*
 Eigen::Matrix6Vd LinkData::GetJac()
@@ -48,7 +38,7 @@ Eigen::Matrix6Vd LinkData::GetJacCOM()
 
 void LinkData::UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_)
 {
-    j_temp.setZero();
+    j_temp.setZero(6, MODEL_DOF_VIRTUAL);
 
     jac_com.setZero();
     RigidBodyDynamics::CalcPointJacobian6D(model_, q_virtual_, id, model_.mBodies[id].mCenterOfMass, j_temp, false);
@@ -66,7 +56,7 @@ void LinkData::UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::Vec
 
 void LinkData::UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_, const Eigen::VectorVQd &q_dot_virtual_)
 {
-    j_temp.setZero();
+    j_temp.setZero(6, MODEL_DOF_VIRTUAL);
 
     jac_com.setZero();
     RigidBodyDynamics::CalcPointJacobian6D(model_, q_virtual_, id, model_.mBodies[id].mCenterOfMass, j_temp, false);
@@ -81,12 +71,10 @@ void LinkData::UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::Vec
     jac.block<3, MODEL_DOF + 6>(0, 0) = j_temp.block<3, MODEL_DOF + 6>(3, 0).cast<Eigen::lScalar>();
     jac.block<3, MODEL_DOF + 6>(3, 0) = j_temp.block<3, MODEL_DOF + 6>(0, 0).cast<Eigen::lScalar>();
 
-    Eigen::Vector6d vw = RigidBodyDynamics::CalcPointVelocity6D(model_,q_virtual_,q_dot_virtual_,id,Eigen::Vector3d::Zero(), false);
+    Eigen::Vector6d vw = RigidBodyDynamics::CalcPointVelocity6D(model_, q_virtual_, q_dot_virtual_, id, Eigen::Vector3d::Zero(), false);
 
     v = vw.segment(3, 3);
     w = vw.segment(0, 3);
-
-
 }
 
 void LinkData::SetTrajectory(Eigen::Vector3d position_desired, Eigen::Vector3d velocity_desired, Eigen::Matrix3d rotation_desired, Eigen::Vector3d rotational_velocity_desired)
@@ -258,7 +246,7 @@ void LinkData::SetInitialWithTrajectory()
 
 void EndEffector::SetContact(RigidBodyDynamics::Model &model_, Eigen::VectorQVQd &q_virtual_)
 {
-    j_temp.setZero();
+    j_temp.setZero(6, MODEL_DOF_VIRTUAL);
 
     //mtx_rbdl.lock();
     RigidBodyDynamics::CalcPointJacobian6D(model_, q_virtual_, id, contact_point, j_temp, false);
@@ -281,7 +269,6 @@ void EndEffector::InitializeEE(LinkData &lk_, float x_length, float y_length, fl
     id = lk_.id;
     mass = lk_.mass;
     com_position = lk_.com_position;
-    name = lk_.name;
     rotm.setZero();
     inertia.setZero();
 
@@ -295,7 +282,6 @@ void EndEffector::InitializeEE(LinkData &lk_, float x_length, float y_length, fl
     friction_ratio = friction_ratio_;
     friction_ratio_z = friction_ratio_z_;
 
-    j_temp.setZero(6, MODEL_DOF_VIRTUAL);
 }
 
 void EndEffector::UpdateLinkData(LinkData &lk_)

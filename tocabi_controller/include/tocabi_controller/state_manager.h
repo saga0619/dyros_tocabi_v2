@@ -24,7 +24,7 @@ public:
     StateManager(DataContainer &dc_global);
     ~StateManager();
 
-    void *stateThread(void);
+    void *stateThread();
     static void *thread_starter(void *context) { return ((StateManager *)context)->stateThread(); }
     void getJointData();
     void getSensorData();
@@ -76,9 +76,7 @@ public:
     double total_mass_ = 0;
     tf2_ros::TransformBroadcaster br;
 
-
-    //Simmode values.. 
-    
+    //Simmode values..
 
     void ConnectSim();
     void GetSimData();

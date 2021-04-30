@@ -13,9 +13,9 @@ class LinkData
 {
 
 public:
-  ~LinkData(){j_temp.resize(0, 0);};
   // Update link i of rbdl link id. name : link name, mass : link mass, xipos : local center of mass position
-  void Initialize(RigidBodyDynamics::Model &model_, int id_, double mass, const Eigen::Vector3d &local_com_position);
+  void Initialize(RigidBodyDynamics::Model &model_, int id_);
+
 
   bool CheckName(RigidBodyDynamics::Model &model_);
 
@@ -23,7 +23,7 @@ public:
   void UpdatePosition(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_);
 
   // update link velocity(6D, translation and rotation) from jacobian matrix Jac.
-  void UpdateVW(const Eigen::VectorVQd &q_dot_virtual);
+  void UpdateVW(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_, const Eigen::VectorVQd &q_dot_virtual_);
 
   // Update COM jacobian
   void UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_);
@@ -82,7 +82,7 @@ public:
   //constant variables
   int id;
   double mass;
-  std::string name;
+  //std::string name;
 
   //local COM position of body
   Eigen::Vector3d com_position;

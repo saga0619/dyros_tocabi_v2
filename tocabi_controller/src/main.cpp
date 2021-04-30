@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 
     StateManager stm(dc_);
 
-    TocabiController tc_(dc_, stm);
+    TocabiController tc_(stm);
 
     if ((shm_msg_id = shmget(shm_msg_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
     {
@@ -95,19 +95,19 @@ int main(int argc, char **argv)
     {
         printf("threads[1] create failed\n");
     }
-    // if (pthread_create(&threads[2], &attrs[2], &TocabiController::thread2_helper, &tc_))
-    // {
-    //     printf("threads[2] create failed\n");
-    // }
+    if (pthread_create(&threads[2], &attrs[2], &TocabiController::thread2_starter, &tc_))
+    {
+        printf("threads[2] create failed\n");
+    }
 
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < thread_number; i++)
     {
         pthread_attr_destroy(&attrs[i]);
     }
 
     cout << "waiting cont..." << endl;
     /* Join the thread and wait until it is done */
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < thread_number; i++)
     {
         pthread_join(threads[i], NULL);
     }
