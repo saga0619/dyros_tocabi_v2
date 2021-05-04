@@ -1176,7 +1176,7 @@ void initSharedMemory()
     
     shm_msgs_->t_cnt = 0;
     shm_msgs_->controllerReady = false;
-    shm_msgs_->statusWriting = false;
+    shm_msgs_->statusWriting = 0;
     shm_msgs_->commanding = false;
     shm_msgs_->reading = false;
     shm_msgs_->shutdown = false;

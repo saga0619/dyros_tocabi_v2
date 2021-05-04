@@ -3,6 +3,7 @@
 
 const int PART_ELMO_DOF = ELMO_DOF_UPPER;
 const int START_N = 0;
+const int Q_UPPER_START = ELMO_DOF_LOWER;
 int64 gl_delta, toff;
 
 void ec_sync(int64 reftime, int64 cycletime, int64 *offsettime)
@@ -136,8 +137,8 @@ void *ethercatThread1(void *data)
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
 
-    //if (ec_init(ifname_upper))
-    if (ec_init_redundant(ifname_upper, (char *)ifname_lower))
+    if (ec_init(ifname_upper))
+    //if (ec_init_redundant(ifname_upper, (char *)ifname_lower))
     {
         printf("ELMO : ec_init on %s succeeded.\n", ifname_upper);
         elmoInit();
@@ -879,6 +880,8 @@ void *ethercatThread1(void *data)
                         ec_sync(ec_DCtime, cycletime, &toff);
                     }
 
+                    checkJointSafety();
+
                     //Torque off if emergency off received
                     if (de_emergency_off)
                         emergencyOff();
@@ -1170,7 +1173,7 @@ void initSharedMemory()
 
     shm_msgs_->t_cnt = 0;
     shm_msgs_->controllerReady = false;
-    shm_msgs_->statusWriting = false;
+    shm_msgs_->statusWriting = 0;
     shm_msgs_->commanding = false;
     shm_msgs_->reading = false;
     shm_msgs_->shutdown = false;
@@ -1189,28 +1192,41 @@ void initSharedMemory()
     shm_msgs_->send_max = 100000;
     shm_msgs_->send_dev = 0;
 }
+
 void sendJointStatus()
 {
-    shm_msgs_->t_cnt = cycle_count;
+    shm_msgs_->statusWriting++;
+
     /*
     memcpy(&shm_msgs_->pos[ELMO_DOF_LOWER], &q_[ELMO_DOF_LOWER], sizeof(float) * PART_ELMO_DOF);
     memcpy(&shm_msgs_->posExt[ELMO_DOF_LOWER], &q_ext_[ELMO_DOF_LOWER], sizeof(float) * PART_ELMO_DOF);
     memcpy(&shm_msgs_->vel[ELMO_DOF_LOWER], &q_dot_[ELMO_DOF_LOWER], sizeof(float) * PART_ELMO_DOF);
     memcpy(&shm_msgs_->torqueActual[ELMO_DOF_LOWER], &torque_[ELMO_DOF_LOWER], sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->status[ELMO_DOF_LOWER], &joint_state_[ELMO_DOF_LOWER], sizeof(int) * PART_ELMO_DOF);*/
+    memcpy(&shm_msgs_->status[ELMO_DOF_LOWER], &joint_state_[ELMO_DOF_LOWER], sizeof(int) * PART_ELMO_DOF);
+    */
 
-    memcpy(&shm_msgs_->pos[START_N], &q_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->posExt[START_N], &q_ext_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->vel[START_N], &q_dot_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->torqueActual[START_N], &torque_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->status[START_N], &joint_state_elmo_[START_N], sizeof(int) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->pos[Q_UPPER_START], &q_[START_N], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->posExt[Q_UPPER_START], &q_ext_[START_N], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->vel[Q_UPPER_START], &q_dot_[START_N], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->torqueActual[Q_UPPER_START], &torque_[START_N], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->status[Q_UPPER_START], &joint_state_[START_N], sizeof(int) * PART_ELMO_DOF);
+
+    shm_msgs_->statusWriting--;
+    shm_msgs_->t_cnt = cycle_count;
 }
 
 void getJointCommand()
 {
-    memcpy(command_mode_, &shm_msgs_->commandMode, sizeof(int) * PART_ELMO_DOF);
-    memcpy(q_desired_elmo_, &shm_msgs_->positionCommand, sizeof(float) * PART_ELMO_DOF);
-    memcpy(torque_desired_elmo_, &shm_msgs_->torqueCommand, sizeof(float) * PART_ELMO_DOF);
+    memcpy(&command_mode_[Q_UPPER_START], &shm_msgs_->commandMode[Q_UPPER_START], sizeof(int) * PART_ELMO_DOF);
+    memcpy(&q_desired_[Q_UPPER_START], &shm_msgs_->positionCommand[Q_UPPER_START], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&torque_desired_[Q_UPPER_START], &shm_msgs_->torqueCommand[Q_UPPER_START], sizeof(float) * PART_ELMO_DOF);
+
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        command_mode_elmo_[JointMap[Q_UPPER_START + i]] = command_mode_[Q_UPPER_START + i];
+        q_desired_elmo_[JointMap[Q_UPPER_START + i]] = q_desired_[Q_UPPER_START + i];
+        torque_desired_elmo_[JointMap[Q_UPPER_START + i]] = torque_desired_[Q_UPPER_START + i];
+    }
 }
 
 bool saveCommutationLog()
