@@ -895,6 +895,36 @@ namespace DyrosMath
     }
   }
 
+  static Eigen::MatrixQQd WinvCalc(const Eigen::MatrixQQd &W, Eigen::MatrixXd &V2)
+  {
+    Eigen::ColPivHouseholderQR<Eigen::MatrixQQd> qr(W);
+    qr.setThreshold(1.0e-9);
+
+    int cols = W.cols();
+    int rows = W.rows();
+
+    int rank = qr.rank();
+
+    if (rank == MODEL_DOF - 6)
+    {
+      Eigen::Matrix<double, MODEL_DOF -6 , MODEL_DOF - 6> R = qr.matrixQR().topLeftCorner(rank, rank).template triangularView<Eigen::Upper>();
+      Eigen::MatrixQQd Rpsinv;
+      Rpsinv.setZero();
+      Rpsinv.topLeftCorner(rank, rank) = R.inverse();
+
+      Eigen::MatrixQQd P;
+
+      P = qr.householderQ().transpose();
+
+      V2 = P.block(rank, 0, P.rows() - rank, P.cols());
+
+      //cols -> cols * cols
+      //V2 = qr.colsPermutation().block(rank,0,cols - rank, rows - rank)
+
+      return qr.colsPermutation() * Rpsinv * qr.householderQ().transpose();
+    }
+  }
+
   static Eigen::MatrixXd pinv_QR(const Eigen::MatrixXd &A, Eigen::MatrixXd &V2) //faster than pinv_SVD,
   {
     //FullPivHouseholderQR<MatrixXd> qr(A);
@@ -903,7 +933,9 @@ namespace DyrosMath
     //return qr.inverse();
 
     Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(A);
-    //qr.setThreshold(10e-10);
+
+    qr.setThreshold(1.0e-9);
+
     int rank = qr.rank();
 
     int cols, rows;
@@ -933,7 +965,9 @@ namespace DyrosMath
       {
         //ColPivHouseholderQR<MatrixXd> qr(A);
         //qr.compute(A);
+
         Eigen::MatrixXd R = qr.matrixQR().topLeftCorner(rank, rank).template triangularView<Eigen::Upper>();
+
         Eigen::MatrixXd Rpsinv2(cols, rows);
         Rpsinv2.setZero();
         Rpsinv2.topLeftCorner(rank, rank) = R.inverse();
@@ -951,7 +985,6 @@ namespace DyrosMath
     }
   }
 
-  
   static Eigen::MatrixXf pinv_QR(const Eigen::MatrixXf &A, Eigen::MatrixXf &V2) //faster than pinv_SVD,
   {
     //FullPivHouseholderQR<MatrixXd> qr(A);

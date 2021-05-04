@@ -1143,7 +1143,7 @@ void initSharedMemory()
         std::cout << "shmat failed " << std::endl;
         exit(0);
     }
-
+    /*
     if (pthread_mutexattr_init(&shm_msgs_->mutexAttr) == 0)
     {
         std::cout << "shared mutex attr init" << std::endl;
@@ -1157,11 +1157,15 @@ void initSharedMemory()
     if (pthread_mutex_init(&shm_msgs_->mutex, &shm_msgs_->mutexAttr) == 0)
     {
         std::cout << "shared mutex init" << std::endl;
-    }
+    }*/
 
     if (shmctl(shm_msg_id, SHM_LOCK, NULL) == 0)
     {
-        std::cout << "SHM_LOCK enabled" << std::endl;
+        //std::cout << "SHM_LOCK enabled" << std::endl;
+    }
+    else
+    {
+        std::cout << "SHM lock failed" << std::endl;
     }
 
     shm_msgs_->t_cnt = 0;
@@ -1207,18 +1211,6 @@ void getJointCommand()
     memcpy(command_mode_, &shm_msgs_->commandMode, sizeof(int) * PART_ELMO_DOF);
     memcpy(q_desired_elmo_, &shm_msgs_->positionCommand, sizeof(float) * PART_ELMO_DOF);
     memcpy(torque_desired_elmo_, &shm_msgs_->torqueCommand, sizeof(float) * PART_ELMO_DOF);
-}
-
-void deleteSharedMemory()
-{
-    if (shmctl(shm_msg_id, IPC_RMID, NULL) == -1)
-    {
-        printf("shmctl failed\n");
-    }
-    else
-    {
-        printf("shm cleared succesfully\n");
-    }
 }
 
 bool saveCommutationLog()

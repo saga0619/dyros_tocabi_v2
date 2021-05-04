@@ -1,73 +1,123 @@
-#include "tocabi_controller/state_manager.h"
-#include <thread>
+//#include "tocabi_controller/state_manager.h"
+#include "tocabi_controller/tocabi_controller.h"
+#include <signal.h>
+
+std::atomic<bool> *prog_shutdown;
+
+void SIGINT_handler(int sig)
+{
+    cout << "shutdown Signal" << endl;
+    *prog_shutdown = true;
+}
+
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "tocabi_controller");
+    signal(SIGINT, SIGINT_handler);
 
+    ros::init(argc, argv, "tocabi_controller", ros::init_options::NoSigintHandler);
 
     DataContainer dc_;
-    
+
+    dc_.nh.param("/tocabi_controller/sim_mode", dc_.simMode, false);
+
     StateManager stm(dc_);
-    
+
+    TocabiController tc_(dc_, stm);
+
+    if ((shm_msg_id = shmget(shm_msg_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
+    {
+        std::cout << "shm mtx failed " << std::endl;
+        exit(0);
+    }
+
+    if ((dc_.tc_shm_ = (SHMmsgs *)shmat(shm_msg_id, NULL, 0)) == (SHMmsgs *)-1)
+    {
+        std::cout << "shmat failed " << std::endl;
+        exit(0);
+    }
+
+    prog_shutdown = &dc_.tc_shm_->shutdown;
+
+    std::cout << "shm initialized" << std::endl;
+
     //stm.stateThread();
 
+    const int thread_number = 3;
 
-    
     struct sched_param param;
-    pthread_attr_t attr, attr2;
-    pthread_t thread1, thread2;
-    int ret;
+    pthread_attr_t attrs[thread_number];
+    pthread_t threads[thread_number];
+    param.sched_priority = 80;
+    cpu_set_t cpusets[thread_number];
+
+    if (dc_.simMode)
+        cout << "Simulation Mode" << endl;
+
     //set_latency_target();
 
     /* Initialize pthread attributes (default values) */
-    ret = pthread_attr_init(&attr);
-    if (ret)
+
+    for (int i = 0; i < thread_number; i++)
     {
-        printf("init pthread attributes failed\n");
-    
+        if (pthread_attr_init(&attrs[i]))
+        {
+            printf("attr %d init failed ", i);
+        }
+
+        if (!dc_.simMode)
+        {
+            if (pthread_attr_setschedpolicy(&attrs[i], SCHED_FIFO))
+            {
+                printf("attr %d setschedpolicy failed ", i);
+            }
+            if (pthread_attr_setschedparam(&attrs[i], &param))
+            {
+                printf("attr %d setschedparam failed ", i);
+            }
+            CPU_ZERO(&cpusets[i]);
+            CPU_SET(5 - i, &cpusets[i]);
+            if (pthread_attr_setaffinity_np(&attrs[i], sizeof(cpu_set_t), &cpusets[i]))
+            {
+                printf("attr %d setaffinity failed ", i);
+            }
+            if (pthread_attr_setinheritsched(&attrs[i], PTHREAD_EXPLICIT_SCHED))
+            {
+                printf("attr %d setinheritsched failed ", i);
+            }
+        }
     }
 
-    ret = pthread_attr_init(&attr2);
-
-    /* Set scheduler policy and priority of pthread */
-    ret = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-    if (ret)
+    if (pthread_create(&threads[0], &attrs[0], &StateManager::thread_starter, &stm))
     {
-        printf("pthread setschedpolicy failed\n");
-     
+        printf("threads[0] create failed\n");
     }
-    param.sched_priority = 80;
-    ret = pthread_attr_setschedparam(&attr, &param);
-    if (ret)
+    if (pthread_create(&threads[1], &attrs[1], &TocabiController::thread1_starter, &tc_))
     {
-        printf("pthread setschedparam failed\n");
-       
+        printf("threads[1] create failed\n");
     }
+    // if (pthread_create(&threads[2], &attrs[2], &TocabiController::thread2_helper, &tc_))
+    // {
+    //     printf("threads[2] create failed\n");
+    // }
 
-    cpu_set_t cpuset;
-    CPU_ZERO(&cpuset);
-    CPU_SET(6, &cpuset);
-
-    ret = pthread_attr_setaffinity_np(&attr, sizeof(cpuset), &cpuset);
-    
-    /* Use scheduling parameters of attr */
-    ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
-    if (ret)
+    for (int i = 0; i < 2; i++)
     {
-        printf("pthread setinheritsched failed\n");
-
+        pthread_attr_destroy(&attrs[i]);
     }
 
-    /* Create a pthread with specified attributes */
-    ret = pthread_create(&thread1, &attr, &StateManager::thread_helper, &stm);
-
-    pthread_attr_destroy(&attr);
-
+    cout << "waiting cont..." << endl;
     /* Join the thread and wait until it is done */
-    pthread_join(thread1, NULL);
+    for (int i = 0; i < 2; i++)
+    {
+        pthread_join(threads[i], NULL);
+    }
 
+    deleteSharedMemory();
 
+    //Checking if shared memory exist
 
-    std::cout << "tocabi controller Shutdown" << std::endl;
+    std::cout << cgreen << "//////////////////////////" << creset << std::endl;
+    std::cout << cgreen << "tocabi controller Shutdown" << creset << std::endl;
+    std::cout << cgreen << "//////////////////////////" << creset << std::endl;
     return 0;
 }

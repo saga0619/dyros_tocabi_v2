@@ -224,17 +224,7 @@
                         <geom class="viz" size="0.054 0.045" pos="-0.115 0 0" quat="0.707107 0 0.707107 0" type="cylinder" rgba="0.20313 0.20313 0.20313 1" />
                         <geom class="cls" size="0.04 0.035" pos="0.023 0.154 0.185" type="cylinder"/>
                         <geom class="cls" size="0.04 0.035" pos="0.023 -0.154 0.185" type="cylinder"/>
-                        <body name="Neck_Link" pos="-0.036 0 0.3795">
-                            <inertial pos="0 0 -0.0023" mass="0.248" fullinertia="0.000058259 0.000036489 0.000058237 -0.000000076 0.000000268 -0.000001002" />
-                            <joint name="Neck_Joint" pos="0 0 0" axis="0 0 1" limited="true" range="-1.54 1.54" class="Upper"/>
-                            <geom class="viz" rgba="0.20313 0.20313 0.20313 1" mesh="neck" />
-                            <body name="Head_Link" pos="0 0 0.0275">
-                                <inertial pos="-0.0036 0 0.1289" mass="0.006332" fullinertia="0.020045929 0.021593879 0.014854138 -0.000020568 -0.001338538 0.000156360" />
-                                <joint name="Head_Joint" pos="0 0 0" axis="0 1 0" limited="true" range="-1.54 1.54" class="Upper"/>
-                                <geom class="viz" rgba="0.85938 0.07813 0.23438 1" mesh="head" />
-                                <geom class="cls" size="0.08 0.06 0.086" pos="0.02 0 0.14" type="box" />
-                            </body>
-                        </body>
+                        
 
                         <body name="L_Shoulder1_Link" pos="0.023 0.154 0.2275">
                             <inertial pos="-3e-05 0.00397 0.06029" mass="1.6762" fullinertia="0.001925606 0.001936576 0.185330098 0.000001433 0.000002313 0.000078962" />
@@ -287,6 +277,17 @@
                                         </body>
                                     </body>
                                 </body>
+                            </body>
+                        </body>
+                        <body name="Neck_Link" pos="-0.036 0 0.3795">
+                            <inertial pos="0 0 -0.0023" mass="0.248" fullinertia="0.000058259 0.000036489 0.000058237 -0.000000076 0.000000268 -0.000001002" />
+                            <joint name="Neck_Joint" pos="0 0 0" axis="0 0 1" limited="true" range="-1.54 1.54" class="Upper"/>
+                            <geom class="viz" rgba="0.20313 0.20313 0.20313 1" mesh="neck" />
+                            <body name="Head_Link" pos="0 0 0.0275">
+                                <inertial pos="-0.0036 0 0.1289" mass="0.006332" fullinertia="0.020045929 0.021593879 0.014854138 -0.000020568 -0.001338538 0.000156360" />
+                                <joint name="Head_Joint" pos="0 0 0" axis="0 1 0" limited="true" range="-1.54 1.54" class="Upper"/>
+                                <geom class="viz" rgba="0.85938 0.07813 0.23438 1" mesh="head" />
+                                <geom class="cls" size="0.08 0.06 0.086" pos="0.02 0 0.14" type="box" />
                             </body>
                         </body>
                         <body name="R_Shoulder1_Link" pos="0.023 -0.154 0.2275">
@@ -368,9 +369,6 @@
         <motor name="Waist2_Motor" joint="Waist2_Joint"/>
         <motor name="Upperbody_Motor" joint="Upperbody_Joint"/>
 
-        <motor name="Neck_Motor" joint="Neck_Joint"/>
-        <motor name="Head_Motor" joint="Head_Joint"/>
-
         <motor name="L_Shoulder1_Motor" joint="L_Shoulder1_Joint"/>
         <motor name="L_Shoulder2_Motor" joint="L_Shoulder2_Joint"/>
         <motor name="L_Shoulder3_Motor" joint="L_Shoulder3_Joint"/>
@@ -379,6 +377,9 @@
         <motor name="L_Forearm_Motor" joint="L_Forearm_Joint"/>
         <motor name="L_Wrist1_Motor" joint="L_Wrist1_Joint"/>
         <motor name="L_Wrist2_Motor" joint="L_Wrist2_Joint"/>
+
+        <motor name="Neck_Motor" joint="Neck_Joint"/>
+        <motor name="Head_Motor" joint="Head_Joint"/>
 
         <motor name="R_Shoulder1_Motor" joint="R_Shoulder1_Joint"/>
         <motor name="R_Shoulder2_Motor" joint="R_Shoulder2_Joint"/>
@@ -434,18 +435,20 @@
 								-0.3 -0.3 -1.5 1.27 1 0 1 0"
                                 /-->
 
-        <key name="front" time="0" qpos ="0 0 0.74783 1 0 0 0 
-								0.0 0 -0.55 1.4 -1.05 -0.0 
-								0.0 0 -0.55 1.4 -1.05 -0.0
-								0 0 0 0 0
+        <key name="front" time="0" qpos ="0 0 0.92983 1 0 0 0 
+								0.0 0.0 -0.24 0.6 -0.36 0.0 
+								0.0 0.0 -0.24 0.6 -0.36 0.0
+								0 0 0
 								0.3 0.3 1.5 -1.27 -1 0 -1 0
+                                0 0
 								-0.3 -0.3 -1.5 1.27 1 0 1 0"/>
 
-        <key name="side" time="0" qpos ="0 0 0.86783 0.8660254 0 0 0.5 
+        <key name="side" time="0" qpos ="0 0 0.92683 0.8660254 0 0 0.5 
 								0.0 0.1 -0.45 1.0 -0.55 -0.1 
 								0.0 -0.1 -0.45 1.0 -0.55 0.1
-								0 0 0 0 0
+								0 0 0
 								0.2 0.3 1.5 -1.27 -1 0 -1 0
+                                0 0
 								-0.2 -0.3 -1.5 1.27 1 0 1 0"/>
     </keyframe>
 </mujoco>

@@ -1,0 +1,11 @@
+<launch>
+
+    
+
+    <node name="mujoco_ros" pkg="mujoco_ros" type="mujoco_ros" output="screen">
+        <param name="license" type="string" value="$(env HOME)/mjkey.txt"/>
+        <param name="model_file" type="string" value="$(find tocabi_description)/mujoco_model/simulation_scene.xml"/>
+        <param name="use_shm" value="true"/>
+    </node>
+
+</launch>

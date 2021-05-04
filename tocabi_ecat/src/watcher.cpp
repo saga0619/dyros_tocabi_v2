@@ -58,11 +58,16 @@ int main()
     printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f ", shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]], shm_msgs_->pos[JointMap[i++]]);
     std::fflush(stdout);
 
-    if (shm_msgs_->t_cnt > 100000000)
+
+    
+
+    if (shm_msgs_->t_cnt > 100000000 || shm_msgs_->shutdown)
     {
       break;
     }
+
   }
+    deleteSharedMemory();
 
   return 0;
 }
