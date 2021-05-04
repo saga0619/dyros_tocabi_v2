@@ -1,5 +1,7 @@
 #include "tocabi_ecat/tocabi_ecat.h"
 
+int64 toff, gl_delta;
+
 void ethercatCheck()
 {
     if (inOP && ((wkc < expectedWKC) || ec_group[currentgroup].docheckstate))
@@ -104,6 +106,19 @@ void elmoInit()
     memset(ElmoSafteyMode, 0, sizeof(int) * ELMO_DOF);
 }
 
+void ec_sync(int64 reftime, int64 cycletime , int64 *offsettime)
+{
+   static int64 integral = 0;
+   int64 delta;
+   /* set linux sync point 50us later than DC sync, just as example */
+   delta = (reftime - 50000) % cycletime;
+   if(delta> (cycletime / 2)) { delta= delta - cycletime; }
+   if(delta>0){ integral++; }
+   if(delta<0){ integral--; }
+   *offsettime = -(delta / 100) - (integral / 20);
+   gl_delta = delta;
+}
+
 void *ethercatThread1(void *data)
 {
     char IOmap[4096] = {};
@@ -170,6 +185,8 @@ void *ethercatThread1(void *data)
             /** if CA disable => automapping works */
             ec_config_map(&IOmap);
 
+            ec_configdc();
+
             /* wait for all slaves to reach SAFE_OP state */
             printf("ELMO : EC WAITING STATE TO SAFE_OP\n");
             ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4);
@@ -188,19 +205,22 @@ void *ethercatThread1(void *data)
 
             /* send one valid process data to make outputs in slaves happy*/
             ec_send_processdata();
+            cout<<"first send"<<endl;
             ec_receive_processdata(EC_TIMEOUTRET);
-
+            cout<<"first receive"<<endl;
             /* request OP state for all slaves */
             ec_writestate(0);
 
-            int wait_cnt = 40;
+
+            int wait_cnt = 200;
 
             /* wait for all slaves to reach OP state */
             do
             {
                 ec_send_processdata();
                 ec_receive_processdata(EC_TIMEOUTRET);
-                ec_statecheck(0, EC_STATE_OPERATIONAL, 5000);
+                ec_statecheck(0, EC_STATE_OPERATIONAL, 50000);
+                
             } while (wait_cnt-- && (ec_slave[0].state != EC_STATE_OPERATIONAL));
 
             if (ec_slave[0].state == EC_STATE_OPERATIONAL)
