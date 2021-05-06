@@ -55,6 +55,8 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
 
     task_command_sub_ = dc_.nh.subscribe("/tocabi/taskcommand", 100, &StateManager::TaskCommandCallback, this);
     task_command_que_sub_ = dc_.nh.subscribe("/tocabi/taskquecommand", 100, &StateManager::TaskQueCommandCallback, this);
+    gui_command_sub_ = dc_.nh.subscribe("/tocabi/command", 100, &StateManager::GuiCommandCallback, this);
+    gui_state_pub_ = dc_.nh.advertise<std_msgs::Int32MultiArray>("/tocabi/systemstate", 100);
 }
 
 StateManager::~StateManager()

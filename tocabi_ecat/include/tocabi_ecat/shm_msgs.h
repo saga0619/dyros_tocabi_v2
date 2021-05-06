@@ -14,9 +14,9 @@
 
 typedef struct SHMmsgs
 {
-    int status[MODEL_DOF];
 
-    std::atomic<bool> statusWriting;
+    std::atomic<int> statusWriting;
+    int status[MODEL_DOF];
     float torqueActual[MODEL_DOF];
     float vel[MODEL_DOF];
     float pos[MODEL_DOF];
@@ -27,8 +27,14 @@ typedef struct SHMmsgs
     float pos_virtual[7]; //virtual pos(3) + virtual quat(4)
     float vel_virtual[6]; //virtual vel(3) + virtual twist(3)
 
+    std::atomic<bool> imuWriting;
     float imuRaw[6];
+
+    std::atomic<bool> ftWriting;
     float ftSensor[12];
+
+    int imu_state;
+    int ft_state;
 
     //command val
 
@@ -151,7 +157,7 @@ static void init_shm_master()
     shm_msgs_->t_cnt = 0;
     shm_msgs_->t_cnt2 = 0;
     shm_msgs_->controllerReady = false;
-    shm_msgs_->statusWriting = false;
+    shm_msgs_->statusWriting = 0;
     shm_msgs_->commanding = false;
     shm_msgs_->reading = false;
     shm_msgs_->shutdown = false;

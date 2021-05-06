@@ -5,6 +5,7 @@
 
 const int PART_ELMO_DOF = ELMO_DOF_LOWER;
 const int START_N = ELMO_DOF_UPPER;
+const int Q_LOWER_START = 0;
 
 void ethercatCheck()
 {
@@ -716,11 +717,11 @@ void *ethercatThread1(void *data)
 
                     for (int i = 0; i < ec_slavecount; i++)
                     {
-                        q_[JointMap2[i]] = q_elmo_[i];
-                        q_dot_[JointMap2[i]] = q_dot_elmo_[i];
-                        torque_[JointMap2[i]] = torque_elmo_[i];
-                        q_ext_[JointMap2[i]] = q_ext_elmo_[i];
-                        joint_state_[JointMap2[i]] = joint_state_elmo_[i];
+                        q_[JointMap2[START_N + i]] = q_elmo_[START_N + i];
+                        q_dot_[JointMap2[START_N + i]] = q_dot_elmo_[START_N + i];
+                        torque_[JointMap2[START_N + i]] = torque_elmo_[START_N + i];
+                        q_ext_[JointMap2[START_N + i]] = q_ext_elmo_[START_N + i];
+                        joint_state_[JointMap2[START_N + i]] = joint_state_elmo_[START_N + i];
                     }
 
                     sendJointStatus();
@@ -773,13 +774,6 @@ void *ethercatThread1(void *data)
                                 }
                             }*/
                     getJointCommand();
-
-                    for (int i = 0; i < ec_slavecount; i++)
-                    {
-                        command_mode_elmo_[JointMap[i]] = command_mode_[i];
-                        q_desired_elmo_[JointMap[i]] = q_desired_[i];
-                        q_dot_elmo_[JointMap[i]] = q_dot_[i];
-                    }
 
                     //ECAT JOINT COMMAND
                     for (int i = 0; i < ec_slavecount; i++)
@@ -845,6 +839,8 @@ void *ethercatThread1(void *data)
                                 checkSafety(i, joint_velocity_limit[i], 10.0 * CYCLETIME / 1E+6); //if angular velocity exceeds 0.5rad/s, Hold to current Position ///
                             }
                             */
+
+                    checkJointSafety();
 
                     //Torque off if emergency off received
                     if (de_emergency_off)
@@ -1133,7 +1129,7 @@ void initSharedMemory()
 
     shm_msgs_->t_cnt2 = 0;
     shm_msgs_->controllerReady = false;
-    shm_msgs_->statusWriting = false;
+    shm_msgs_->statusWriting = 0;
     shm_msgs_->commanding = false;
     shm_msgs_->reading = false;
     shm_msgs_->shutdown = false;
@@ -1154,7 +1150,6 @@ void initSharedMemory()
 }
 void sendJointStatus()
 {
-    shm_msgs_->t_cnt2 = cycle_count;
 
     // memcpy(&shm_msgs_->pos, q_, sizeof(float) * ELMO_DOF_LOWER);
     // memcpy(&shm_msgs_->posExt, q_ext_, sizeof(float) * ELMO_DOF_LOWER);
@@ -1162,18 +1157,42 @@ void sendJointStatus()
     // memcpy(&shm_msgs_->torqueActual, torque_, sizeof(float) * ELMO_DOF_LOWER);
     // memcpy(&shm_msgs_->status, joint_state_, sizeof(int) * ELMO_DOF_LOWER);
 
-    memcpy(&shm_msgs_->pos[START_N], &q_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->posExt[START_N], &q_ext_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->vel[START_N], &q_dot_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->torqueActual[START_N], &torque_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->status[START_N], &joint_state_elmo_[START_N], sizeof(int) * PART_ELMO_DOF);
+    // memcpy(&shm_msgs_->pos[START_N], &q_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
+    // memcpy(&shm_msgs_->posExt[START_N], &q_ext_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
+    // memcpy(&shm_msgs_->vel[START_N], &q_dot_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
+    // memcpy(&shm_msgs_->torqueActual[START_N], &torque_elmo_[START_N], sizeof(float) * PART_ELMO_DOF);
+    // memcpy(&shm_msgs_->status[START_N], &joint_state_elmo_[START_N], sizeof(int) * PART_ELMO_DOF);
+
+    // shm_msgs_->t_cnt2 = cycle_count;
+
+    shm_msgs_->statusWriting++;
+
+    memcpy(&shm_msgs_->pos[Q_LOWER_START], &q_[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->posExt[Q_LOWER_START], &q_ext_[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->vel[Q_LOWER_START], &q_dot_[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->torqueActual[Q_LOWER_START], &torque_[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->status[Q_LOWER_START], &joint_state_[Q_LOWER_START], sizeof(int) * PART_ELMO_DOF);
+
+    shm_msgs_->statusWriting--;
+    shm_msgs_->t_cnt = cycle_count;
 }
 
 void getJointCommand()
 {
-    memcpy(command_mode_, &shm_msgs_->commandMode, sizeof(int) * PART_ELMO_DOF);
-    memcpy(q_desired_, &shm_msgs_->positionCommand, sizeof(float) * PART_ELMO_DOF);
-    memcpy(torque_desired_, &shm_msgs_->torqueCommand, sizeof(float) * PART_ELMO_DOF);
+    // memcpy(command_mode_, &shm_msgs_->commandMode, sizeof(int) * PART_ELMO_DOF);
+    // memcpy(q_desired_, &shm_msgs_->positionCommand, sizeof(float) * PART_ELMO_DOF);
+    // memcpy(torque_desired_, &shm_msgs_->torqueCommand, sizeof(float) * PART_ELMO_DOF);
+
+    memcpy(&command_mode_[Q_LOWER_START], &shm_msgs_->commandMode[Q_LOWER_START], sizeof(int) * PART_ELMO_DOF);
+    memcpy(&q_desired_[Q_LOWER_START], &shm_msgs_->positionCommand[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
+    memcpy(&torque_desired_[Q_LOWER_START], &shm_msgs_->torqueCommand[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
+
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        command_mode_elmo_[JointMap[Q_LOWER_START + i]] = command_mode_[Q_LOWER_START + i];
+        q_desired_elmo_[JointMap[Q_LOWER_START + i]] = q_desired_[Q_LOWER_START + i];
+        torque_desired_elmo_[JointMap[Q_LOWER_START + i]] = torque_desired_[Q_LOWER_START + i];
+    }
 }
 
 bool saveCommutationLog()
