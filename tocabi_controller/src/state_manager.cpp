@@ -3,12 +3,8 @@
 using namespace std;
 using namespace TOCABI;
 
-int d1_g = 0;
-
 StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
 {
-    cout << "Init StateManager" << endl;
-
     string t_path_ = ros::package::getPath("tocabi_description");
     string urdf_path = t_path_ + "/robots/dyros_tocabi.urdf";
 
@@ -46,7 +42,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
     if (dc_.simMode)
     {
         mujoco_sim_command_pub_ = dc_.nh.advertise<std_msgs::String>("/mujoco_ros_interface/sim_command_con2sim", 100);
-        mujoco_sim_command_sub_ = dc_.nh.subscribe("/mujoco_ros_interface/sim_command_sim2con", 100, &StateManager::simCommandCallback, this);
+        mujoco_sim_command_sub_ = dc_.nh.subscribe("/mujoco_ros_interface/sim_command_sim2con", 100, &StateManager::SimCommandCallback, this);
     }
 
     joint_state_pub_ = dc_.nh.advertise<sensor_msgs::JointState>("/tocabi/jointstates", 100);
@@ -66,10 +62,8 @@ StateManager::~StateManager()
     cout << "StateManager Terminate" << endl;
 }
 
-void *StateManager::stateThread()
+void *StateManager::StateThread()
 {
-    cout << "StateManager Thread Entered" << endl;
-
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     int rcv_tcnt = -1;
@@ -82,10 +76,6 @@ void *StateManager::stateThread()
     int cycle_count_ = rcv_tcnt;
     int stm_count_ = 0;
 
-    int64_t total = 0;
-    int max = 0;
-    int min = 10000000;
-    float avg = 0;
     int cnt = 0;
     int cnt2 = 0;
     int cnt3 = 0;
@@ -118,38 +108,26 @@ void *StateManager::stateThread()
                 }
                 q_virtual_local_(MODEL_DOF + 6) = 1.0;
             }
-            getJointData(); //0.246 us //w/o march native 0.226
+            GetJointData(); //0.246 us //w/o march native 0.226
             auto dur_start_ = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - time_start).count();
 
             //local kinematics update : 33.7 us // w/o march native 20 us
-            updateKinematics_local(model_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
+            UpdateKinematics_local(model_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
 
-            stateEstimate();
+            StateEstimate();
 
             //global kinematics update : 127 us //w/o march native 125 us
-            updateKinematics(model_2, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
+            UpdateKinematics(model_2, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
 
             auto t1 = chrono::steady_clock::now();
-            storeState(dc_.rd_); //6.2 us //w/o march native 8us
-            auto d1 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t1);
+            StoreState(dc_.rd_); //6.2 us //w/o march native 8us
+            auto d1 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t1).count();
 
-            d1_g = d1.count();
+            MeasureTime(stm_count_, d1);
+
             dc_.rd_.us_from_start_ = dur_start_;
 
-            publishData();
-
-            total += d1_g;
-
-            if (max < d1_g)
-                max = d1_g;
-            if (min > d1_g)
-                min = d1_g;
-
-            avg = total / stm_count_;
-
-            dc_.tc_shm_->send_avg = avg;
-            dc_.tc_shm_->send_max = max;
-            dc_.tc_shm_->send_min = min;
+            PublishData();
 
             //printf("%d\n", rcv_tcnt);
             //printf("\x1b[A\x1b[A\33[2K\r");
@@ -164,7 +142,7 @@ void *StateManager::stateThread()
     cout << "StateManager Thread END" << endl;
 }
 
-void StateManager::publishData()
+void StateManager::PublishData()
 {
     geometry_msgs::TransformStamped ts;
 
@@ -191,7 +169,7 @@ void StateManager::publishData()
     joint_state_pub_.publish(joint_state_msg_);
 }
 
-void StateManager::getJointData()
+void StateManager::GetJointData()
 {
     while (dc_.tc_shm_->statusWriting)
     {
@@ -220,7 +198,7 @@ void StateManager::getJointData()
     //dc_.tc_shm_->pos
 }
 
-void StateManager::getSensorData()
+void StateManager::GetSensorData()
 {
 }
 
@@ -233,7 +211,52 @@ void StateManager::GetSimData()
     ros::spinOnce();
 }
 
-void StateManager::storeState(RobotData &rd_dst)
+void StateManager::MeasureTime(int currentCount, int nanoseconds1, int nanoseconds2)
+{
+    dc_.tc_shm_->t_cnt = currentCount;
+
+    lat = nanoseconds1;
+    total1 += lat;
+    lavg = total1 / currentCount;
+    if (lmax < lat)
+    {
+        lmax = lat;
+    }
+    if (lmin > lat)
+    {
+        lmin = lat;
+    }
+    // int sdev = (sat - savg)
+    total_dev1 += sqrt(((lat - lavg) * (lat - lavg)));
+    ldev = total_dev1 / currentCount;
+
+    dc_.tc_shm_->lat_avg = lavg;
+    dc_.tc_shm_->lat_max = lmax;
+    dc_.tc_shm_->lat_min = lmin;
+    dc_.tc_shm_->lat_dev = ldev;
+
+    sat = nanoseconds2;
+    total2 += sat;
+    savg = total2 / currentCount;
+    if (smax < sat)
+    {
+        smax = sat;
+    }
+    if (smin > sat)
+    {
+        smin = sat;
+    }
+    // int sdev = (sat - savg)
+    total_dev2 += sqrt(((sat - savg) * (sat - savg)));
+    sdev = total_dev2 / currentCount;
+
+    dc_.tc_shm_->send_avg = savg;
+    dc_.tc_shm_->send_max = smax;
+    dc_.tc_shm_->send_min = smin;
+    dc_.tc_shm_->send_dev = sdev;
+}
+
+void StateManager::StoreState(RobotData &rd_dst)
 {
 
     memcpy(&rd_dst.model_, &model_2, sizeof(RigidBodyDynamics::Model));
@@ -286,7 +309,7 @@ void StateManager::storeState(RobotData &rd_dst)
     rd_dst.control_time_ = control_time_;
 }
 
-void StateManager::updateKinematics_local(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual_f, const Eigen::VectorXd &q_dot_virtual_f, const Eigen::VectorXd &q_ddot_virtual_f)
+void StateManager::UpdateKinematics_local(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual_f, const Eigen::VectorXd &q_dot_virtual_f, const Eigen::VectorXd &q_ddot_virtual_f)
 {
     //ROS_INFO_ONCE("CONTROLLER : MODEL : updatekinematics enter ");
     /* q_virtual description
@@ -319,7 +342,7 @@ void StateManager::updateKinematics_local(RigidBodyDynamics::Model &model_l, Lin
     link_p[Left_Hand].UpdateVW(model_l, q_virtual_f, q_dot_virtual_f);
 }
 
-void StateManager::updateKinematics(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual_f, const Eigen::VectorXd &q_dot_virtual_f, const Eigen::VectorXd &q_ddot_virtual_f)
+void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual_f, const Eigen::VectorXd &q_dot_virtual_f, const Eigen::VectorXd &q_ddot_virtual_f)
 {
     //ROS_INFO_ONCE("CONTROLLER : MODEL : updatekinematics enter ");
     /* q_virtual description
@@ -375,19 +398,19 @@ void StateManager::updateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
     // sector 4 end : 3 us
 }
 
-void StateManager::stateEstimate()
+void StateManager::StateEstimate()
 {
     q_virtual_ = q_virtual_local_;
     q_dot_virtual_ = q_dot_virtual_local_;
     q_ddot_virtual_ = q_ddot_virtual_local_;
 }
 
-void StateManager::calcNonlinear()
+void StateManager::CalcNonlinear()
 {
     //RigidBodyDynamics::NonlinearEffects(model_,)
 }
 
-void StateManager::simCommandCallback(const std_msgs::StringConstPtr &msg)
+void StateManager::SimCommandCallback(const std_msgs::StringConstPtr &msg)
 {
 
     std::string buf;

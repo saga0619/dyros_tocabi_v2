@@ -24,21 +24,21 @@ public:
     StateManager(DataContainer &dc_global);
     ~StateManager();
 
-    void *stateThread();
-    static void *thread_starter(void *context) { return ((StateManager *)context)->stateThread(); }
-    void getJointData();
-    void getSensorData();
-    void storeState(RobotData &robotd_);
-    void calcNonlinear();
+    void *StateThread();
+    static void *ThreadStarter(void *context) { return ((StateManager *)context)->StateThread(); }
+    void GetJointData();
+    void GetSensorData();
+    void StoreState(RobotData &robotd_);
+    void CalcNonlinear();
 
-    void stateEstimate();
+    void StateEstimate();
     //private functions
 
-    void updateKinematics_local(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual, const Eigen::VectorXd &q_dot_virtual, const Eigen::VectorXd &q_ddot_virtual);
+    void UpdateKinematics_local(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual, const Eigen::VectorXd &q_dot_virtual, const Eigen::VectorXd &q_ddot_virtual);
     //update kinematic information with RBDL
-    void updateKinematics(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual, const Eigen::VectorXd &q_dot_virtual, const Eigen::VectorXd &q_ddot_virtual);
+    void UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual, const Eigen::VectorXd &q_dot_virtual, const Eigen::VectorXd &q_ddot_virtual);
 
-    void publishData();
+    void PublishData();
 
     LinkData link_[LINK_NUMBER + 1];
     LinkData link_local_[LINK_NUMBER + 1];
@@ -76,6 +76,13 @@ public:
     double total_mass_ = 0;
     tf2_ros::TransformBroadcaster br;
 
+    //Calc performance measuring...
+
+    void MeasureTime(int currentCount, int nanoseconds1, int nanoseconds2 = 0);
+    int64_t total1 = 0, total2 = 0, total_dev1 = 0, total_dev2 = 0;
+    float lmax = 0.0, lmin = 10000.00, ldev = 0.0, lavg = 0.0, lat = 0.0;
+    float smax = 0.0, smin = 10000.00, sdev = 0.0, savg = 0.0, sat = 0.0;
+
     //Simmode values..
 
     void ConnectSim();
@@ -93,7 +100,7 @@ public:
     ros::Subscriber task_command_sub_;
     tocabi_msgs::TaskCommand tc_msg_;
 
-    void simCommandCallback(const std_msgs::StringConstPtr &msg);
+    void SimCommandCallback(const std_msgs::StringConstPtr &msg);
     //void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);
 
     void TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg);

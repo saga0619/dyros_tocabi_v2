@@ -4,7 +4,7 @@ using namespace std;
 
 TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc_), stm_(stm_global), rd_(stm_global.dc_.rd_)
 {
-    cout << "TocabiController Initialized" << endl;
+    //Tocabi Controller Initialize Component
 }
 
 TocabiController::~TocabiController()
@@ -12,7 +12,7 @@ TocabiController::~TocabiController()
     cout << "TocabiController Terminated" << endl;
 }
 
-void *TocabiController::thread1()
+void *TocabiController::Thread1()
 {
     std::cout << "thread1_entered" << std::endl;
 
@@ -40,29 +40,6 @@ void *TocabiController::thread1()
     WBC::SetContactInit(rd_);
 
     //std::cout<<"21"<<std::endl;
-
-    int64_t total1, total2;
-    int64_t total_dev1, total_dev2;
-    float lmax, lmin, ldev, lavg, lat;
-    float smax, smin, sdev, savg, sat;
-
-    total1 = 0;
-    total2 = 0;
-    total_dev1 = 0;
-    total_dev2 = 0;
-
-    ldev = 0.0;
-    lavg = 0.0;
-    lat = 0;
-
-    lmax = 0.0;
-    lmin = 10000.00;
-    smax = 0.0;
-    smin = 100000.0;
-
-    sdev = 0;
-    savg = 0;
-    sat = 0;
 
     std::cout << "entering thread1 loop" << endl;
 
@@ -93,7 +70,6 @@ void *TocabiController::thread1()
             rd_.task_signal_ = false;
         }
 
-
         WBC::SetContact(rd_, 1, 1);
         WBC::gravity_compensation_torque(rd_);
 
@@ -113,32 +89,12 @@ void *TocabiController::thread1()
         SendCommand(rd_.torque_grav + rd_.torque_contact);
 
         //std::cout<<"21"<<std::endl;
-
-        sat = d1;
-        total2 += sat;
-        savg = total2 / thread1_count;
-        if (smax < sat)
-        {
-            smax = sat;
-        }
-        if (smin > sat)
-        {
-            smin = sat;
-        }
-        // int sdev = (sat - savg)
-        total_dev2 += sqrt(((sat - savg) * (sat - savg)));
-        sdev = total_dev2 / thread1_count;
-
-        dc_.tc_shm_->send_avg2 = savg;
-        dc_.tc_shm_->send_max2 = smax;
-        dc_.tc_shm_->send_min2 = smin;
-        dc_.tc_shm_->send_dev2 = sdev;
     }
 
     cout << "thread1 terminate" << endl;
 }
 
-void *TocabiController::thread2()
+void *TocabiController::Thread2()
 {
     std::cout << "thread2_entered" << std::endl;
 
@@ -150,8 +106,53 @@ void *TocabiController::thread2()
     std::cout << "thread2 terminate" << std::endl;
 }
 
-void *TocabiController::thread3()
+void *TocabiController::Thread3()
 {
+}
+
+void TocabiController::MeasureTime(int currentCount, int nanoseconds1, int nanoseconds2)
+{
+    dc_.tc_shm_->t_cnt2 = currentCount;
+
+    lat = nanoseconds1;
+    total1 += lat;
+    lavg = total1 / currentCount;
+    if (lmax < lat)
+    {
+        lmax = lat;
+    }
+    if (lmin > lat)
+    {
+        lmin = lat;
+    }
+    // int sdev = (sat - savg)
+    total_dev1 += sqrt(((lat - lavg) * (lat - lavg)));
+    ldev = total_dev1 / currentCount;
+
+    dc_.tc_shm_->lat_avg2 = lavg;
+    dc_.tc_shm_->lat_max2 = lmax;
+    dc_.tc_shm_->lat_min2 = lmin;
+    dc_.tc_shm_->lat_dev2 = ldev;
+
+    sat = nanoseconds2;
+    total2 += sat;
+    savg = total2 / currentCount;
+    if (smax < sat)
+    {
+        smax = sat;
+    }
+    if (smin > sat)
+    {
+        smin = sat;
+    }
+    // int sdev = (sat - savg)
+    total_dev2 += sqrt(((sat - savg) * (sat - savg)));
+    sdev = total_dev2 / currentCount;
+
+    dc_.tc_shm_->send_avg2 = savg;
+    dc_.tc_shm_->send_max2 = smax;
+    dc_.tc_shm_->send_min2 = smin;
+    dc_.tc_shm_->send_dev2 = sdev;
 }
 
 void TocabiController::SendCommand(Eigen::VectorQd torque_command)
@@ -172,7 +173,6 @@ void TocabiController::SendCommand(Eigen::VectorQd torque_command)
 
 void TocabiController::GetTaskCommand(tocabi_msgs::TaskCommand &msg)
 {
-
 }
 
 /*

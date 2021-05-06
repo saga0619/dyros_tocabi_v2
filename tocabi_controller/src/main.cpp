@@ -87,15 +87,15 @@ int main(int argc, char **argv)
         }
     }
 
-    if (pthread_create(&threads[0], &attrs[0], &StateManager::thread_starter, &stm))
+    if (pthread_create(&threads[0], &attrs[0], &StateManager::ThreadStarter, &stm))
     {
         printf("threads[0] create failed\n");
     }
-    if (pthread_create(&threads[1], &attrs[1], &TocabiController::thread1_starter, &tc_))
+    if (pthread_create(&threads[1], &attrs[1], &TocabiController::Thread1Starter, &tc_))
     {
         printf("threads[1] create failed\n");
     }
-    if (pthread_create(&threads[2], &attrs[2], &TocabiController::thread2_starter, &tc_))
+    if (pthread_create(&threads[2], &attrs[2], &TocabiController::Thread2Starter, &tc_))
     {
         printf("threads[2] create failed\n");
     }
