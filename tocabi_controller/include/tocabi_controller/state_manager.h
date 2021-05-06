@@ -101,13 +101,7 @@ public:
     ros::Subscriber task_command_sub_;
     tocabi_msgs::TaskCommand tc_msg_;
 
-<<<<<<< HEAD
     void SimCommandCallback(const std_msgs::StringConstPtr &msg);
-=======
-
-
-    void simCommandCallback(const std_msgs::StringConstPtr &msg);
->>>>>>> 0443e0543f058b1aab3bb0e794d70f15095d56d7
     //void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);
 
     void TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg);
