@@ -17,6 +17,7 @@
 #include "mujoco_ros_msgs/JointSet.h"
 #include "std_msgs/String.h"
 #include "sensor_msgs/JointState.h"
+#include "std_msgs/Int32MultiArray.h"
 
 class StateManager
 {
@@ -95,11 +96,17 @@ public:
     ros::Subscriber task_command_sub_;
     tocabi_msgs::TaskCommand tc_msg_;
 
+
+
     void simCommandCallback(const std_msgs::StringConstPtr &msg);
     //void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);
 
     void TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg);
     void TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueConstPtr &msg);
+
+    
+    ros::Subscriber gui_command_sub_;
+    ros::Publisher gui_state_pub_;
     void GuiCommandCallback(const std_msgs::StringConstPtr &msg);
 
     float sim_time_ = 0;
