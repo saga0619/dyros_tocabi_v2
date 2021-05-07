@@ -180,6 +180,12 @@ double torqueCC_recvt;
 double torqueCC_comt;
 
 double control_time_real_;
+double torque_on_time_;
+double torque_off_time_;
+bool torque_switch_;
+bool torque_on_;
+bool torque_off_;
+
 
 bool hommingElmo[ELMO_DOF];
 bool hommingElmo_before[ELMO_DOF];
@@ -290,6 +296,8 @@ double q_zero_point[ELMO_DOF];
 double q_zero_elmo_[ELMO_DOF];
 double q_zero_mod_elmo_[ELMO_DOF];
 
+
+int maxTorque = 0;
 
 int joint_state_[ELMO_DOF]; //sendstate
 float q_[ELMO_DOF];      //sendstate

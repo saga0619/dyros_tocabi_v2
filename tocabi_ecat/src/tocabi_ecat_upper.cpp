@@ -821,7 +821,7 @@ void *ethercatThread1(void *data)
                         {
                             ElmoMode[i] = EM_TORQUE;
                         }
-                        
+
                         if (ElmoMode[i] == EM_POSITION)
                         {
                             txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousPositionmode;
@@ -831,6 +831,7 @@ void *ethercatThread1(void *data)
                         {
                             txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
                             txPDO[i]->targetTorque = (int)(torque_desired_elmo_[i] * NM2CNT[i] * elmo_axis_direction[i]);
+                            txPDO[i]->maxTorque = maxTorque;
                             /*
                             if (dc.customGain)
                             {
@@ -1226,6 +1227,11 @@ void sendJointStatus()
 
 void getJointCommand()
 {
+    while (shm_msgs_->commanding)
+    {
+        usleep(1);
+    }
+
     memcpy(&command_mode_[Q_UPPER_START], &shm_msgs_->commandMode[Q_UPPER_START], sizeof(int) * PART_ELMO_DOF);
     memcpy(&q_desired_[Q_UPPER_START], &shm_msgs_->positionCommand[Q_UPPER_START], sizeof(float) * PART_ELMO_DOF);
     memcpy(&torque_desired_[Q_UPPER_START], &shm_msgs_->torqueCommand[Q_UPPER_START], sizeof(float) * PART_ELMO_DOF);
@@ -1236,6 +1242,16 @@ void getJointCommand()
         q_desired_elmo_[JointMap[Q_UPPER_START + i]] = q_desired_[Q_UPPER_START + i];
         torque_desired_elmo_[JointMap[Q_UPPER_START + i]] = torque_desired_[Q_UPPER_START + i];
     }
+
+    static int commandCount_before = -1;
+    int commandCount = shm_msgs_->commandCount;
+    if (commandCount <= commandCount_before)
+    {
+        std::cout << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+    }
+    commandCount_before = commandCount;
+
+    maxTorque = shm_msgs_->maxTorque;
 }
 
 bool saveCommutationLog()

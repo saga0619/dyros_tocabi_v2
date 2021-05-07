@@ -180,6 +180,11 @@ double torqueCC_recvt;
 double torqueCC_comt;
 
 double control_time_real_;
+double torque_on_time_;
+double torque_off_time_;
+bool torque_switch_;
+bool torque_on_;
+bool torque_off_;
 
 bool hommingElmo[ELMO_DOF];
 bool hommingElmo_before[ELMO_DOF];
@@ -270,11 +275,7 @@ atomic<bool> de_zp_upper_switch{false};
 atomic<bool> de_zp_lower_switch{false};
 atomic<int> de_debug_level{0};
 
-
-
-
 int joint_state_elmo_[ELMO_DOF]; //sendstate
-
 
 float q_elmo_[ELMO_DOF];      //sendstate
 float q_dot_elmo_[ELMO_DOF];  //sendstate
@@ -288,15 +289,16 @@ float q_desired_elmo_[ELMO_DOF];      //get joint command
 //int command_mode_[ELMO_DOF];
 
 int joint_state_[ELMO_DOF]; //sendstate
-float q_[ELMO_DOF];      //sendstate
-float q_dot_[ELMO_DOF];  //sendstate
-float torque_[ELMO_DOF]; //sendstate
+float q_[ELMO_DOF];         //sendstate
+float q_dot_[ELMO_DOF];     //sendstate
+float torque_[ELMO_DOF];    //sendstate
 float q_ext_[ELMO_DOF];
 
 int command_mode_[ELMO_DOF];
 float torque_desired_[ELMO_DOF]; //get torque command
 float q_desired_[ELMO_DOF];      //get joint command
 
+int maxTorque = 0;
 
 double q_zero_point[ELMO_DOF];
 
@@ -345,3 +347,7 @@ const std::string creset("\033[0m");
 const std::string cblue("\033[0;34m");
 const std::string cgreen("\033[0;32m");
 const std::string cyellow("\033[0;33m");
+
+
+// bool emlockTriggered = false;
+// void EmergencyPositionLock();

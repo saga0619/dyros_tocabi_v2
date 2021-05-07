@@ -157,17 +157,92 @@ void TocabiController::MeasureTime(int currentCount, int nanoseconds1, int nanos
 
 void TocabiController::SendCommand(Eigen::VectorQd torque_command)
 {
+    const double maxTorque = 1000.0;
+    const double rTime = 6.0;
+
+    if (dc_.torqueOnSwitch)
+    {
+        dc_.torqueOnSwitch = false;
+
+        if (dc_.torqueOn)
+        {
+            std::cout << "torque is already on " << std::endl;
+        }
+        else
+        {
+            std::cout << "turning on ... " << std::endl;
+            dc_.torqueOnTime = dc_.rd_.control_time_;
+            dc_.torqueOn = true;
+            dc_.torqueRisingSeq = true;
+        }
+    }
+    if (dc_.torqueOffSwitch)
+    {
+        dc_.torqueOffSwitch = false;
+
+        if (dc_.torqueOn)
+        {
+            std::cout << "turning off ... " << std::endl;
+            dc_.torqueOffTime = dc_.rd_.control_time_;
+            dc_.toruqeDecreaseSeq = true;
+        }
+        else
+        {
+            std::cout << "torque is already off" << std::endl;
+        }
+    }
+
     dc_.tc_shm_->commanding = true;
+
+    if (dc_.torqueOn)
+    {
+        if (dc_.torqueRisingSeq)
+        {
+            dc_.tc_shm_->maxTorque = (int)(maxTorque * DyrosMath::minmax_cut((dc_.rd_.control_time_ - dc_.torqueOnTime) / rTime, 0, 1));
+
+            if (dc_.rd_.control_time_ > dc_.torqueOnTime + rTime)
+            {
+                std::cout << "torque 100% ! " << std::endl;
+
+                dc_.torqueRisingSeq = false;
+            }
+        }
+        else if (dc_.toruqeDecreaseSeq)
+        {
+
+            dc_.tc_shm_->maxTorque = (int)(maxTorque * (1 - DyrosMath::minmax_cut((dc_.rd_.control_time_ - dc_.torqueOffTime) / rTime, 0, 1)));
+
+            if (dc_.rd_.control_time_ > dc_.torqueOffTime + rTime)
+            {
+                dc_.toruqeDecreaseSeq = false;
+
+                std::cout << "torque 0% .. torque Off " << std::endl;
+
+                dc_.torqueOn = false;
+            }
+        }
+        else
+        {
+            dc_.tc_shm_->maxTorque = (int)maxTorque;
+        }
+    }
+    else
+    {
+        dc_.tc_shm_->maxTorque = 0;
+    }
 
     //std::cout<<torque_command.transpose()<<std::endl;
     //memcpy(dc_.tc_shm_->torqueCommand, torque_command.data(), torque_command.size() * sizeof(float));
 
     for (int i = 0; i < MODEL_DOF; i++)
     {
+        dc_.tc_shm_->commandMode[i] = 1;
         dc_.tc_shm_->torqueCommand[i] = torque_command[i];
     }
 
     //std::cout<<dc_.tc_shm_->torqueCommand[0]<<"\t"<<dc_.tc_shm_->torqueCommand[1]<<"\t"<<dc_.tc_shm_->torqueCommand[2]<<"\t"<<dc_.tc_shm_->torqueCommand[3]<<"\t"<<dc_.tc_shm_->torqueCommand[4]<<"\t"<<dc_.tc_shm_->torqueCommand[5]<<"\t"<<std::endl;
+
+    dc_.tc_shm_->commandCount++;
     dc_.tc_shm_->commanding = false;
 }
 

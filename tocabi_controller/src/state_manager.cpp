@@ -465,5 +465,18 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     std::cout << "Received msg from GUI : " << msg->data << std::endl;
     //Receiving Command from GUI!
 
+    if (msg->data == "torqueon")
+    {
+        dc_.torqueOnSwitch = true;
+    }
+    else if (msg->data == "torqueoff")
+    {
+        dc_.torqueOffSwitch = true;
+    }
+    else if(msg->data == "emergencyoff")
+    {
+        dc_.emergencySwitch = true;
+    }
+
     //Controlling GUI
 }

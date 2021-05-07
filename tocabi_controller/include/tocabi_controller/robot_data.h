@@ -1,7 +1,6 @@
 #ifndef ROBOT_DATA_H
 #define ROBOT_DATA_H
 
-
 #include <rbdl/rbdl.h>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -40,13 +39,12 @@ struct EndEffector
     bool contact = false;
 }; */
 
-
 struct RobotData
 {
-    ~RobotData(){std::cout<<"rd terminate"<<std::endl;}
+    ~RobotData() { std::cout << "rd terminate" << std::endl; }
     std::atomic<int> us_from_start_{};
     float control_time_ = 0;
-    
+
     RigidBodyDynamics::Model model_;
     LinkData link_[LINK_NUMBER + 1];
     EndEffector ee_[ENDEFFECTOR_NUMBER];
@@ -106,8 +104,7 @@ struct RobotData
 
     int contact_index = 0;
     int contact_part[4] = {-1, -1, -1, -1};
-    int ee_idx[4] = {-1,-1,-1,-1};
-
+    int ee_idx[4] = {-1, -1, -1, -1};
 
     //Task Command
     tocabi_msgs::TaskCommand tc_;
@@ -115,13 +112,9 @@ struct RobotData
     tocabi_msgs::TaskCommandQue tc_q_;
     atomic<bool> task_que_signal_{};
 
-
-    
-
-
     //Bools...... might be moved to other..
     bool qp_error = false;
-  
+
     bool task_control_switch = false;
     bool lambda_calc = false;
     bool init_qp = false;
@@ -145,16 +138,25 @@ struct RobotData
 
 struct DataContainer
 {
-    ~DataContainer(){std::cout<<"DC terminate"<<std::endl;}
+    ~DataContainer() { std::cout << "DC terminate" << std::endl; }
     ros::NodeHandle nh;
     RobotData rd_;
-
 
     double total_mass_ = 0;
 
     bool simMode = false;
     SHMmsgs *tc_shm_;
-};
 
+    bool torqueOnSwitch = false;
+    bool torqueOffSwitch = false;
+    bool emergencySwitch = false;
+    bool torqueRisingSeq = false;
+    bool toruqeDecreaseSeq = false;
+    bool torqueOn = false;
+
+    double torqueOnTime = -1;
+    double torqueOffTime = -1;
+
+};
 
 #endif

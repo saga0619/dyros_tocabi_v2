@@ -38,10 +38,13 @@ typedef struct SHMmsgs
 
     //command val
 
-    std::atomic<bool> commanding;
+    std::atomic<bool> commanding; 
     int commandMode[MODEL_DOF]; //command mode 0 -> off 1 -> torque 2 -> position 
     float torqueCommand[MODEL_DOF];
     float positionCommand[MODEL_DOF];
+    int commandCount = 0;
+
+    int maxTorque = 0;
 
     float timeCommand;
 
@@ -50,7 +53,7 @@ typedef struct SHMmsgs
     std::atomic<bool> controllerReady;
     std::atomic<bool> reading;
 
-    std::atomic<bool> shutdown;
+    std::atomic<bool> shutdown; //true for exit
 
     float lat_avg, lat_min, lat_max, lat_dev;
     float send_avg, send_min, send_max, send_dev;

@@ -796,6 +796,8 @@ void *ethercatThread1(void *data)
                         {
                             txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
                             txPDO[i]->targetTorque = (int)(torque_desired_elmo_[START_N + i] * NM2CNT[START_N + i] * elmo_axis_direction[START_N + i]);
+                            txPDO[i]->maxTorque = maxTorque;
+                            //txPDO[i]->maxTorque = shm_msgs_->maxTorque;
                             /*
                             if (dc.customGain)
                             {
@@ -1004,6 +1006,10 @@ void *ethercatThread2(void *data)
                     printf("%4d   %20s  %12f  ext : %12f\n", i, ELMO_NAME[i].c_str(), (double)q_elmo_[i], (double)q_ext_elmo_[i]);
                 }
             }
+            else if ((ch % 256 == 't'))
+            {
+                std::cout << "ELMO : torque on " << std::endl;
+            }
 
             this_thread::sleep_for(std::chrono::milliseconds(1));
         }
@@ -1191,6 +1197,10 @@ void getJointCommand()
     // memcpy(command_mode_, &shm_msgs_->commandMode, sizeof(int) * PART_ELMO_DOF);
     // memcpy(q_desired_, &shm_msgs_->positionCommand, sizeof(float) * PART_ELMO_DOF);
     // memcpy(torque_desired_, &shm_msgs_->torqueCommand, sizeof(float) * PART_ELMO_DOF);
+    while (shm_msgs_->commanding)
+    {
+        usleep(1);
+    }
 
     memcpy(&command_mode_[Q_LOWER_START], &shm_msgs_->commandMode[Q_LOWER_START], sizeof(int) * PART_ELMO_DOF);
     memcpy(&q_desired_[Q_LOWER_START], &shm_msgs_->positionCommand[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
@@ -1202,6 +1212,16 @@ void getJointCommand()
         q_desired_elmo_[JointMap[Q_LOWER_START + i]] = q_desired_[Q_LOWER_START + i];
         torque_desired_elmo_[JointMap[Q_LOWER_START + i]] = torque_desired_[Q_LOWER_START + i];
     }
+
+    static int commandCount_before = -1;
+    int commandCount = shm_msgs_->commandCount;
+    if (commandCount <= commandCount_before)
+    {
+        std::cout << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+    }
+    commandCount_before = commandCount;
+
+    maxTorque = shm_msgs_->maxTorque;
 }
 
 bool saveCommutationLog()
