@@ -44,7 +44,7 @@ struct EndEffector
 struct RobotData
 {
     ~RobotData(){std::cout<<"rd terminate"<<std::endl;}
-    std::atomic<int> us_from_start_ =0;
+    std::atomic<int> us_from_start_{};
     float control_time_ = 0;
     
     RigidBodyDynamics::Model model_;
@@ -111,9 +111,9 @@ struct RobotData
 
     //Task Command
     tocabi_msgs::TaskCommand tc_;
-    atomic<bool> task_signal_ = false;
+    atomic<bool> task_signal_{};
     tocabi_msgs::TaskCommandQue tc_q_;
-    atomic<bool> task_que_signal_ = false;
+    atomic<bool> task_que_signal_{};
 
 
     

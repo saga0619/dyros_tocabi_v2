@@ -39,7 +39,7 @@ typedef struct SHMmsgs
     //command val
 
     std::atomic<bool> commanding;
-    int commandMode[MODEL_DOF];
+    int commandMode[MODEL_DOF]; //command mode 0 -> off 1 -> torque 2 -> position 
     float torqueCommand[MODEL_DOF];
     float positionCommand[MODEL_DOF];
 

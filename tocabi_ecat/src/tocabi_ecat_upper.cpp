@@ -813,6 +813,15 @@ void *ethercatThread1(void *data)
                     //ECAT JOINT COMMAND
                     for (int i = 0; i < ec_slavecount; i++)
                     {
+                        if (command_mode_elmo_[i] == 0)
+                        {
+                            ElmoMode[i] = EM_TORQUE;
+                        }
+                        else if (command_mode_elmo_[i] == 1)
+                        {
+                            ElmoMode[i] = EM_TORQUE;
+                        }
+                        
                         if (ElmoMode[i] == EM_POSITION)
                         {
                             txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousPositionmode;

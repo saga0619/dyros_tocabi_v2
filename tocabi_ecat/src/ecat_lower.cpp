@@ -1,4 +1,5 @@
 #include "tocabi_ecat/tocabi_ecat_lower.h"
+#include "ros/ros.h"
 #include <cstring>
 
 static int latency_target_fd = -1;
@@ -35,8 +36,10 @@ static void set_latency_target(void)
     printf("# /dev/cpu_dma_latency set to %dus\n", latency_target_value);
 }
 
-int main(void)
-{    
+int main(int argc, char **argv)
+{   
+    ros::init(argc, argv, "tocabi_ecat_lower");
+
     struct sched_param param;
     pthread_attr_t attr, attr2;
     pthread_t thread1, thread2;
