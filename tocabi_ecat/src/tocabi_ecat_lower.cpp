@@ -1,12 +1,9 @@
 #include "tocabi_ecat/tocabi_ecat_lower.h"
-
-//#define PART_ELMO_DOF ELMO_DOF_LOWER
-//#define START_N ELMO_DOF_UPPER
+#include <chrono>
 
 const int PART_ELMO_DOF = ELMO_DOF_LOWER;
 const int START_N = ELMO_DOF_UPPER;
 const int Q_LOWER_START = 0;
-
 int64 gl_delta, toff;
 
 void ec_sync(int64 reftime, int64 cycletime, int64 *offsettime)
@@ -30,7 +27,6 @@ void ec_sync(int64 reftime, int64 cycletime, int64 *offsettime)
     *offsettime = -(delta / 100) - (integral / 20);
     gl_delta = delta;
 }
-
 
 void ethercatCheck()
 {
@@ -100,6 +96,7 @@ void ethercatCheck()
         }
     }
 }
+
 void elmoInit()
 {
     elmofz[R_Armlink_Joint].init_direction = -1.0;
@@ -200,6 +197,8 @@ void *ethercatThread1(void *data)
             /* wait for all slaves to reach SAFE_OP state */
             printf("ELMO : EC WAITING STATE TO SAFE_OP\n");
             ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4);
+
+            ec_configdc();
 
             expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
             printf("ELMO : Request operational state for all slaves. Calculated workcounter : %d\n", expectedWKC);
@@ -325,7 +324,6 @@ void *ethercatThread1(void *data)
                     {
                         if (check_commutation_first)
                         {
-
                             if (ecat_verbose)
                             {
                                 cout << "Commutation Status : " << endl;
@@ -341,7 +339,6 @@ void *ethercatThread1(void *data)
                                 cout << endl;
                                 cout << endl;
                             }
-
                             check_commutation_first = false;
                         }
                         if (query_check_state)
@@ -514,7 +511,12 @@ void *ethercatThread1(void *data)
 
                         if (de_zp_upper_switch)
                         {
-                            cout << "starting upper zp" << endl;
+                            cout << "starting waist zp" << endl;
+
+                            // elmofz[R_Shoulder3_Joint].findZeroSequence = 7;
+                            // elmofz[R_Shoulder3_Joint].initTime = control_time_real_;
+                            // elmofz[L_Shoulder3_Joint].findZeroSequence = 7;
+                            // elmofz[L_Shoulder3_Joint].initTime = control_time_real_;
 
                             for (int i = 0; i < ec_slavecount; i++)
                                 hommingElmo_before[START_N + i] = hommingElmo[START_N + i];
@@ -684,6 +686,8 @@ void *ethercatThread1(void *data)
                 {
                     chrono::steady_clock::time_point rcv_ = chrono::steady_clock::now();
 
+                    //
+
                     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
                     clock_gettime(CLOCK_MONOTONIC, &ts1);
@@ -759,53 +763,6 @@ void *ethercatThread1(void *data)
 
                     sendJointStatus();
 
-                    /*
-                            for (int i = 0; i < ec_slavecount; i++)
-                            {
-                                if (operation_ready)
-                                {
-                                    if (dc.torqueOn)
-                                    {
-                                        //If torqueOn command received, torque will increases slowly, for rising_time, which is currently 3 seconds.
-                                        to_ratio = DyrosMath::minmax_cut((control_time_real_ - dc.torqueOnTime) / rising_time, 0.0, 1.0);
-                                        ElmoMode[i] = EM_TORQUE;
-                                        dc.t_gain = to_ratio;
-
-                                        ELMO_torque[i] = to_ratio * ELMO_torque[i];
-                                    }
-                                    else if (dc.torqueOff)
-                                    {
-                                        //If torqueOff command received, torque will decreases slowly, for rising_time(3 seconds. )
-
-                                        if (dc.torqueOnTime + rising_time > dc.torqueOffTime)
-                                        {
-                                            to_calib = (dc.torqueOffTime - dc.torqueOnTime) / rising_time;
-                                        }
-                                        else
-                                        {
-                                            to_calib = 0.0;
-                                        }
-                                        to_ratio = DyrosMath::minmax_cut(1.0 - to_calib - (control_time_real_ - dc.torqueOffTime) / rising_time, 0.0, 1.0);
-
-                                        dc.t_gain = to_ratio;
-
-                                        ELMO_torque[i] = to_ratio * ELMO_torque[i];
-                                    }
-                                    else
-                                    {
-                                        ElmoMode[i] = EM_TORQUE;
-                                        ELMO_torque[i] = 0.0;
-                                    }
-                                }
-                                else
-                                {
-                                    if ((!zp_upper_check) && (!zp_low_check))
-                                    {
-                                        ElmoMode[i] = EM_TORQUE;
-                                        ELMO_torque[i] = 0.0;
-                                    }
-                                }
-                            }*/
                     getJointCommand();
 
                     for (int i = 0; i < ec_slavecount; i++)
@@ -832,10 +789,12 @@ void *ethercatThread1(void *data)
                         shm_msgs_->safety_reset_lower_signal = false;
                     }
 
+                    //Joint safety checking ..
                     checkJointSafety();
+
+                    //Ecat joint command
                     for (int i = 0; i < ec_slavecount; i++)
                     {
-
                         if (ElmoMode[i] == EM_POSITION)
                         {
                             txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousPositionmode;
@@ -846,7 +805,6 @@ void *ethercatThread1(void *data)
                             txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
                             txPDO[i]->targetTorque = (int)(torque_desired_elmo_[START_N + i] * NM2CNT[START_N + i] * elmo_axis_direction[START_N + i]);
                             txPDO[i]->maxTorque = maxTorque;
-                            //txPDO[i]->maxTorque = shm_msgs_->maxTorque;
                             /*
                             if (dc.customGain)
                             {
@@ -863,43 +821,6 @@ void *ethercatThread1(void *data)
                             txPDO[i]->targetTorque = (int)0;
                         }
                     }
-                    /*
-                            bool ecat_lost_before = de_ecat_lost;
-                            de_ecat_lost = false;
-                            for (int i = 0; i < ec_slavecount; i++)
-                            {
-                                if (ec_slave[i].islost)
-                                {
-                                    de_ecat_lost = de_ecat_lost || true;
-                                }
-                            }
-
-                            if ((ecat_lost_before) && (!de_ecat_lost))
-                            {
-                                de_ecat_recovered = true;
-                            }
-
-                            if (de_ecat_lost)
-                            {
-                                for (int i = 0; i < ec_slavecount; i++)
-                                {
-                                    txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
-                                    txPDO[i]->targetTorque = (int)0;
-                                }
-                            }
-
-                            //Hold position if safety limit breached
-                            for (int i = 0; i < ec_slavecount; i++)
-                            {
-                                if (ElmoMode[i] != EM_POSITION)
-                                {
-                                    checkPosSafety[i] = false;
-                                }
-
-                                checkSafety(i, joint_velocity_limit[i], 10.0 * CYCLETIME / 1E+6); //if angular velocity exceeds 0.5rad/s, Hold to current Position ///
-                            }
-                            */
-
 
                     if (ec_slave[0].hasdc)
                     {

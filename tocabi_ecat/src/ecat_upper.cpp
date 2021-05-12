@@ -42,6 +42,11 @@ int main(int argc, char **argv)
     ros::NodeHandle nh_;
     nh_.param("/tocabi_ecat_upper/verbose", ecat_verbose, true);
 
+    // nh_.getParam("/tocabi_controller/vellimit", joint_velocity_limit);
+    // nh_.getParam("/tocabi_controller/jointlimit_u", joint_upper_limit);
+    // nh_.getParam("/tocabi_controller/jointlimit_l", joint_lower_limit);
+    // nh_.getParam("/tocabi_controller/NM2CNT", NM2CNT);
+
     initSharedMemory();
 
     struct sched_param param;

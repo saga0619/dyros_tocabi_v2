@@ -314,6 +314,13 @@ double q_zero_point[ELMO_DOF];
 double q_zero_elmo_[ELMO_DOF];
 double q_zero_mod_elmo_[ELMO_DOF];
 
+//from param
+std::vector<double> NM2CNT;
+std::vector<double> joint_velocity_limit;
+std::vector<double> joint_upper_limit;
+std::vector<double> joint_lower_limit;
+
+
 void *ethercatThread1(void *data);
 void *ethercatThread2(void *data);
 void ethercatCheck();
