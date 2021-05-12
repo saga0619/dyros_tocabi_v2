@@ -343,6 +343,12 @@ namespace DyrosMath
     return angle;
   }
 
+  static void rot2Euler_tf2(Eigen::Matrix3d Rot, double &roll, double &pitch, double &yaw)
+  {
+    tf2::Matrix3x3 m(Rot(0, 0), Rot(0, 1), Rot(0, 2), Rot(1, 0), Rot(1, 1), Rot(1, 2), Rot(2, 0), Rot(2, 1), Rot(2, 2));
+    m.getRPY(roll, pitch, yaw);
+  }
+
   static Eigen::Matrix3d Euler2rot_tf(Eigen::Vector3d eulr)
   {
     //tf2::Quaternion q(eulr(2), eulr(1), eulr(0));

@@ -29,7 +29,7 @@
 #define PERIOD_NS 500000
 #define SEC_IN_NSEC 1000000000
 
-#define FORCE_CONTROL_MODE true
+#define FORCE_CONTROL_MODE false
 
 const char ifname_lower[] = "eno2";
 const char ifname_upper[] = "enp4s0";

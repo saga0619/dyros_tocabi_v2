@@ -17,6 +17,8 @@
 #include <sys/stat.h>
 
 #include <ethercat.h>
+
+#include <ros/ros.h>
 #include "tocabi_ecat/shm_msgs.h"
 #include "tocabi_ecat/ecat_settings.h"
 
@@ -257,6 +259,9 @@ int wait_cnt = 0;
 
 int commutation_joint = 0;
 
+bool ecat_verbose = true;
+
+
 chrono::steady_clock::time_point st_start_time;
 std::chrono::duration<double> time_from_begin;
 std::chrono::microseconds cycletime(CYCLETIME);
@@ -275,6 +280,10 @@ atomic<bool> de_zp_upper_switch{false};
 atomic<bool> de_zp_lower_switch{false};
 atomic<int> de_debug_level{0};
 
+int state_elmo_[ELMO_DOF];
+int state_zp_[ELMO_DOF];
+int state_safety_[ELMO_DOF];
+
 int joint_state_elmo_[ELMO_DOF]; //sendstate
 
 float q_elmo_[ELMO_DOF];      //sendstate
@@ -282,9 +291,9 @@ float q_dot_elmo_[ELMO_DOF];  //sendstate
 float torque_elmo_[ELMO_DOF]; //sendstate
 float q_ext_elmo_[ELMO_DOF];
 
-int command_mode_elmo_[ELMO_DOF];
-float torque_desired_elmo_[ELMO_DOF]; //get torque command
-float q_desired_elmo_[ELMO_DOF];      //get joint command
+int command_mode_elmo_[ELMO_DOF];       //0 off 1 torque 2 position 
+float torque_desired_elmo_[ELMO_DOF];   //get torque command
+float q_desired_elmo_[ELMO_DOF];        //get joint command
 
 //int command_mode_[ELMO_DOF];
 

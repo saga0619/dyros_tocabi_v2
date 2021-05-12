@@ -154,6 +154,12 @@ struct DataContainer
     bool toruqeDecreaseSeq = false;
     bool torqueOn = false;
 
+    bool inityawSwitch = false;
+    bool ftcalibSwtich = false;
+    bool imuResetSwtich = false;
+    bool stateEstimateSwitch = false;
+    bool safetyResetSwitch = false;
+
     double torqueOnTime = -1;
     double torqueOffTime = -1;
 

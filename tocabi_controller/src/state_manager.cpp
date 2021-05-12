@@ -57,6 +57,11 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
     task_command_que_sub_ = dc_.nh.subscribe("/tocabi/taskquecommand", 100, &StateManager::TaskQueCommandCallback, this);
     gui_command_sub_ = dc_.nh.subscribe("/tocabi/command", 100, &StateManager::GuiCommandCallback, this);
     gui_state_pub_ = dc_.nh.advertise<std_msgs::Int32MultiArray>("/tocabi/systemstate", 100);
+    point_pub_ = dc_.nh.advertise<geometry_msgs::PolygonStamped>("/tocabi/point", 100);
+    status_pub_ = dc_.nh.advertise<std_msgs::String>("/tocabi/guilog", 100);
+    timer_pub_ = dc_.nh.advertise<std_msgs::Float32>("/tocabi/time", 100);
+
+    point_pub_msg_.polygon.points.resize(10);
 }
 
 StateManager::~StateManager()
@@ -125,11 +130,12 @@ void *StateManager::StateThread()
             StoreState(dc_.rd_); //6.2 us //w/o march native 8us
             auto d1 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t1).count();
 
-            MeasureTime(stm_count_, d1);
+            //MeasureTime(stm_count_, d1);
 
             dc_.rd_.us_from_start_ = dur_start_;
 
-            PublishData();
+            if (stm_count_ % 33 == 0)
+                PublishData();
 
             //printf("%d\n", rcv_tcnt);
             //printf("\x1b[A\x1b[A\33[2K\r");
@@ -146,6 +152,10 @@ void *StateManager::StateThread()
 
 void StateManager::PublishData()
 {
+    timer_msg_.data = control_time_;
+
+    timer_pub_.publish(timer_msg_);
+
     geometry_msgs::TransformStamped ts;
 
     ts.header.stamp = ros::Time::now();
@@ -169,6 +179,105 @@ void StateManager::PublishData()
         joint_state_msg_.position[i] = q_virtual_local_[i + 6];
 
     joint_state_pub_.publish(joint_state_msg_);
+
+    point_pub_msg_.polygon.points[0].x = link_[COM_id].xpos(0);
+    point_pub_msg_.polygon.points[0].y = link_[COM_id].xpos(1);
+    point_pub_msg_.polygon.points[0].z = link_[COM_id].xpos(2);
+
+    point_pub_msg_.polygon.points[1].x = link_[Right_Foot].xpos(0);
+    point_pub_msg_.polygon.points[1].y = link_[Right_Foot].xpos(1);
+    point_pub_msg_.polygon.points[1].z = link_[Right_Foot].xpos(2);
+
+    point_pub_msg_.polygon.points[2].x = link_[Left_Foot].xpos(0);
+    point_pub_msg_.polygon.points[2].y = link_[Left_Foot].xpos(1);
+    point_pub_msg_.polygon.points[2].z = link_[Left_Foot].xpos(2);
+
+    point_pub_msg_.polygon.points[3].x = link_[Pelvis].xpos(0);
+    point_pub_msg_.polygon.points[3].y = link_[Pelvis].xpos(1);
+    point_pub_msg_.polygon.points[3].z = link_[Pelvis].xpos(2);
+
+    double tr_, tp_, ty_;
+
+
+    DyrosMath::rot2Euler_tf2(link_[Pelvis].rotm, tr_, tp_, ty_);
+
+    point_pub_msg_.polygon.points[4].x = tr_; //rpy
+    point_pub_msg_.polygon.points[4].y = tp_; //rpy
+    point_pub_msg_.polygon.points[4].z = ty_; //rpy
+
+    point_pub_msg_.polygon.points[5].x = link_[Right_Hand].xpos(0);
+    point_pub_msg_.polygon.points[5].y = link_[Right_Hand].xpos(1);
+    point_pub_msg_.polygon.points[5].z = link_[Right_Hand].xpos(2);
+
+    point_pub_msg_.polygon.points[6].x = link_[Left_Hand].xpos(0);
+    point_pub_msg_.polygon.points[6].y = link_[Left_Hand].xpos(1);
+    point_pub_msg_.polygon.points[6].z = link_[Left_Hand].xpos(2);
+
+    point_pub_msg_.polygon.points[7].x = 0.0; //zmp
+    point_pub_msg_.polygon.points[7].y = 0.0;
+    point_pub_msg_.polygon.points[7].z = 0.0;
+
+    DyrosMath::rot2Euler_tf2(link_[Left_Foot].rotm, tr_, tp_, ty_);
+    point_pub_msg_.polygon.points[8].x = tr_;
+    point_pub_msg_.polygon.points[8].y = tp_;
+    point_pub_msg_.polygon.points[8].z = ty_;
+
+    DyrosMath::rot2Euler_tf2(link_[Right_Foot].rotm, tr_, tp_, ty_);
+    point_pub_msg_.polygon.points[9].x = tr_;
+    point_pub_msg_.polygon.points[9].y = tp_;
+    point_pub_msg_.polygon.points[9].z = ty_;
+
+    //
+    for (int i = 0; i < MODEL_DOF; i++)
+    {
+        if (joint_state_before_[i] != joint_state_[i])
+        {
+            if (joint_state_[i] == ESTATE::ERROR)
+            {
+            }
+            else if (joint_state_[i] == ESTATE::OPERATION_READY)
+            {
+                //elmo ready
+            }
+            else if (joint_state_[i] == ESTATE::COMMUTATION_INITIALIZE)
+            {
+                //elmo ready
+            }
+            else if (joint_state_[i] == ESTATE::COMMUTATION_DONE)
+            {
+                //elmo ready
+            }
+            else if (joint_state_[i] == ESTATE::ZP_SEARCHING_ZP)
+            {
+            }
+            else if (joint_state_[i] == ESTATE::ZP_SEARCH_COMPLETE)
+            {
+            }
+            else if (joint_state_[i] == ESTATE::ZP_MANUAL_REQUIRED)
+            {
+            }
+            else if (joint_state_[i] == ESTATE::ZP_NOT_ENOUGH_HOMMING)
+            {
+            }
+            else if (joint_state_[i] == ESTATE::ZP_GOTO_ZERO)
+            {
+            }
+            else if (joint_state_[i] == ESTATE::ZP_SUCCESS)
+            {
+            }
+            else if (joint_state_[i] == ESTATE::SAFETY_VELOCITY_LIMIT)
+            {
+            }
+            else if (joint_state_[i] == ESTATE::SAFETY_JOINT_LIMIT)
+            {
+            }
+            else if (joint_state_[i] == ESTATE::SAFETY_TORQUE_LIMIT)
+            {
+            }
+        }
+    }
+
+    memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
 }
 
 void StateManager::GetJointData()
@@ -196,6 +305,8 @@ void StateManager::GetJointData()
     q_virtual_local_(4) = dc_.tc_shm_->pos_virtual[4];
     q_virtual_local_(5) = dc_.tc_shm_->pos_virtual[5];
     q_virtual_local_(MODEL_DOF_VIRTUAL) = dc_.tc_shm_->pos_virtual[6];
+
+    memcpy(joint_state_, dc_.tc_shm_->status, sizeof(int) * MODEL_DOF);
 
     //dc_.tc_shm_->pos
 }
@@ -473,10 +584,60 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         dc_.torqueOffSwitch = true;
     }
-    else if(msg->data == "emergencyoff")
+    else if (msg->data == "emergencyoff")
     {
         dc_.emergencySwitch = true;
     }
+    else if (msg->data == "inityaw")
+    {
+        dc_.inityawSwitch = true;
+    }
+    else if (msg->data == "ftcalib")
+    {
+        dc_.ftcalibSwtich = true;
+    }
+    else if (msg->data == "imureset")
+    {
+        dc_.imuResetSwtich = true;
+    }
+    else if (msg->data == "stateestimation")
+    {
+        dc_.stateEstimateSwitch = true;
+    }
+    else if (msg->data == "safetyreset")
+    {
+        dc_.safetyResetSwitch = true;
+    }
+    else if (msg->data == "ecatinit")
+    {
+        dc_.tc_shm_->upper_init_signal = true;
+        dc_.tc_shm_->waist_init_signal = true;
+    }
+    else if (msg->data == "ecatinitlower")
+    {
+        dc_.tc_shm_->low_init_signal = true;
+    }
 
     //Controlling GUI
+}
+
+void StateManager::StatusPub(const char *str, ...)
+{
+    va_list lst;
+    va_start(lst, str);
+
+    char text_[256];
+
+    vsnprintf(text_, 255, str, lst);
+
+    std::string str_(text_);
+
+    std_msgs::String str_msg_;
+    str_msg_.data = str_;
+
+    status_pub_.publish(str_msg_);
+
+    //std::cout<<str_;
+
+    va_end(lst);
 }

@@ -61,6 +61,13 @@ typedef struct SHMmsgs
     float lat_avg2, lat_min2, lat_max2, lat_dev2;
     float send_avg2, send_min2, send_max2, send_dev2;
 
+    bool low_init_signal = false;
+    bool waist_init_signal = false;
+    bool upper_init_signal = false;
+
+    bool safety_reset_lower_signal = false;
+    bool safety_reset_upper_signal = false;
+
 } SHMmsgs;
 
 static SHMmsgs *shm_msgs_;
@@ -74,19 +81,27 @@ enum ECOMMAND
 };
 
 // Joint state
+// joint state is indicated with 3 numbers 
+
 // 0 : ELMO_ERROR,
 // 1 : OPERATION_READY,
 // 2 : COMMUTATION_INITIALIZE,
-// 3 : COMMUTATION_DONE,
-// 4 : ZP_SEARCHING_ZP,
-// 5 : ZP_SEARCH_COMPLETE,
-// 6 : ZP_MANUAL_REQUIRED,
-// 7 : ZP_NOT_ENOUGH_HOMMING,
-// 8 : ZP_GOTO_ZERO,
-// 9 : ZP_SUCCESS,
-// 10 : SAFETY_VELOCITY_LIMIT,
-// 11 : SAFETY_JOINT_LIMIT,
-// 12 : SAFETY_TORQUE_LIMIT,
+// 3 : COMMUTATION_DONE, 4
+
+
+// 0 : ZP_SEARCHING_ZP,
+// 1 : ZP_SEARCH_COMPLETE,
+// 2 : ZP_MANUAL_REQUIRED,
+// 3 : ZP_NOT_ENOUGH_HOMMING,
+// 4 : ZP_GOTO_ZERO,
+// 5 : ZP_SUCCESS, 8 
+
+
+// 0 : SAFETY_VELOCITY_LIMIT,
+// 1 : SAFETY_JOINT_LIMIT,
+// 2 : SAFETY_TORQUE_LIMIT, 3 
+
+
 enum ESTATE
 {
     ERROR,
@@ -102,6 +117,7 @@ enum ESTATE
     SAFETY_VELOCITY_LIMIT,
     SAFETY_JOINT_LIMIT,
     SAFETY_TORQUE_LIMIT,
+    SAFETY_OK,
 };
 
 static void init_shm()

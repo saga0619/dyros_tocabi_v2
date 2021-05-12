@@ -18,6 +18,10 @@
 #include "std_msgs/String.h"
 #include "sensor_msgs/JointState.h"
 #include "std_msgs/Int32MultiArray.h"
+#include "geometry_msgs/PolygonStamped.h"
+#include "std_msgs/Float32.h"
+
+#include "std_msgs/Int16MultiArray.h"
 
 class StateManager
 {
@@ -58,6 +62,8 @@ public:
 
     float q_a_[MODEL_DOF] = {};
     float q_dot_a_[MODEL_DOF] = {};
+    int joint_state_[MODEL_DOF];
+    int joint_state_before_[MODEL_DOF];
 
     Eigen::VectorQVQd q_virtual_local_;
     Eigen::VectorVQd q_dot_virtual_local_;
@@ -90,6 +96,9 @@ public:
     void GetSimData();
     void SendCommand(VectorQf command, std::vector<bool> command_mode);
 
+    ros::Publisher timer_pub_;
+    std_msgs::Float32 timer_msg_;
+
     ros::Subscriber mujoco_sim_command_sub_;
     ros::Publisher mujoco_sim_command_pub_;
 
@@ -101,6 +110,14 @@ public:
     ros::Subscriber task_command_sub_;
     tocabi_msgs::TaskCommand tc_msg_;
 
+    ros::Publisher point_pub_;
+    geometry_msgs::PolygonStamped point_pub_msg_;
+
+    ros::Publisher status_pub_;
+       
+    ros::Publisher elmo_status_pub_;
+    std_msgs::Int16MultiArray elmo_status_msg_;
+
     void SimCommandCallback(const std_msgs::StringConstPtr &msg);
     //void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);
 
@@ -111,6 +128,8 @@ public:
     ros::Subscriber gui_command_sub_;
     ros::Publisher gui_state_pub_;
     void GuiCommandCallback(const std_msgs::StringConstPtr &msg);
+
+    void StatusPub(const char *str, ...);
 
     float sim_time_ = 0;
     float sim_time_before_ = 0;

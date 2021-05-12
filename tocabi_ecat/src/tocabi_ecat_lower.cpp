@@ -7,6 +7,31 @@ const int PART_ELMO_DOF = ELMO_DOF_LOWER;
 const int START_N = ELMO_DOF_UPPER;
 const int Q_LOWER_START = 0;
 
+int64 gl_delta, toff;
+
+void ec_sync(int64 reftime, int64 cycletime, int64 *offsettime)
+{
+    static int64 integral = 0;
+    int64 delta;
+    /* set linux sync point 50us later than DC sync, just as example */
+    delta = (reftime - 50000) % cycletime;
+    if (delta > (cycletime / 2))
+    {
+        delta = delta - cycletime;
+    }
+    if (delta > 0)
+    {
+        integral++;
+    }
+    if (delta < 0)
+    {
+        integral--;
+    }
+    *offsettime = -(delta / 100) - (integral / 20);
+    gl_delta = delta;
+}
+
+
 void ethercatCheck()
 {
     if (inOP && ((wkc < expectedWKC) || ec_group[currentgroup].docheckstate))
@@ -120,7 +145,6 @@ void *ethercatThread1(void *data)
     {
         printf("ELMO : ec_init on %s succeeded.\n", ifname_lower);
         elmoInit();
-        initSharedMemory();
         /* find and auto-config slaves */
         /* network discovery */
         //ec_config_init()
@@ -255,6 +279,7 @@ void *ethercatThread1(void *data)
 
                         if (elmost[i].state != elmost[i].state_before)
                         {
+                            state_elmo_[i] = elmost[i].state;
                             if (elmost[i].first_check)
                             {
                                 if (elmost[i].state == ELMO_NOTFAULT)
@@ -300,39 +325,47 @@ void *ethercatThread1(void *data)
                     {
                         if (check_commutation_first)
                         {
-                            cout << "Commutation Status : " << endl;
-                            for (int i = 0; i < ec_slavecount; i++)
-                                printf("--");
-                            cout << endl;
-                            for (int i = 0; i < ec_slavecount; i++)
-                                printf("%2d", (i - i % 10) / 10);
-                            printf("\n");
-                            for (int i = 0; i < ec_slavecount; i++)
-                                printf("%2d", i % 10);
-                            cout << endl;
-                            cout << endl;
-                            cout << endl;
+
+                            if (ecat_verbose)
+                            {
+                                cout << "Commutation Status : " << endl;
+                                for (int i = 0; i < ec_slavecount; i++)
+                                    printf("--");
+                                cout << endl;
+                                for (int i = 0; i < ec_slavecount; i++)
+                                    printf("%2d", (i - i % 10) / 10);
+                                printf("\n");
+                                for (int i = 0; i < ec_slavecount; i++)
+                                    printf("%2d", i % 10);
+                                cout << endl;
+                                cout << endl;
+                                cout << endl;
+                            }
+
                             check_commutation_first = false;
                         }
                         if (query_check_state)
                         {
-                            printf("\x1b[A\x1b[A\33[2K\r");
-                            for (int i = 0; i < ec_slavecount; i++)
+                            if (ecat_verbose)
                             {
-                                if (elmost[i].state == ELMO_OPERATION_ENABLE)
+                                printf("\x1b[A\x1b[A\33[2K\r");
+                                for (int i = 0; i < ec_slavecount; i++)
                                 {
-                                    printf("%s%2d%s", cgreen.c_str(), elmost[i].state, creset.c_str());
+                                    if (elmost[i].state == ELMO_OPERATION_ENABLE)
+                                    {
+                                        printf("%s%2d%s", cgreen.c_str(), elmost[i].state, creset.c_str());
+                                    }
+                                    else
+                                    {
+                                        printf("%2d", elmost[i].state);
+                                    }
                                 }
-                                else
-                                {
-                                    printf("%2d", elmost[i].state);
-                                }
+                                cout << endl;
+                                for (int i = 0; i < ec_slavecount; i++)
+                                    printf("--");
+                                cout << endl;
+                                fflush(stdout);
                             }
-                            cout << endl;
-                            for (int i = 0; i < ec_slavecount; i++)
-                                printf("--");
-                            cout << endl;
-                            fflush(stdout);
                             query_check_state = false;
                         }
                     }
@@ -685,7 +718,7 @@ void *ethercatThread1(void *data)
                             }
                             if (reachedInitial[slave - 1])
                             {
-                                q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
+                                q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1] - q_zero_elmo_[START_N + slave -1];
                                 hommingElmo[START_N + slave - 1] =
                                     (((uint32_t)ec_slave[slave].inputs[4]) +
                                      ((uint32_t)ec_slave[slave].inputs[5] << 8) +
@@ -775,17 +808,33 @@ void *ethercatThread1(void *data)
                             }*/
                     getJointCommand();
 
-                    //ECAT JOINT COMMAND
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         if (command_mode_elmo_[START_N + i] == 0)
                         {
                             ElmoMode[i] = EM_TORQUE;
+                            torque_desired_elmo_[START_N + i] = 0;
                         }
                         else if (command_mode_elmo_[START_N + i] == 1)
                         {
                             ElmoMode[i] = EM_TORQUE;
                         }
+                        else if (command_mode_elmo_[START_N + i] == 1)
+                        {
+                            ElmoMode[i] = EM_POSITION;
+                        }
+                    }
+
+                    //ECAT JOINT COMMAND
+                    if (shm_msgs_->safety_reset_lower_signal)
+                    {
+                        memset(ElmoSafteyMode, 0, sizeof(int) * ELMO_DOF);
+                        shm_msgs_->safety_reset_lower_signal = false;
+                    }
+
+                    checkJointSafety();
+                    for (int i = 0; i < ec_slavecount; i++)
+                    {
 
                         if (ElmoMode[i] == EM_POSITION)
                         {
@@ -851,7 +900,12 @@ void *ethercatThread1(void *data)
                             }
                             */
 
-                    checkJointSafety();
+
+                    if (ec_slave[0].hasdc)
+                    {
+                        static int cycletime = PERIOD_NS;
+                        ec_sync(ec_DCtime, cycletime, &toff);
+                    }
 
                     //Torque off if emergency off received
                     if (de_emergency_off)
@@ -902,26 +956,6 @@ void *ethercatThread1(void *data)
                     shm_msgs_->send_dev2 = sdev;
 
                     cycle_count++;
-                    /*
-                            if (dc.disableSafetyLock)
-                            {
-                                for (int i = 0; i < ec_slavecount; i++)
-                                {
-                                    ElmoSafteyMode[i] = 0;
-                                }
-                                dc.disableSafetyLock = false;
-                            }
-                            
-
-                    for (int i = 0; i < ec_slavecount; i++)
-                    {
-                        if (ElmoMode[i] == EM_POSITION)
-                        {
-                            checkPosSafety[i] = true;
-                        }
-                    }
-
-                     */
                 }
 
                 inOP = FALSE;
@@ -969,6 +1003,7 @@ void *ethercatThread2(void *data)
 {
     while (!de_shutdown)
     {
+
         ethercatCheck();
 
         int ch = kbhit();
@@ -1012,6 +1047,23 @@ void *ethercatThread2(void *data)
             }
 
             this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        if (shm_msgs_->low_init_signal)
+        {
+            std::cout << "?4" << std::endl;
+            de_zp_lower_switch = true;
+            std::cout << "?4" << std::endl;
+            shm_msgs_->low_init_signal = false;
+            std::cout << "?4" << std::endl;
+        }
+        if (shm_msgs_->waist_init_signal)
+        {
+            std::cout << "?4" << std::endl;
+            de_zp_upper_switch = true;
+            std::cout << "?4" << std::endl;
+            shm_msgs_->waist_init_signal = false;
+            std::cout << "?4" << std::endl;
         }
     }
 
@@ -1081,19 +1133,42 @@ bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord)
     controlWord = 0;
     return false;
 }
+
 void checkJointSafety()
 {
     for (int i = 0; i < ELMO_DOF_LOWER; i++)
     {
-        if ((joint_lower_limit[START_N + i] > q_elmo_[START_N + i]) || (joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
+
+        if (ElmoSafteyMode[i] == 0)
         {
-            //joint limit reached
-            joint_state_elmo_[START_N + i] = ESTATE::SAFETY_JOINT_LIMIT;
+            joint_state_elmo_[START_N + i] = ESTATE::SAFETY_OK;
+
+            if ((joint_lower_limit[START_N + i] > q_elmo_[START_N + i]) || (joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
+            {
+                //joint limit reached
+                joint_state_elmo_[START_N + i] = ESTATE::SAFETY_JOINT_LIMIT;
+                ElmoSafteyMode[i] = 1;
+                std::cout << "safety lock : joint limit " << i << ELMO_NAME[i] << std::endl;
+            }
+
+            if (joint_velocity_limit[START_N + i] < abs(q_dot_elmo_[START_N + i]))
+            {
+                std::cout << "safety lock : velocity limit " << i << ELMO_NAME[i] << std::endl;
+                joint_state_elmo_[START_N + i] = ESTATE::SAFETY_VELOCITY_LIMIT;
+                ElmoSafteyMode[i] = 1;
+            }
         }
 
-        if (joint_velocity_limit[START_N + i] < abs(q_dot_elmo_[START_N + i]))
+        if (ElmoSafteyMode[i] == 1)
         {
-            joint_state_elmo_[START_N + i] = ESTATE::SAFETY_VELOCITY_LIMIT;
+            q_desired_elmo_[START_N + i] = q_elmo_[START_N + i];
+            ElmoMode[i] == EM_POSITION;
+            ElmoSafteyMode[i] = 2;
+        }
+
+        if (ElmoSafteyMode[i] == 2)
+        {
+            ElmoMode[i] == EM_POSITION;
         }
     }
 }
@@ -1189,7 +1264,7 @@ void sendJointStatus()
     memcpy(&shm_msgs_->status[Q_LOWER_START], &joint_state_[Q_LOWER_START], sizeof(int) * PART_ELMO_DOF);
 
     shm_msgs_->statusWriting--;
-    shm_msgs_->t_cnt = cycle_count;
+    shm_msgs_->t_cnt2 = cycle_count;
 }
 
 void getJointCommand()
@@ -1214,10 +1289,13 @@ void getJointCommand()
     }
 
     static int commandCount_before = -1;
+    static int errorCount = -2;
     int commandCount = shm_msgs_->commandCount;
     if (commandCount <= commandCount_before)
     {
-        std::cout << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+        if (errorCount != commandCount)
+            std::cout << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+        errorCount = commandCount;
     }
     commandCount_before = commandCount;
 
@@ -1302,7 +1380,11 @@ bool loadZeroPoint()
     ifs.read(reinterpret_cast<char *>(&file_time_rep), sizeof file_time_rep);
     double getzp[ELMO_DOF];
     for (int i = 0; i < ELMO_DOF; i++)
+    {
         ifs.read(reinterpret_cast<char *>(&getzp[i]), sizeof(double));
+        q_zero_elmo_[i] = getzp[i];
+
+    }
 
     ifs.close();
 

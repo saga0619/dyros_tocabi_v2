@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 
 #include <ethercat.h>
+#include <ros/ros.h>
 #include "tocabi_ecat/ecat_settings.h"
 #include "tocabi_ecat/shm_msgs.h"
 
@@ -254,6 +255,8 @@ bool check_commutation_first = true;
 bool query_check_state = false;
 bool zp_lower_calc = true;
 
+bool ecat_verbose = true;
+
 int wait_cnt = 0;
 
 int commutation_joint = 0;
@@ -277,6 +280,9 @@ atomic<bool> de_zp_lower_switch{false};
 atomic<int> de_debug_level{0};
 
 
+int state_elmo_[ELMO_DOF];
+int state_zp_[ELMO_DOF];
+int state_safety_[ELMO_DOF];
 
 
 int joint_state_elmo_[ELMO_DOF]; //sendstate
@@ -287,9 +293,9 @@ float q_dot_elmo_[ELMO_DOF];  //sendstate
 float torque_elmo_[ELMO_DOF]; //sendstate
 float q_ext_elmo_[ELMO_DOF];
 
-int command_mode_elmo_[ELMO_DOF];
-float torque_desired_elmo_[ELMO_DOF]; //get torque command
-float q_desired_elmo_[ELMO_DOF];      //get joint command
+int command_mode_elmo_[ELMO_DOF];       //0 off 1 torque 2 position 
+float torque_desired_elmo_[ELMO_DOF];   //get torque command
+float q_desired_elmo_[ELMO_DOF];        //get joint command
 
 double q_zero_point[ELMO_DOF];
 

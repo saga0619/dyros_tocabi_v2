@@ -36,7 +36,12 @@ static void set_latency_target(void)
 }
 
 int main(int argc, char **argv)
-{   
+{
+    ros::init(argc, argv, "tocabi_ecat_lower");
+    ros::NodeHandle nh_;
+    nh_.param("/tocabi_ecat_lower/verbose", ecat_verbose, true);
+
+    initSharedMemory();
     struct sched_param param;
     pthread_attr_t attr, attr2;
     pthread_t thread1, thread2;
@@ -67,7 +72,7 @@ int main(int argc, char **argv)
         printf("pthread setschedparam failed\n");
         goto out;
     }
-    
+
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     CPU_SET(6, &cpuset);
@@ -77,7 +82,7 @@ int main(int argc, char **argv)
     {
         printf("pthread setaffinity failed\n");
         goto out;
-    } 
+    }
 
     /* Use scheduling parameters of attr */
     ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
