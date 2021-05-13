@@ -16,6 +16,11 @@ typedef struct SHMmsgs
 {
 
     std::atomic<int> statusWriting;
+
+    int8_t safety_status[MODEL_DOF];
+    int8_t ecat_status[MODEL_DOF];
+    int8_t zp_status[MODEL_DOF];
+
     int status[MODEL_DOF];
     float torqueActual[MODEL_DOF];
     float vel[MODEL_DOF];
@@ -102,22 +107,31 @@ enum ECOMMAND
 // 2 : SAFETY_TORQUE_LIMIT, 3 
 
 
-enum ESTATE
+
+enum SSTATE
 {
-    ERROR,
-    OPERATION_READY,
-    COMMUTATION_INITIALIZE,
-    COMMUTATION_DONE,
+    SAFETY_OK,
+    SAFETY_JOINT_LIMIT,
+    SAFETY_VELOCITY_LIMIT,
+    SAFETY_TORQUE_LIMIT,
+};
+
+enum ZSTATE
+{
     ZP_SEARCHING_ZP,
     ZP_SEARCH_COMPLETE,
     ZP_MANUAL_REQUIRED,
     ZP_NOT_ENOUGH_HOMMING,
     ZP_GOTO_ZERO,
     ZP_SUCCESS,
-    SAFETY_VELOCITY_LIMIT,
-    SAFETY_JOINT_LIMIT,
-    SAFETY_TORQUE_LIMIT,
-    SAFETY_OK,
+};
+
+enum ESTATE
+{
+    ERROR,
+    OPERATION_READY,
+    COMMUTATION_INITIALIZE,
+    COMMUTATION_DONE,
 };
 
 static void init_shm()

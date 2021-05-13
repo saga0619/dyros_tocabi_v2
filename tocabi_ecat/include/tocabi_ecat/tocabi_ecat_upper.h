@@ -280,10 +280,9 @@ atomic<bool> de_zp_lower_switch{false};
 atomic<int> de_debug_level{0};
 
 
-int state_elmo_[ELMO_DOF];
-int state_zp_[ELMO_DOF];
-int state_safety_[ELMO_DOF];
-
+int8_t state_elmo_[ELMO_DOF];
+int8_t state_zp_[ELMO_DOF];
+int8_t state_safety_[ELMO_DOF];
 
 int joint_state_elmo_[ELMO_DOF]; //sendstate
 
@@ -303,10 +302,10 @@ double q_zero_elmo_[ELMO_DOF];
 double q_zero_mod_elmo_[ELMO_DOF];
 
 //from param
-std::vector<double> NM2CNT;
-std::vector<double> joint_velocity_limit;
-std::vector<double> joint_upper_limit;
-std::vector<double> joint_lower_limit;
+// std::vector<double> NM2CNT;
+// std::vector<double> joint_velocity_limit;
+// std::vector<double> joint_upper_limit;
+// std::vector<double> joint_lower_limit;
 
 int maxTorque = 0;
 

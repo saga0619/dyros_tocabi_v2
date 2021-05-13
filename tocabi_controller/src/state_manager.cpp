@@ -61,7 +61,10 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
     status_pub_ = dc_.nh.advertise<std_msgs::String>("/tocabi/guilog", 100);
     timer_pub_ = dc_.nh.advertise<std_msgs::Float32>("/tocabi/time", 100);
 
+    elmo_status_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/ecatstates", 100);
+
     point_pub_msg_.polygon.points.resize(10);
+    elmo_status_msg_.data.resize(MODEL_DOF * 3);
 }
 
 StateManager::~StateManager()
@@ -198,7 +201,6 @@ void StateManager::PublishData()
 
     double tr_, tp_, ty_;
 
-
     DyrosMath::rot2Euler_tf2(link_[Pelvis].rotm, tr_, tp_, ty_);
 
     point_pub_msg_.polygon.points[4].x = tr_; //rpy
@@ -228,56 +230,41 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[9].z = ty_;
 
     //
+
+    bool query_elmo_pub_ = false;
+
     for (int i = 0; i < MODEL_DOF; i++)
     {
-        if (joint_state_before_[i] != joint_state_[i])
+        elmo_status_msg_.data[i] = state_elmo_[i];
+        elmo_status_msg_.data[i + 33] = state_zp_[i];
+        elmo_status_msg_.data[i + 66] = state_safety_[i];
+
+        if (state_elmo_[i] != state_elmo_before_[i])
         {
-            if (joint_state_[i] == ESTATE::ERROR)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::OPERATION_READY)
-            {
-                //elmo ready
-            }
-            else if (joint_state_[i] == ESTATE::COMMUTATION_INITIALIZE)
-            {
-                //elmo ready
-            }
-            else if (joint_state_[i] == ESTATE::COMMUTATION_DONE)
-            {
-                //elmo ready
-            }
-            else if (joint_state_[i] == ESTATE::ZP_SEARCHING_ZP)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::ZP_SEARCH_COMPLETE)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::ZP_MANUAL_REQUIRED)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::ZP_NOT_ENOUGH_HOMMING)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::ZP_GOTO_ZERO)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::ZP_SUCCESS)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::SAFETY_VELOCITY_LIMIT)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::SAFETY_JOINT_LIMIT)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::SAFETY_TORQUE_LIMIT)
-            {
-            }
+            query_elmo_pub_ = true;
         }
+
+        if (state_safety_[i] != state_safety_before_[i])
+        {
+            query_elmo_pub_ = true;
+        }
+
+        if (state_zp_[i] != state_zp_before_[i])
+        {
+            query_elmo_pub_ = true;
+        }
+
+        state_elmo_before_[i] = state_elmo_[i];
+        state_safety_before_[i] = state_safety_[i];
+        state_zp_before_[i] = state_zp_[i];
     }
 
-    memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
+    if (query_elmo_pub_)
+    {
+        elmo_status_pub_.publish(elmo_status_msg_);
+    }
+
+    //memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
 }
 
 void StateManager::GetJointData()
@@ -306,7 +293,11 @@ void StateManager::GetJointData()
     q_virtual_local_(5) = dc_.tc_shm_->pos_virtual[5];
     q_virtual_local_(MODEL_DOF_VIRTUAL) = dc_.tc_shm_->pos_virtual[6];
 
-    memcpy(joint_state_, dc_.tc_shm_->status, sizeof(int) * MODEL_DOF);
+    //memcpy(joint_state_, dc_.tc_shm_->status, sizeof(int) * MODEL_DOF);
+
+    memcpy(state_elmo_, dc_.tc_shm_->ecat_status, sizeof(int8_t) * MODEL_DOF);
+    memcpy(state_safety_, dc_.tc_shm_->safety_status, sizeof(int8_t) * MODEL_DOF);
+    memcpy(state_zp_, dc_.tc_shm_->zp_status, sizeof(int8_t) * MODEL_DOF);
 
     //dc_.tc_shm_->pos
 }
