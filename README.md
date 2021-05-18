@@ -2,7 +2,7 @@
 ----------------------------------------
 ## Introduction to tocabi v2
 
-![TOCABI_IMAGE](./resource/TOCABI3.png)
+![TOCABI_IMAGE](./TOCABI3.png)
 > This project is upgraded version of [TOCABI controller](https://github.com/saga0619/dyros_tocabi)
 > Ethercat Master is divided from tocabi controller for stability, unlike previous version.
 > Communications between processes are established with shared memory and ros topics.
