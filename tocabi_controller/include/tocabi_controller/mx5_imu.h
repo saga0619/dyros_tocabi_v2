@@ -9,7 +9,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <mscl/mscl.h>
 
-#include "tocabi_controller/robot_data.h"
+#include "tocabi_data/robot_data.h"
 
 class MX5IMU
 {

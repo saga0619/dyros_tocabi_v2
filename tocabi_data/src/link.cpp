@@ -1,4 +1,4 @@
-#include <tocabi_controller/link.h>
+#include <tocabi_data/link.h>
 
 void LinkData::Initialize(RigidBodyDynamics::Model &model_, int id_)
 {

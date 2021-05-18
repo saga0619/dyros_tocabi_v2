@@ -12,16 +12,17 @@
 #include <thread>
 #include <future>
 
-#include "tocabi_controller/robot_data.h"
+#include <std_msgs/String.h>
+#include <sensor_msgs/JointState.h>
+#include <std_msgs/Int32MultiArray.h>
+#include <geometry_msgs/PolygonStamped.h>
+#include <std_msgs/Float32.h>
+#include <std_msgs/Int8MultiArray.h>
+#include <sensor_msgs/JointState.h>
+
+#include "tocabi_data/robot_data.h"
 #include "mujoco_ros_msgs/SimStatus.h"
 #include "mujoco_ros_msgs/JointSet.h"
-#include "std_msgs/String.h"
-#include "sensor_msgs/JointState.h"
-#include "std_msgs/Int32MultiArray.h"
-#include "geometry_msgs/PolygonStamped.h"
-#include "std_msgs/Float32.h"
-
-#include "std_msgs/Int8MultiArray.h"
 
 class StateManager
 {
