@@ -111,6 +111,8 @@ struct RobotData
     atomic<bool> task_signal_{};
     tocabi_msgs::TaskCommandQue tc_q_;
     atomic<bool> task_que_signal_{};
+    bool tc_init = false;
+    double tc_time_;
 
     //Bools...... might be moved to other..
     bool qp_error = false;

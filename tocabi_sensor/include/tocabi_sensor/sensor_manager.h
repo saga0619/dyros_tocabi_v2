@@ -1,8 +1,8 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Int32MultiArray.h>
 
-#include "tocabi_data/robot_data.h"
-#include "tocabi_controller/mx5_imu.h"
+#include "tocabi_sensor/mx5_imu.h"
+#include "tocabi_ecat/shm_msgs.h"
 
 class SensorManager
 {

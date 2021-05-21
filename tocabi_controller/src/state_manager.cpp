@@ -81,7 +81,7 @@ void *StateManager::StateThread()
     //Checking Connect//
 
     //Check Coonnect Complete//
-    rcv_tcnt = dc_.tc_shm_->t_cnt;
+    rcv_tcnt = dc_.tc_shm_->statusCount;
     //cout << "first packet " << rcv_tcnt << endl;
     int cycle_count_ = rcv_tcnt;
     int stm_count_ = 0;
@@ -93,7 +93,7 @@ void *StateManager::StateThread()
     while (!dc_.tc_shm_->shutdown)
     {
         ros::spinOnce();
-        if (rcv_tcnt >= dc_.tc_shm_->t_cnt)
+        if (rcv_tcnt >= dc_.tc_shm_->statusCount)
         {
             std::this_thread::sleep_for(std::chrono::microseconds(1));
         }
@@ -102,11 +102,11 @@ void *StateManager::StateThread()
             cycle_count_++;
             stm_count_++;
 
-            if (rcv_tcnt + 1 != dc_.tc_shm_->t_cnt)
+            if (rcv_tcnt + 1 != dc_.tc_shm_->statusCount)
             {
-                //std::cout << "missed packet : " << dc_.tc_shm_->t_cnt - rcv_tcnt << std::endl;
+                std::cout << "missed packet : " << dc_.tc_shm_->statusCount - rcv_tcnt << std::endl;
             }
-            rcv_tcnt = dc_.tc_shm_->t_cnt;
+            rcv_tcnt = dc_.tc_shm_->statusCount;
 
             if (true) //dc.imu_ignore == true)
             {
@@ -118,27 +118,35 @@ void *StateManager::StateThread()
                 }
                 q_virtual_local_(MODEL_DOF + 6) = 1.0;
             }
+
+            auto t1 = chrono::steady_clock::now();
             GetJointData(); //0.246 us //w/o march native 0.226
             auto dur_start_ = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - time_start).count();
-
+            control_time_ = rcv_tcnt / 2000.0;
             //local kinematics update : 33.7 us // w/o march native 20 us
             UpdateKinematics_local(model_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
 
+            auto d1 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t1).count();
+            auto t2 = chrono::steady_clock::now();
             StateEstimate();
 
             //global kinematics update : 127 us //w/o march native 125 us
             UpdateKinematics(model_2, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
 
-            auto t1 = chrono::steady_clock::now();
             StoreState(dc_.rd_); //6.2 us //w/o march native 8us
-            auto d1 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t1).count();
 
-            //MeasureTime(stm_count_, d1);
+            auto d2 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t2).count();
+            MeasureTime(stm_count_, d1, d2);
 
             dc_.rd_.us_from_start_ = dur_start_;
 
             if (stm_count_ % 33 == 0)
+            {
+                cnt3++;
                 PublishData();
+            }
+            //dc_.tc_shm_->t_cnt2 = stm_count_;
+            dc_.tc_shm_->t_cnt2 = cnt3;
 
             //printf("%d\n", rcv_tcnt);
             //printf("\x1b[A\x1b[A\33[2K\r");
@@ -228,6 +236,8 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[9].x = tr_;
     point_pub_msg_.polygon.points[9].y = tp_;
     point_pub_msg_.polygon.points[9].z = ty_;
+
+    point_pub_.publish(point_pub_msg_);
 
     //
 
@@ -554,12 +564,18 @@ void StateManager::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &m
 {
     rd_.tc_ = *msg;
     rd_.task_signal_ = true;
+    rd_.tc_init = true;
+    rd_.tc_time_ = control_time_;
+
+    std::cout << "tc received" << std::endl;
 }
 
 void StateManager::TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueConstPtr &msg)
 {
     rd_.tc_q_ = *msg;
     rd_.task_que_signal_ = true;
+
+    std::cout << "tc_que received" << std::endl;
 }
 
 void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)

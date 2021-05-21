@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   tocabi_data
   tocabi_description
   tocabi_msgs
+  tocabi_cc
 )
 
 ## System dependencies are found with CMake's conventions
@@ -79,22 +80,15 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${tocabi_ecat_INCLUDE_DIRS}
-  /usr/share/c++-mscl/source
-  /usr/share/c++-mscl/Boost/include
 )
-link_directories(
-      /usr/share/c++-mscl
-)
+
 ## Declare a C++ library
 
 add_library(${PROJECT_NAME}_lib
   src/state_manager.cpp
   src/tocabi_controller.cpp
 )
-add_library(mx5_lib
-  src/mx5_imu.cpp  
-)
+
 #add_library(wbc_lib
 #  src/wholebody_controller.cpp
 #)
@@ -109,7 +103,6 @@ add_library(mx5_lib
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME} src/main.cpp)
 #add_executable(rbdl_test src/simple_example.cpp)
-add_executable(sensor_manager src/sensor_manager.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -126,15 +119,11 @@ add_executable(sensor_manager src/sensor_manager.cpp)
 #  -lrbdl_urdfreader
 #  )
 
-target_link_libraries(sensor_manager
-  ${catkin_LIBRARIES}
-  mx5_lib
-  -lmscl  
-)
 
 target_link_libraries(${PROJECT_NAME}_lib
   ${catkin_LIBRARIES}
   tocabi_data
+  tocabi_cc
   -lpthread
 )
 
@@ -144,5 +133,5 @@ target_link_libraries(${PROJECT_NAME}
   ${PROJECT_NAME}_lib
 )
 
-add_dependencies(mx5_lib ${catkin_EXPORTED_TARGETS})
+
 add_dependencies(${PROJECT_NAME}_lib ${catkin_EXPORTED_TARGETS})

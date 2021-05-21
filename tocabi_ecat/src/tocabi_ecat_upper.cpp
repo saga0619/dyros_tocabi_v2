@@ -1180,7 +1180,7 @@ void sendJointStatus()
     memcpy(&shm_msgs_->ecat_status[Q_UPPER_START], &state_elmo_[Q_UPPER_START], sizeof(int8_t) * PART_ELMO_DOF);
 
     shm_msgs_->statusWriting--;
-    shm_msgs_->t_cnt = cycle_count;
+    shm_msgs_->statusCount = cycle_count;
 }
 
 void getJointCommand()

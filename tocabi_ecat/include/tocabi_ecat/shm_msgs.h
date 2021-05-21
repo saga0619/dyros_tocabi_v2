@@ -14,12 +14,13 @@
 
 typedef struct SHMmsgs
 {
-
-    std::atomic<int> statusWriting;
-
     int8_t safety_status[MODEL_DOF];
     int8_t ecat_status[MODEL_DOF];
     int8_t zp_status[MODEL_DOF];
+
+    std::atomic<int> statusCount{0};
+    std::atomic<int> statusCount2{0};
+    std::atomic<int> statusWriting{0};
 
     int status[MODEL_DOF];
     float torqueActual[MODEL_DOF];
@@ -43,16 +44,17 @@ typedef struct SHMmsgs
 
     //command val
 
-    std::atomic<bool> commanding; 
+    std::atomic<bool> commanding;
+    std::atomic<int> commandCount{0};
     int commandMode[MODEL_DOF]; //command mode 0 -> off 1 -> torque 2 -> position 
     float torqueCommand[MODEL_DOF];
     float positionCommand[MODEL_DOF];
-    int commandCount = 0;
-
+ 
     int maxTorque = 0;
 
     float timeCommand;
 
+    std::atomic<int> control_time_us_;
     std::atomic<int> t_cnt;
     std::atomic<int> t_cnt2;
     std::atomic<bool> controllerReady;
