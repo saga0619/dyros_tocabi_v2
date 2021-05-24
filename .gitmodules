@@ -1,0 +1,3 @@
+[submodule "tocabi_cc"]
+	path = tocabi_cc
+	url = https://github.com/saga0619/tocabi_cc
