@@ -30,6 +30,11 @@
 > Realrobot mode is developed on Xenomai 3.0.10, linux-4.14.134
 > Simulation mode is available with mujoco, license is required. 
 
+## Installation
+```sh
+git clone --recurse-submodules https://github.com/saga0619/dyros_tocabi_v2
+```
+
 ### All-in-One installation
 ```sh
 cd dyros_tocabi
