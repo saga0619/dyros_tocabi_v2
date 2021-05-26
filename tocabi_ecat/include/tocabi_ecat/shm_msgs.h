@@ -59,7 +59,7 @@ typedef struct SHMmsgs
     std::atomic<int> t_cnt2;
     std::atomic<bool> controllerReady;
     std::atomic<bool> reading;
-
+    std::atomic<int> process_num{0};
     std::atomic<bool> shutdown; //true for exit
 
     float lat_avg, lat_min, lat_max, lat_dev;
@@ -79,7 +79,7 @@ typedef struct SHMmsgs
 
 static SHMmsgs *shm_msgs_;
 static int shm_msg_id;
-static key_t shm_msg_key = 7056;
+static key_t shm_msg_key = 10561;
 
 enum ECOMMAND
 {

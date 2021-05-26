@@ -36,6 +36,8 @@ int main(int argc, char **argv)
         exit(0);
     }
 
+    dc_.tc_shm_->process_num++;
+
     prog_shutdown = &dc_.tc_shm_->shutdown;
 
     std::cout << "shm initialized" << std::endl;
@@ -111,8 +113,10 @@ int main(int argc, char **argv)
     {
         pthread_join(threads[i], NULL);
     }
+    dc_.tc_shm_->process_num--;
 
-    deleteSharedMemory();
+    if (dc_.tc_shm_->process_num == 0)
+        deleteSharedMemory();
 
     //Checking if shared memory exist
 

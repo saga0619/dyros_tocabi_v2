@@ -47,6 +47,11 @@ int main(int argc, char **argv)
     // nh_.getParam("/tocabi_controller/NM2CNT", NM2CNT);
 
     initSharedMemory();
+
+    //shm_msgs_->process_num++;
+
+    //std::cout<<"process num : "<<shm_msgs_->process_num;
+
     struct sched_param param;
     pthread_attr_t attr, attr2;
     pthread_t thread1, thread2;
@@ -118,6 +123,11 @@ int main(int argc, char **argv)
     ret = pthread_join(thread2, NULL);
     if (ret)
         printf("join pthread failed: %m\n");
+
+
+    // shm_msgs_->process_num--;
+    // if (shm_msgs_->process_num == 0)
+        deleteSharedMemory();
 
 out:
     return ret;

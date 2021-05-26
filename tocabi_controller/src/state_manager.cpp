@@ -136,7 +136,7 @@ void *StateManager::StateThread()
             StoreState(dc_.rd_); //6.2 us //w/o march native 8us
 
             auto d2 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t2).count();
-            MeasureTime(stm_count_, d1, d2);
+            //MeasureTime(stm_count_, d1, d2);
 
             dc_.rd_.us_from_start_ = dur_start_;
 

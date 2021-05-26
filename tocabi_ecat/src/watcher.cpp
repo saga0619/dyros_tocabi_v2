@@ -57,7 +57,10 @@ int main()
            shm_msgs_->lat_avg2 / 1000.0, shm_msgs_->lat_max2 / 1000.0, shm_msgs_->lat_min2 / 1000.0, shm_msgs_->lat_dev2 / 1000.0,
            shm_msgs_->send_avg2 / 1000.0, shm_msgs_->send_max2 / 1000.0, shm_msgs_->send_min2 / 1000.0, shm_msgs_->send_dev2 / 1000.0);
     int i = 0;
-    printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
+    //printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
+    
+    printf("%6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos_virtual[3], shm_msgs_->pos_virtual[4], shm_msgs_->pos_virtual[5], shm_msgs_->pos_virtual[6]);
+
     printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
 
     printf("%6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);

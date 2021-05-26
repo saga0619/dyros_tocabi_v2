@@ -157,7 +157,7 @@ void *ethercatThread1(void *data)
             else
             {
                 std::cout << cred << "WARNING : SLAVE NUMBER INSUFFICIENT" << creset << std::endl;
-                de_shutdown = true;
+                shm_msgs_->shutdown = true;
             }
             /** CompleteAccess disabled for Elmo driver */
             for (int slave = 1; slave <= ec_slavecount; slave++)
@@ -260,7 +260,7 @@ void *ethercatThread1(void *data)
                     ts.tv_nsec -= SEC_IN_NSEC;
                 }
 
-                while (!de_shutdown)
+                while (!shm_msgs_->shutdown)
                 {
 
                     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
@@ -513,6 +513,15 @@ void *ethercatThread1(void *data)
                             }
                         }
                     }
+                    for (int i = 0; i < ec_slavecount; i++)
+                    {
+                        q_[JointMap2[i]] = q_elmo_[i];
+                        q_dot_[JointMap2[i]] = q_dot_elmo_[i];
+                        torque_[JointMap2[i]] = torque_elmo_[i];
+                        q_ext_[JointMap2[i]] = q_ext_elmo_[i];
+                        joint_state_[JointMap2[i]] = joint_state_elmo_[i];
+                    }
+                    sendJointStatus();
 
                     if (de_zp_sequence)
                     {
@@ -654,7 +663,6 @@ void *ethercatThread1(void *data)
 
                 memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ELMO_DOF);
                 st_start_time = std::chrono::steady_clock::now();
-                cycle_count = 1;
                 ////////////////////////////////////////////////////////////////////////////////////////////
                 ////////////////////////////////////////////////////////////////////////////////////////////
                 //Starting
@@ -693,7 +701,7 @@ void *ethercatThread1(void *data)
 
                 struct timespec ts1, ts2;
 
-                while (!de_shutdown)
+                while (!shm_msgs_->shutdown)
                 {
                     chrono::steady_clock::time_point rcv_ = chrono::steady_clock::now();
 
@@ -938,61 +946,59 @@ void *ethercatThread1(void *data)
     {
         printf("ELMO 1 : No socket connection on %s\nExcecute as root\n", ifname_upper);
     }
-
-    deleteSharedMemory();
     //std::cout << "ELMO : EthercatThread1 Shutdown" << std::endl;
 }
 
 void *ethercatThread2(void *data)
 {
-    while (!de_shutdown)
+    while (!shm_msgs_->shutdown)
     {
         ethercatCheck();
 
-        int ch = kbhit();
-        if (ch != -1)
-        {
-            //std::cout << "key input : " << (char)(ch % 256) << std::endl;
-            if ((ch % 256 == 'q'))
-            {
-                std::cout << "ELMO : shutdown request" << std::endl;
-                de_shutdown = true;
-                shm_msgs_->shutdown = true;
-            }
-            else if ((ch % 256 == 'l'))
-            {
-                std::cout << "ELMO : start searching zero point lower" << std::endl;
-                de_zp_lower_switch = true;
-            }
-            else if ((ch % 256 == 'u'))
-            {
-                std::cout << "ELMO : start searching zero point upper" << std::endl;
-                de_zp_upper_switch = true;
-            }
-            else if ((ch % 256 == 'd'))
-            {
-                std::cout << "ELMO : start debug mode" << std::endl;
-                de_debug_level++;
-                if (de_debug_level > 2)
-                    de_debug_level = 0;
-            }
-            else if ((ch % 256 == 'p'))
-            {
-                std::cout << "------------------------------------------------------" << std::endl;
-                for (int i = 0; i < ec_slavecount; i++)
-                { //std::cout << i << ELMO_NAME[i] <<
-                    printf("%4d   %20s  %12f  ext : %12f\n", i, ELMO_NAME[i].c_str(), (double)q_elmo_[i], (double)q_ext_elmo_[i]);
-                }
-            }
-            else if ((ch % 256 == 'h'))
-            {
-                for (int i = 0; i < ec_slavecount; i++)
-                    std::cout << i << ELMO_NAME[i] << "\t" << hommingElmo[i] << std::endl;
-            }
+        // int ch = kbhit();
+        // if (ch != -1)
+        // {
+        //     //std::cout << "key input : " << (char)(ch % 256) << std::endl;
+        //     if ((ch % 256 == 'q'))
+        //     {
+        //         std::cout << "ELMO : shutdown request" << std::endl;
+        //         de_shutdown = true;
+        //         shm_msgs_->shutdown = true;
+        //     }
+        //     else if ((ch % 256 == 'l'))
+        //     {
+        //         std::cout << "ELMO : start searching zero point lower" << std::endl;
+        //         de_zp_lower_switch = true;
+        //     }
+        //     else if ((ch % 256 == 'u'))
+        //     {
+        //         std::cout << "ELMO : start searching zero point upper" << std::endl;
+        //         de_zp_upper_switch = true;
+        //     }
+        //     else if ((ch % 256 == 'd'))
+        //     {
+        //         std::cout << "ELMO : start debug mode" << std::endl;
+        //         de_debug_level++;
+        //         if (de_debug_level > 2)
+        //             de_debug_level = 0;
+        //     }
+        //     else if ((ch % 256 == 'p'))
+        //     {
+        //         std::cout << "------------------------------------------------------" << std::endl;
+        //         for (int i = 0; i < ec_slavecount; i++)
+        //         { //std::cout << i << ELMO_NAME[i] <<
+        //             printf("%4d   %20s  %12f  ext : %12f\n", i, ELMO_NAME[i].c_str(), (double)q_elmo_[i], (double)q_ext_elmo_[i]);
+        //         }
+        //     }
+        //     else if ((ch % 256 == 'h'))
+        //     {
+        //         for (int i = 0; i < ec_slavecount; i++)
+        //             std::cout << i << ELMO_NAME[i] << "\t" << hommingElmo[i] << std::endl;
+        //     }
 
-            this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-
+        //     this_thread::sleep_for(std::chrono::milliseconds(1));
+        // }
+        this_thread::sleep_for(std::chrono::milliseconds(1));
         if (shm_msgs_->upper_init_signal)
         {
             de_zp_upper_switch = true;
@@ -1077,7 +1083,7 @@ void checkJointSafety()
 
             if ((joint_lower_limit[START_N + i] > q_elmo_[START_N + i]) || (joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
             {
-                std::cout << "E1 safety lock : joint limit " << i << ELMO_NAME[i] << std::endl;
+                std::cout << "E1 safety lock : joint limit " << i << "  " << ELMO_NAME[i] << " q : " << q_elmo_[START_N + i] << std::endl;
                 //joint limit reached
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
                 ElmoSafteyMode[i] = 1;

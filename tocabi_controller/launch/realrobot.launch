@@ -4,7 +4,7 @@
         <param name="urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi.urdf"/>
     </node>
 
-    <node name="tocabi_sensor" pkg="tocabi_controller" type="sensor_manager" output="screen">
+    <node name="tocabi_sensor" pkg="tocabi_sensor" type="tocabi_sensor" output="screen">
 
     </node>
 
