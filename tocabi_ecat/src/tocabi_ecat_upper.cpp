@@ -274,7 +274,8 @@ void *ethercatThread1(void *data)
                     //std::this_thread::sleep_until(st_start_time + cycle_count * cycletime);
                     cycle_count++;
                     wkc = ec_receive_processdata(0);
-                    control_time_real_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count() / 1000000.0;
+                    control_time_us_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count();
+                    control_time_real_ = control_time_us_ / 1000000.0;
 
                     for (int i = 0; i < ec_slavecount; i++)
                     {
@@ -1226,7 +1227,7 @@ void getJointCommand()
     if (commandCount <= commandCount_before)
     {
         if (errorCount != commandCount)
-            std::cout << "ELMO_UPP : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+            std::cout <<control_time_us_<< "ELMO_UPP : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
         errorCount = commandCount;
     }
 

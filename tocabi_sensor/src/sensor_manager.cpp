@@ -13,7 +13,7 @@ void SensorManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
 
     if (msg->data == "imureset")
     {
-        imu_reset_ = true;
+        imu_reset_signal_ = true;
     }
 }
 
@@ -65,10 +65,10 @@ void *SensorManager::IMUThread(void)
 
             //if signal_ imu reset
 
-            if (imu_reset_)
+            if (imu_reset_signal_)
             {
                 mx5.resetEFIMU();
-                imu_reset_ = false;
+                imu_reset_signal_ = false;
             }
 
             imu_msg = mx5.getIMU(shm_->imu_state);

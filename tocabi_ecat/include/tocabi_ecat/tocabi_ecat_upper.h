@@ -181,12 +181,12 @@ double torqueCC_recvt;
 double torqueCC_comt;
 
 double control_time_real_;
+int control_time_us_;
 double torque_on_time_;
 double torque_off_time_;
 bool torque_switch_;
 bool torque_on_;
 bool torque_off_;
-
 
 bool hommingElmo[ELMO_DOF];
 bool hommingElmo_before[ELMO_DOF];

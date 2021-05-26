@@ -23,5 +23,5 @@ public:
     ros::Publisher gui_state_pub_;
     void GuiCommandCallback(const std_msgs::StringConstPtr &msg);
 
-    bool imu_reset_ = false;
+    bool imu_reset_signal_ = false;
 };

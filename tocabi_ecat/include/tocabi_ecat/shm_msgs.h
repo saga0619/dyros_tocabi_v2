@@ -18,9 +18,9 @@ typedef struct SHMmsgs
     int8_t ecat_status[MODEL_DOF];
     int8_t zp_status[MODEL_DOF];
 
-    std::atomic<int> statusCount{0};
-    std::atomic<int> statusCount2{0};
-    std::atomic<int> statusWriting{0};
+    std::atomic<int> statusCount;
+    std::atomic<int> statusCount2;
+    std::atomic<int> statusWriting;
 
     int status[MODEL_DOF];
     float torqueActual[MODEL_DOF];
@@ -45,11 +45,11 @@ typedef struct SHMmsgs
     //command val
 
     std::atomic<bool> commanding;
-    std::atomic<int> commandCount{0};
-    int commandMode[MODEL_DOF]; //command mode 0 -> off 1 -> torque 2 -> position 
+    std::atomic<int> commandCount;
+    int commandMode[MODEL_DOF]; //command mode 0 -> off 1 -> torque 2 -> position
     float torqueCommand[MODEL_DOF];
     float positionCommand[MODEL_DOF];
- 
+
     int maxTorque = 0;
 
     float timeCommand;
@@ -59,7 +59,7 @@ typedef struct SHMmsgs
     std::atomic<int> t_cnt2;
     std::atomic<bool> controllerReady;
     std::atomic<bool> reading;
-    std::atomic<int> process_num{0};
+    std::atomic<int> process_num;
     std::atomic<bool> shutdown; //true for exit
 
     float lat_avg, lat_min, lat_max, lat_dev;
@@ -88,27 +88,23 @@ enum ECOMMAND
 };
 
 // Joint state
-// joint state is indicated with 3 numbers 
+// joint state is indicated with 3 numbers
 
 // 0 : ELMO_ERROR,
 // 1 : OPERATION_READY,
 // 2 : COMMUTATION_INITIALIZE,
 // 3 : COMMUTATION_DONE, 4
 
-
 // 0 : ZP_SEARCHING_ZP,
 // 1 : ZP_SEARCH_COMPLETE,
 // 2 : ZP_MANUAL_REQUIRED,
 // 3 : ZP_NOT_ENOUGH_HOMMING,
 // 4 : ZP_GOTO_ZERO,
-// 5 : ZP_SUCCESS, 8 
-
+// 5 : ZP_SUCCESS, 8
 
 // 0 : SAFETY_VELOCITY_LIMIT,
 // 1 : SAFETY_JOINT_LIMIT,
-// 2 : SAFETY_TORQUE_LIMIT, 3 
-
-
+// 2 : SAFETY_TORQUE_LIMIT, 3
 
 enum SSTATE
 {
@@ -135,6 +131,11 @@ enum ESTATE
     COMMUTATION_INITIALIZE,
     COMMUTATION_DONE,
 };
+
+static void init_var(SHMmsgs *shm_p_)
+{
+    
+}
 
 static void init_shm()
 {

@@ -102,13 +102,11 @@ int main(int argc, char **argv)
         goto out;
     }
 
-    std::cout << "?" << std::endl;
     /* Create a pthread with specified attributes */
     ret = pthread_create(&thread2, &attr2, ethercatThread2, NULL);
 
     ret = pthread_create(&thread1, &attr, ethercatThread1, NULL);
 
-    std::cout << "?" << std::endl;
     if (ret)
     {
         printf("create pthread failed\n");
