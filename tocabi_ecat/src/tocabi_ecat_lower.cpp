@@ -140,14 +140,15 @@ void *ethercatThread1(void *data)
 
     if (ec_init(ifname_lower))
     {
-        printf("ELMO : ec_init on %s succeeded.\n", ifname_lower);
+        if (ecat_verbose)
+            printf("ELMO 2 : ec_init on %s succeeded.\n", ifname_lower);
         elmoInit();
         /* find and auto-config slaves */
         /* network discovery */
         //ec_config_init()
         if (ec_config_init(FALSE) > 0) // TRUE when using configtable to init slaves, FALSE otherwise
         {
-            printf("ELMO : %d slaves found and configured.\n", ec_slavecount); // ec_slavecount -> slave num
+            printf("ELMO 2 : %d slaves found and configured.\n", ec_slavecount); // ec_slavecount -> slave num
             if (ec_slavecount == PART_ELMO_DOF)
             {
                 ecat_number_ok = true;
@@ -163,7 +164,7 @@ void *ethercatThread1(void *data)
                 //printf("ELMO : Has Slave[%d] CA? %s\n", slave, ec_slave[slave].CoEdetails & ECT_COEDET_SDOCA ? "true" : "false");
                 if (!(ec_slave[slave].CoEdetails & ECT_COEDET_SDOCA))
                 {
-                    printf("ELMO : slave[%d] CA? : false , shutdown request \n ", slave);
+                    printf("ELMO 2 : slave[%d] CA? : false , shutdown request \n ", slave);
                 }
                 ec_slave[slave].CoEdetails ^= ECT_COEDET_SDOCA;
             }
@@ -195,13 +196,14 @@ void *ethercatThread1(void *data)
             ec_config_map(&IOmap);
 
             /* wait for all slaves to reach SAFE_OP state */
-            printf("ELMO : EC WAITING STATE TO SAFE_OP\n");
+            if (ecat_verbose)
+                printf("ELMO 2 : EC WAITING STATE TO SAFE_OP\n");
             ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4);
 
             ec_configdc();
 
             expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
-            printf("ELMO : Request operational state for all slaves. Calculated workcounter : %d\n", expectedWKC);
+            printf("ELMO 2 : Request operational state for all slaves. Calculated workcounter : %d\n", expectedWKC);
 
             if (expectedWKC != 3 * PART_ELMO_DOF)
             {
@@ -242,7 +244,8 @@ void *ethercatThread1(void *data)
 
                 //Commutation Checking
                 st_start_time = std::chrono::steady_clock::now();
-                cout << "ELMO : Initialization Mode" << endl;
+                if (ecat_verbose)
+                    cout << "ELMO 2 : Initialization Mode" << endl;
 
                 query_check_state = true;
 
@@ -378,24 +381,27 @@ void *ethercatThread1(void *data)
                         if (pub_once)
                         {
                             std::chrono::milliseconds commutation_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - st_start_time);
-                            cout << "ELMO : All slaves Operational in " << commutation_time.count() << "ms" << endl;
+                            if (ecat_verbose)
+                                cout << "ELMO 2 : All slaves Operational in " << commutation_time.count() << "ms" << endl;
 
                             if (commutation_time.count() < 500)
                             {
 
                                 de_commutation_done = true;
                                 check_commutation = false;
-                                cout << "ELMO : Load ZP ... " << endl;
+                                 if (ecat_verbose)
+            cout << "ELMO 2 : Load ZP ... " << endl;
                             }
                             else
                             {
                                 if (saveCommutationLog())
                                 {
-                                    cout << "\nELMO : Commutation is done, logging success" << endl;
+                                     if (ecat_verbose)
+            cout << "\nELMO 2 : Commutation is done, logging success" << endl;
                                 }
                                 else
                                 {
-                                    cout << "\nELMO : Commutaion is done, logging failed" << endl;
+                                    cout << "\nELMO 2 : Commutaion is done, logging failed" << endl;
                                 }
                                 de_commutation_done = true;
                                 check_commutation = false;
@@ -413,14 +419,15 @@ void *ethercatThread1(void *data)
 
                             if (loadZeroPoint())
                             {
-                                cout << "ELMO : Initialize Complete " << endl;
+                                if (ecat_verbose)
+                                    cout << "ELMO 2 : Initialize Complete " << endl;
                                 break;
                             }
                             else
                             {
                                 if (FORCE_CONTROL_MODE)
                                     break;
-                                cout << "ELMO : ZeroPoint load failed. Ready to Search Zero Point " << endl;
+                                cout << "ELMO 2 : ZeroPoint load failed. Ready to Search Zero Point " << endl;
                                 de_zp_sequence = true;
                             }
                             pub_once = false;
@@ -435,7 +442,8 @@ void *ethercatThread1(void *data)
                     {
                         if (wait_kill_switch)
                         {
-                            cout << "ELMO : Commutation state OK" << endl;
+                            if (ecat_verbose)
+                                cout << "ELMO 2 : Commutation state OK" << endl;
                             //loadCommutationLog();
                             loadZeroPoint();
                             wait_kill_switch = false;
@@ -443,7 +451,7 @@ void *ethercatThread1(void *data)
                         }
                         if (wait_cnt == 200)
                         {
-                            cout << "ELMO : slaves status are not OP! maybe kill switch is on?" << endl;
+                            cout << "ELMO 2 : slaves status are not OP! maybe kill switch is on?" << endl;
                         }
 
                         wait_cnt++;
@@ -722,7 +730,7 @@ void *ethercatThread1(void *data)
                             }
                             if (reachedInitial[slave - 1])
                             {
-                                q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1] - q_zero_elmo_[START_N + slave -1];
+                                q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1] - q_zero_elmo_[START_N + slave - 1];
                                 hommingElmo[START_N + slave - 1] =
                                     (((uint32_t)ec_slave[slave].inputs[4]) +
                                      ((uint32_t)ec_slave[slave].inputs[5] << 8) +
@@ -1304,7 +1312,6 @@ bool loadZeroPoint()
     {
         ifs.read(reinterpret_cast<char *>(&getzp[i]), sizeof(double));
         q_zero_elmo_[i] = getzp[i];
-
     }
 
     ifs.close();
