@@ -102,10 +102,7 @@ sudo make install
 
 -----------------------------------------
 ## Todo
-+ [o] Connect Gui
-+ [o] link IMU
-+ [o] link realtime Robot Status indicator
-+ [ ] link Custom Controller
++ [ ] link realtime Robot Status indicator
 + [ ] Implant Whole-Body controller 
 + [ ] link F/T sensor
 + [ ] link Robot chest led 
