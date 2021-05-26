@@ -15,10 +15,13 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   sensor_msgs
   std_msgs
-  tf
+  tf2
+  tf2_ros
   tocabi_ecat
+  tocabi_data
   tocabi_description
   tocabi_msgs
+  tocabi_cc
 )
 
 ## System dependencies are found with CMake's conventions
@@ -62,9 +65,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES tocabi_controller
-#  CATKIN_DEPENDS roscpp
+   INCLUDE_DIRS include
+   LIBRARIES tocabi_controller
+   CATKIN_DEPENDS roscpp roslib tocabi_data tocabi_cc tocabi_msgs tocabi_ecat
 #  DEPENDS system_lib
 )
 
@@ -77,24 +80,15 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${tocabi_ecat_INCLUDE_DIRS}
-  /usr/share/c++-mscl/source
-  /usr/share/c++-mscl/Boost/include
 )
-link_directories(
-      /usr/share/c++-mscl
-)
+
 ## Declare a C++ library
-add_library(link_lib
-  src/link.cpp)
 
 add_library(${PROJECT_NAME}_lib
   src/state_manager.cpp
   src/tocabi_controller.cpp
 )
-add_library(mx5_lib
-  src/mx5_imu.cpp  
-)
+
 #add_library(wbc_lib
 #  src/wholebody_controller.cpp
 #)
@@ -108,8 +102,7 @@ add_library(mx5_lib
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME} src/main.cpp)
-add_executable(rbdl_test src/simple_example.cpp)
-add_executable(sensor_manager src/sensor_manager.cpp)
+#add_executable(rbdl_test src/simple_example.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -120,34 +113,25 @@ add_executable(sensor_manager src/sensor_manager.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 
-target_link_libraries(rbdl_test
-  ${catkin_LIBRARIES}
-  -lrbdl
-  -lrbdl_urdfreader
-  )
-
-target_link_libraries(sensor_manager
-  ${catkin_LIBRARIES}
-  mx5_lib
-  -lmscl  
-)
-
-target_link_libraries(link_lib
-  ${catkin_LIBRARIES}
-  -lrbdl
-  -lrbdl_urdfreader
-)
+#target_link_libraries(rbdl_test
+#  ${catkin_LIBRARIES}
+#  -lrbdl
+#  -lrbdl_urdfreader
+#  )
 
 
 target_link_libraries(${PROJECT_NAME}_lib
-  link_lib
+  ${catkin_LIBRARIES}
+  tocabi_data
+  tocabi_cc
   -lpthread
 )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
-${PROJECT_NAME}_lib
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}_lib
 )
 
-add_dependencies(link_lib ${catkin_EXPORTED_TARGETS})
-add_dependencies(mx5_lib ${catkin_EXPORTED_TARGETS})
+
+add_dependencies(${PROJECT_NAME}_lib ${catkin_EXPORTED_TARGETS})

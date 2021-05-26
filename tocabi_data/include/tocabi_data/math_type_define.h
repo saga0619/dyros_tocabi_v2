@@ -941,6 +941,7 @@ namespace DyrosMath
     Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(A);
 
     qr.setThreshold(1.0e-9);
+    
 
     int rank = qr.rank();
 

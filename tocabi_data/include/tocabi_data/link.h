@@ -3,8 +3,8 @@
 #include <rbdl/rbdl.h>
 #include <rbdl/addons/urdfreader/urdfreader.h>
 
-#include "tocabi_controller/tocabi.h"
-#include "math_type_define.h"
+#include "tocabi_data/tocabi.h"
+#include "tocabi_data/math_type_define.h"
 
 using namespace std;
 using namespace Eigen;

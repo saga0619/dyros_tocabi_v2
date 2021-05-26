@@ -282,25 +282,26 @@ void *ethercatThread1(void *data)
 
                         if (elmost[i].state != elmost[i].state_before)
                         {
-                            state_elmo_[i] = elmost[i].state;
+                            state_elmo_[JointMap2[i]] = elmost[i].state;
+
                             if (elmost[i].first_check)
                             {
                                 if (elmost[i].state == ELMO_NOTFAULT)
                                 {
                                     elmost[i].commutation_required = true;
-                                    joint_state_elmo_[i] = ESTATE::COMMUTATION_INITIALIZE;
+                                    //state_elmo_[JointMap2[i]] = ESTATE::COMMUTATION_INITIALIZE;
                                 }
                                 else if (elmost[i].state == ELMO_FAULT)
                                 {
                                     //cout << "slave : " << i << " commutation check complete at first" << endl;
                                     elmost[i].commutation_not_required = true;
-                                    joint_state_elmo_[i] = ESTATE::COMMUTATION_DONE;
+                                    //state_elmo_[JointMap2[i]] = ESTATE::COMMUTATION_DONE;
                                 }
                                 else if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
                                     //cout << "slave : " << i << " commutation check complete with operation enable" << endl;
                                     elmost[i].commutation_not_required = true;
-                                    joint_state_elmo_[i] = ESTATE::COMMUTATION_DONE;
+                                    //state_elmo_[JointMap2[i]] = ESTATE::COMMUTATION_DONE;
                                     elmost[i].commutation_ok = true;
                                 }
                                 else
@@ -313,7 +314,7 @@ void *ethercatThread1(void *data)
                             {
                                 if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
-                                    joint_state_elmo_[i] = ESTATE::COMMUTATION_DONE;
+                                    state_elmo_[JointMap2[i]] = ESTATE::COMMUTATION_DONE;
                                     //cout << "slave : " << i << " commutation check complete with operation enable 2" << endl;
                                     elmost[i].commutation_ok = true;
                                     elmost[i].commutation_required = false;
@@ -722,6 +723,16 @@ void *ethercatThread1(void *data)
                     //ec_send_processdata();
                     wkc = ec_receive_processdata(200);
 
+                    for (int i = 0; i < ec_slavecount; i++)
+                    {
+                        elmost[i].state = getElmoState(rxPDO[i]->statusWord);
+                        if (elmost[i].state != elmost[i].state_before)
+                        {
+                            state_elmo_[JointMap2[i]] = elmost[i].state;
+                        }
+                        elmost[i].state_before = elmost[i].state;
+                    }
+
                     if (wkc >= expectedWKC)
                     {
                         for (int slave = 1; slave <= ec_slavecount; slave++)
@@ -1062,20 +1073,20 @@ void checkJointSafety()
 
         if (ElmoSafteyMode[i] == 0)
         {
-            joint_state_elmo_[START_N + i] = ESTATE::SAFETY_OK;
+            state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_OK;
 
             if ((joint_lower_limit[START_N + i] > q_elmo_[START_N + i]) || (joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
             {
                 std::cout << "E1 safety lock : joint limit " << i << ELMO_NAME[i] << std::endl;
                 //joint limit reached
-                joint_state_elmo_[START_N + i] = ESTATE::SAFETY_JOINT_LIMIT;
+                state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
                 ElmoSafteyMode[i] = 1;
             }
 
             if (joint_velocity_limit[START_N + i] < abs(q_dot_elmo_[START_N + i]))
             {
-                std::cout << "E1 safety lock : velocity limit " << i << ELMO_NAME[i] << std::endl;
-                joint_state_elmo_[START_N + i] = ESTATE::SAFETY_VELOCITY_LIMIT;
+                std::cout << "safety lock : velocity limit " << i << ELMO_NAME[i] << std::endl;
+                state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_VELOCITY_LIMIT;
                 ElmoSafteyMode[i] = 1;
             }
         }
@@ -1175,10 +1186,13 @@ void sendJointStatus()
     memcpy(&shm_msgs_->posExt[Q_UPPER_START], &q_ext_[Q_UPPER_START], sizeof(float) * PART_ELMO_DOF);
     memcpy(&shm_msgs_->vel[Q_UPPER_START], &q_dot_[Q_UPPER_START], sizeof(float) * PART_ELMO_DOF);
     memcpy(&shm_msgs_->torqueActual[Q_UPPER_START], &torque_[Q_UPPER_START], sizeof(float) * PART_ELMO_DOF);
-    memcpy(&shm_msgs_->status[Q_UPPER_START], &joint_state_[Q_UPPER_START], sizeof(int) * PART_ELMO_DOF);
+
+    memcpy(&shm_msgs_->safety_status[Q_UPPER_START], &state_safety_[Q_UPPER_START], sizeof(int8_t) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->zp_status[Q_UPPER_START], &state_zp_[Q_UPPER_START], sizeof(int8_t) * PART_ELMO_DOF);
+    memcpy(&shm_msgs_->ecat_status[Q_UPPER_START], &state_elmo_[Q_UPPER_START], sizeof(int8_t) * PART_ELMO_DOF);
 
     shm_msgs_->statusWriting--;
-    shm_msgs_->t_cnt = cycle_count;
+    shm_msgs_->statusCount = cycle_count;
 }
 
 void getJointCommand()
@@ -1319,8 +1333,8 @@ bool loadZeroPoint()
     //   cout << getzp[i] << endl;
 
     //check commutation time save point
-
-    memset(joint_state_elmo_, ESTATE::ZP_SUCCESS, sizeof(int) * ELMO_DOF);
+    for (int i = 0; i < ELMO_DOF_UPPER; i++)
+        state_zp_[JointMap2[i]] = ZSTATE::ZP_SUCCESS;
 
     return true;
 }
@@ -1471,7 +1485,7 @@ void findZeroPoint(int slv_number)
     double fztime_manual = 300.0;
     if (elmofz[slv_number].findZeroSequence == FZ_CHECKHOMMINGSTATUS)
     {
-        joint_state_elmo_[slv_number] = ESTATE::ZP_SEARCHING_ZP;
+        state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_SEARCHING_ZP;
         //pub_to_gui(dc, "jointzp %d %d", slv_number, 0);
         if (hommingElmo[slv_number])
         {
@@ -1530,7 +1544,7 @@ void findZeroPoint(int slv_number)
 
                 std::cout << "Joint " << slv_number << " " << ELMO_NAME[slv_number] << "if you want to proceed with detected length, proceed with manual mode " << endl;
 
-                joint_state_elmo_[slv_number] = ESTATE::ZP_NOT_ENOUGH_HOMMING;
+                state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_NOT_ENOUGH_HOMMING;
                 elmofz[slv_number].findZeroSequence = 7;
                 elmofz[slv_number].result = ElmoHommingStatus::FAILURE;
                 elmofz[slv_number].initTime = control_time_real_;
@@ -1541,7 +1555,7 @@ void findZeroPoint(int slv_number)
             if (elmofz[slv_number].endFound == 1)
             {
                 elmofz[slv_number].findZeroSequence = FZ_GOTOZEROPOINT;
-                joint_state_elmo_[slv_number] = ESTATE::ZP_GOTO_ZERO;
+                state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_GOTO_ZERO;
 
                 elmofz[slv_number].initPos = q_elmo_[slv_number];
                 q_zero_elmo_[slv_number] = (elmofz[slv_number].posEnd + elmofz[slv_number].posStart) * 0.5 + q_zero_mod_elmo_[slv_number];
@@ -1604,7 +1618,7 @@ void findZeroPoint(int slv_number)
 
             //pub_to_gui(dc, "jointzp %d %d", slv_number, 1);
             elmofz[slv_number].result = ElmoHommingStatus::SUCCESS;
-            joint_state_elmo_[slv_number] = ESTATE::ZP_SUCCESS;
+            state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_SUCCESS;
             //std::cout << slv_number << "Start : " << elmofz[slv_number].posStart << "End:" << elmofz[slv_number].posEnd << std::endl;
             //q_desired_elmo_[slv_number] = positionZeroElmo(slv_number);
             elmofz[slv_number].findZeroSequence = 8; // torque to zero -> 8 position hold -> 5
@@ -1629,7 +1643,7 @@ void findZeroPoint(int slv_number)
             printf("Motor %d %s : Zero point detection Failed. Manual Detection Required. \n", slv_number, ELMO_NAME[slv_number].c_str());
             //pub_to_gui(dc, "jointzp %d %d", slv_number, 2);
             elmofz[slv_number].result = ElmoHommingStatus::FAILURE;
-            joint_state_elmo_[slv_number] = ESTATE::ZP_MANUAL_REQUIRED;
+            state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_MANUAL_REQUIRED;
             elmofz[slv_number].initTime = control_time_real_;
         }
     }

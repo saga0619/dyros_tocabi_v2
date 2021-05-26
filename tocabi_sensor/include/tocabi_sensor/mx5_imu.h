@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <stdlib.h>
 #include <ros/ros.h>
@@ -9,7 +8,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <mscl/mscl.h>
 
-#include "tocabi_controller/robot_data.h"
 
 class MX5IMU
 {
@@ -54,3 +52,9 @@ public:
 
     void checkIMUData();
 };
+
+const std::string cred("\033[0;31m");
+const std::string creset("\033[0m");
+const std::string cblue("\033[0;34m");
+const std::string cgreen("\033[0;32m");
+const std::string cyellow("\033[0;33m");

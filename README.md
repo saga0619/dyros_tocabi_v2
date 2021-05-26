@@ -2,7 +2,7 @@
 ----------------------------------------
 ## Introduction to tocabi v2
 
-![TOCABI_IMAGE](./resource/TOCABI3.png)
+![TOCABI_IMAGE](./TOCABI3.png)
 > This project is upgraded version of [TOCABI controller](https://github.com/saga0619/dyros_tocabi)
 > Ethercat Master is divided from tocabi controller for stability, unlike previous version.
 > Communications between processes are established with shared memory and ros topics.
@@ -20,6 +20,12 @@
         + Tocabi Ethercat Master based on SOEM
     + tocabi_msgs
         + ROS Message definitons required for task command and status check 
+    + tocabi_data
+        + tocabi link and data container librariy
+    + tocabi_sensor
+        + tocabi sensor managament package. imu, ft
+    + tocabi_cc
+        + custom controller for tocabi ! 
     + tocabi_gui
         + (Not yet ...)
 
@@ -29,6 +35,11 @@
 > This project was developed in Ubuntu 18.04, with Ros Melodic.
 > Realrobot mode is developed on Xenomai 3.0.10, linux-4.14.134
 > Simulation mode is available with mujoco, license is required. 
+
+## Installation
+```sh
+git clone --recurse-submodules https://github.com/saga0619/dyros_tocabi_v2
+```
 
 ### All-in-One installation
 ```sh
@@ -91,9 +102,10 @@ sudo make install
 
 -----------------------------------------
 ## Todo
-+ [ ] Connect Gui
++ [o] Connect Gui
++ [o] link IMU
++ [o] link realtime Robot Status indicator
++ [ ] link Custom Controller
 + [ ] Implant Whole-Body controller 
 + [ ] link F/T sensor
-+ [ ] link IMU
-+ [ ] link realtime Robot Status indicator
 + [ ] link Robot chest led 

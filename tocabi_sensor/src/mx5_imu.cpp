@@ -1,4 +1,4 @@
-#include "tocabi_controller/mx5_imu.h"
+#include "tocabi_sensor/mx5_imu.h"
 
 using namespace std;
 

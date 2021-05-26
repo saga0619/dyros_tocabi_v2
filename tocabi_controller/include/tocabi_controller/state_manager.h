@@ -12,16 +12,17 @@
 #include <thread>
 #include <future>
 
-#include "tocabi_controller/robot_data.h"
+#include <std_msgs/String.h>
+#include <sensor_msgs/JointState.h>
+#include <std_msgs/Int32MultiArray.h>
+#include <geometry_msgs/PolygonStamped.h>
+#include <std_msgs/Float32.h>
+#include <std_msgs/Int8MultiArray.h>
+#include <sensor_msgs/JointState.h>
+
+#include "tocabi_data/robot_data.h"
 #include "mujoco_ros_msgs/SimStatus.h"
 #include "mujoco_ros_msgs/JointSet.h"
-#include "std_msgs/String.h"
-#include "sensor_msgs/JointState.h"
-#include "std_msgs/Int32MultiArray.h"
-#include "geometry_msgs/PolygonStamped.h"
-#include "std_msgs/Float32.h"
-
-#include "std_msgs/Int16MultiArray.h"
 
 class StateManager
 {
@@ -64,6 +65,14 @@ public:
     float q_dot_a_[MODEL_DOF] = {};
     int joint_state_[MODEL_DOF];
     int joint_state_before_[MODEL_DOF];
+
+    int8_t state_elmo_[MODEL_DOF];
+    int8_t state_safety_[MODEL_DOF];
+    int8_t state_zp_[MODEL_DOF];
+
+    int8_t state_elmo_before_[MODEL_DOF];
+    int8_t state_safety_before_[MODEL_DOF];
+    int8_t state_zp_before_[MODEL_DOF];
 
     Eigen::VectorQVQd q_virtual_local_;
     Eigen::VectorVQd q_dot_virtual_local_;
@@ -116,7 +125,8 @@ public:
     ros::Publisher status_pub_;
        
     ros::Publisher elmo_status_pub_;
-    std_msgs::Int16MultiArray elmo_status_msg_;
+    std_msgs::Int8MultiArray elmo_status_msg_;
+
 
     void SimCommandCallback(const std_msgs::StringConstPtr &msg);
     //void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);

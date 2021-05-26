@@ -14,8 +14,14 @@
 
 typedef struct SHMmsgs
 {
+    int8_t safety_status[MODEL_DOF];
+    int8_t ecat_status[MODEL_DOF];
+    int8_t zp_status[MODEL_DOF];
 
-    std::atomic<int> statusWriting;
+    std::atomic<int> statusCount{0};
+    std::atomic<int> statusCount2{0};
+    std::atomic<int> statusWriting{0};
+
     int status[MODEL_DOF];
     float torqueActual[MODEL_DOF];
     float vel[MODEL_DOF];
@@ -38,16 +44,17 @@ typedef struct SHMmsgs
 
     //command val
 
-    std::atomic<bool> commanding; 
+    std::atomic<bool> commanding;
+    std::atomic<int> commandCount{0};
     int commandMode[MODEL_DOF]; //command mode 0 -> off 1 -> torque 2 -> position 
     float torqueCommand[MODEL_DOF];
     float positionCommand[MODEL_DOF];
-    int commandCount = 0;
-
+ 
     int maxTorque = 0;
 
     float timeCommand;
 
+    std::atomic<int> control_time_us_;
     std::atomic<int> t_cnt;
     std::atomic<int> t_cnt2;
     std::atomic<bool> controllerReady;
@@ -102,22 +109,31 @@ enum ECOMMAND
 // 2 : SAFETY_TORQUE_LIMIT, 3 
 
 
-enum ESTATE
+
+enum SSTATE
 {
-    ERROR,
-    OPERATION_READY,
-    COMMUTATION_INITIALIZE,
-    COMMUTATION_DONE,
+    SAFETY_OK,
+    SAFETY_JOINT_LIMIT,
+    SAFETY_VELOCITY_LIMIT,
+    SAFETY_TORQUE_LIMIT,
+};
+
+enum ZSTATE
+{
     ZP_SEARCHING_ZP,
     ZP_SEARCH_COMPLETE,
     ZP_MANUAL_REQUIRED,
     ZP_NOT_ENOUGH_HOMMING,
     ZP_GOTO_ZERO,
     ZP_SUCCESS,
-    SAFETY_VELOCITY_LIMIT,
-    SAFETY_JOINT_LIMIT,
-    SAFETY_TORQUE_LIMIT,
-    SAFETY_OK,
+};
+
+enum ESTATE
+{
+    ERROR,
+    OPERATION_READY,
+    COMMUTATION_INITIALIZE,
+    COMMUTATION_DONE,
 };
 
 static void init_shm()

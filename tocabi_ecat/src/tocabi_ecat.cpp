@@ -1120,12 +1120,12 @@ void checkJointSafety()
         if ((joint_lower_limit[i] > q_elmo_[i]) || (joint_upper_limit[i] < q_elmo_[i]))
         {
             //joint limit reached
-            joint_state_elmo_[i] = ESTATE::SAFETY_JOINT_LIMIT;
+            //joint_state_elmo_[i] = ESTATE::SAFETY_JOINT_LIMIT;
         }
 
         if (joint_velocity_limit[i] < abs(q_dot_elmo_[i]))
         {
-            joint_state_elmo_[i] = ESTATE::SAFETY_VELOCITY_LIMIT;
+            //joint_state_elmo_[i] = ESTATE::SAFETY_VELOCITY_LIMIT;
         }
     }
 }
@@ -1314,7 +1314,7 @@ bool loadZeroPoint()
 
     //check commutation time save point
 
-    memset(joint_state_elmo_, ESTATE::ZP_SUCCESS, sizeof(int) * ELMO_DOF);
+    //memset(joint_state_elmo_, ESTATE::ZP_SUCCESS, sizeof(int) * ELMO_DOF);
 
     return true;
 }
@@ -1465,7 +1465,7 @@ void findZeroPoint(int slv_number)
     double fztime_manual = 300.0;
     if (elmofz[slv_number].findZeroSequence == FZ_CHECKHOMMINGSTATUS)
     {
-        joint_state_elmo_[slv_number] = ESTATE::ZP_SEARCHING_ZP;
+        //joint_state_elmo_[slv_number] = ESTATE::ZP_SEARCHING_ZP;
         //pub_to_gui(dc, "jointzp %d %d", slv_number, 0);
         if (hommingElmo[slv_number])
         {
@@ -1524,7 +1524,7 @@ void findZeroPoint(int slv_number)
 
                 std::cout << "Joint " << slv_number << " " << ELMO_NAME[slv_number] << "if you want to proceed with detected length, proceed with manual mode " << endl;
 
-                joint_state_elmo_[slv_number] = ESTATE::ZP_NOT_ENOUGH_HOMMING;
+                //joint_state_elmo_[slv_number] = ESTATE::ZP_NOT_ENOUGH_HOMMING;
                 elmofz[slv_number].findZeroSequence = 7;
                 elmofz[slv_number].result = ElmoHommingStatus::FAILURE;
                 elmofz[slv_number].initTime = control_time_real_;
@@ -1535,7 +1535,7 @@ void findZeroPoint(int slv_number)
             if (elmofz[slv_number].endFound == 1)
             {
                 elmofz[slv_number].findZeroSequence = FZ_GOTOZEROPOINT;
-                joint_state_elmo_[slv_number] = ESTATE::ZP_GOTO_ZERO;
+                //joint_state_elmo_[slv_number] = ESTATE::ZP_GOTO_ZERO;
 
                 elmofz[slv_number].initPos = q_elmo_[slv_number];
                 q_zero_elmo_[slv_number] = (elmofz[slv_number].posEnd + elmofz[slv_number].posStart) * 0.5 + q_zero_mod_elmo_[slv_number];
@@ -1598,7 +1598,7 @@ void findZeroPoint(int slv_number)
 
             //pub_to_gui(dc, "jointzp %d %d", slv_number, 1);
             elmofz[slv_number].result = ElmoHommingStatus::SUCCESS;
-            joint_state_elmo_[slv_number] = ESTATE::ZP_SUCCESS;
+            //joint_state_elmo_[slv_number] = ESTATE::ZP_SUCCESS;
             //std::cout << slv_number << "Start : " << elmofz[slv_number].posStart << "End:" << elmofz[slv_number].posEnd << std::endl;
             //q_desired_elmo_[slv_number] = positionZeroElmo(slv_number);
             elmofz[slv_number].findZeroSequence = 8; // torque to zero -> 8 position hold -> 5
@@ -1623,7 +1623,7 @@ void findZeroPoint(int slv_number)
             printf("Motor %d %s : Zero point detection Failed. Manual Detection Required. \n", slv_number, ELMO_NAME[slv_number].c_str());
             //pub_to_gui(dc, "jointzp %d %d", slv_number, 2);
             elmofz[slv_number].result = ElmoHommingStatus::FAILURE;
-            joint_state_elmo_[slv_number] = ESTATE::ZP_MANUAL_REQUIRED;
+            //joint_state_elmo_[slv_number] = ESTATE::ZP_MANUAL_REQUIRED;
             elmofz[slv_number].initTime = control_time_real_;
         }
     }

@@ -61,7 +61,10 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global)
     status_pub_ = dc_.nh.advertise<std_msgs::String>("/tocabi/guilog", 100);
     timer_pub_ = dc_.nh.advertise<std_msgs::Float32>("/tocabi/time", 100);
 
+    elmo_status_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/ecatstates", 100);
+
     point_pub_msg_.polygon.points.resize(10);
+    elmo_status_msg_.data.resize(MODEL_DOF * 3);
 }
 
 StateManager::~StateManager()
@@ -78,7 +81,7 @@ void *StateManager::StateThread()
     //Checking Connect//
 
     //Check Coonnect Complete//
-    rcv_tcnt = dc_.tc_shm_->t_cnt;
+    rcv_tcnt = dc_.tc_shm_->statusCount;
     //cout << "first packet " << rcv_tcnt << endl;
     int cycle_count_ = rcv_tcnt;
     int stm_count_ = 0;
@@ -90,7 +93,7 @@ void *StateManager::StateThread()
     while (!dc_.tc_shm_->shutdown)
     {
         ros::spinOnce();
-        if (rcv_tcnt >= dc_.tc_shm_->t_cnt)
+        if (rcv_tcnt >= dc_.tc_shm_->statusCount)
         {
             std::this_thread::sleep_for(std::chrono::microseconds(1));
         }
@@ -99,11 +102,11 @@ void *StateManager::StateThread()
             cycle_count_++;
             stm_count_++;
 
-            if (rcv_tcnt + 1 != dc_.tc_shm_->t_cnt)
+            if (rcv_tcnt + 1 != dc_.tc_shm_->statusCount)
             {
-                //std::cout << "missed packet : " << dc_.tc_shm_->t_cnt - rcv_tcnt << std::endl;
+                std::cout << "missed packet : " << dc_.tc_shm_->statusCount - rcv_tcnt << std::endl;
             }
-            rcv_tcnt = dc_.tc_shm_->t_cnt;
+            rcv_tcnt = dc_.tc_shm_->statusCount;
 
             if (true) //dc.imu_ignore == true)
             {
@@ -115,27 +118,35 @@ void *StateManager::StateThread()
                 }
                 q_virtual_local_(MODEL_DOF + 6) = 1.0;
             }
+
+            auto t1 = chrono::steady_clock::now();
             GetJointData(); //0.246 us //w/o march native 0.226
             auto dur_start_ = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - time_start).count();
-
+            control_time_ = rcv_tcnt / 2000.0;
             //local kinematics update : 33.7 us // w/o march native 20 us
             UpdateKinematics_local(model_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
 
+            auto d1 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t1).count();
+            auto t2 = chrono::steady_clock::now();
             StateEstimate();
 
             //global kinematics update : 127 us //w/o march native 125 us
             UpdateKinematics(model_2, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
 
-            auto t1 = chrono::steady_clock::now();
             StoreState(dc_.rd_); //6.2 us //w/o march native 8us
-            auto d1 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t1).count();
 
-            //MeasureTime(stm_count_, d1);
+            auto d2 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t2).count();
+            MeasureTime(stm_count_, d1, d2);
 
             dc_.rd_.us_from_start_ = dur_start_;
 
             if (stm_count_ % 33 == 0)
+            {
+                cnt3++;
                 PublishData();
+            }
+            //dc_.tc_shm_->t_cnt2 = stm_count_;
+            dc_.tc_shm_->t_cnt2 = cnt3;
 
             //printf("%d\n", rcv_tcnt);
             //printf("\x1b[A\x1b[A\33[2K\r");
@@ -198,7 +209,6 @@ void StateManager::PublishData()
 
     double tr_, tp_, ty_;
 
-
     DyrosMath::rot2Euler_tf2(link_[Pelvis].rotm, tr_, tp_, ty_);
 
     point_pub_msg_.polygon.points[4].x = tr_; //rpy
@@ -227,57 +237,44 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[9].y = tp_;
     point_pub_msg_.polygon.points[9].z = ty_;
 
+    point_pub_.publish(point_pub_msg_);
+
     //
+
+    bool query_elmo_pub_ = false;
+
     for (int i = 0; i < MODEL_DOF; i++)
     {
-        if (joint_state_before_[i] != joint_state_[i])
+        elmo_status_msg_.data[i] = state_elmo_[i];
+        elmo_status_msg_.data[i + 33] = state_zp_[i];
+        elmo_status_msg_.data[i + 66] = state_safety_[i];
+
+        if (state_elmo_[i] != state_elmo_before_[i])
         {
-            if (joint_state_[i] == ESTATE::ERROR)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::OPERATION_READY)
-            {
-                //elmo ready
-            }
-            else if (joint_state_[i] == ESTATE::COMMUTATION_INITIALIZE)
-            {
-                //elmo ready
-            }
-            else if (joint_state_[i] == ESTATE::COMMUTATION_DONE)
-            {
-                //elmo ready
-            }
-            else if (joint_state_[i] == ESTATE::ZP_SEARCHING_ZP)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::ZP_SEARCH_COMPLETE)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::ZP_MANUAL_REQUIRED)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::ZP_NOT_ENOUGH_HOMMING)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::ZP_GOTO_ZERO)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::ZP_SUCCESS)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::SAFETY_VELOCITY_LIMIT)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::SAFETY_JOINT_LIMIT)
-            {
-            }
-            else if (joint_state_[i] == ESTATE::SAFETY_TORQUE_LIMIT)
-            {
-            }
+            query_elmo_pub_ = true;
         }
+
+        if (state_safety_[i] != state_safety_before_[i])
+        {
+            query_elmo_pub_ = true;
+        }
+
+        if (state_zp_[i] != state_zp_before_[i])
+        {
+            query_elmo_pub_ = true;
+        }
+
+        state_elmo_before_[i] = state_elmo_[i];
+        state_safety_before_[i] = state_safety_[i];
+        state_zp_before_[i] = state_zp_[i];
     }
 
-    memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
+    if (query_elmo_pub_)
+    {
+        elmo_status_pub_.publish(elmo_status_msg_);
+    }
+
+    //memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
 }
 
 void StateManager::GetJointData()
@@ -306,7 +303,11 @@ void StateManager::GetJointData()
     q_virtual_local_(5) = dc_.tc_shm_->pos_virtual[5];
     q_virtual_local_(MODEL_DOF_VIRTUAL) = dc_.tc_shm_->pos_virtual[6];
 
-    memcpy(joint_state_, dc_.tc_shm_->status, sizeof(int) * MODEL_DOF);
+    //memcpy(joint_state_, dc_.tc_shm_->status, sizeof(int) * MODEL_DOF);
+
+    memcpy(state_elmo_, dc_.tc_shm_->ecat_status, sizeof(int8_t) * MODEL_DOF);
+    memcpy(state_safety_, dc_.tc_shm_->safety_status, sizeof(int8_t) * MODEL_DOF);
+    memcpy(state_zp_, dc_.tc_shm_->zp_status, sizeof(int8_t) * MODEL_DOF);
 
     //dc_.tc_shm_->pos
 }
@@ -563,12 +564,18 @@ void StateManager::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &m
 {
     rd_.tc_ = *msg;
     rd_.task_signal_ = true;
+    rd_.tc_init = true;
+    rd_.tc_time_ = control_time_;
+
+    std::cout << "tc received" << std::endl;
 }
 
 void StateManager::TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueConstPtr &msg)
 {
     rd_.tc_q_ = *msg;
     rd_.task_que_signal_ = true;
+
+    std::cout << "tc_que received" << std::endl;
 }
 
 void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
@@ -610,12 +617,15 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     }
     else if (msg->data == "ecatinit")
     {
-        dc_.tc_shm_->upper_init_signal = true;
-        dc_.tc_shm_->waist_init_signal = true;
+        dc_.tc_shm_->upper_init_signal = true;  
     }
     else if (msg->data == "ecatinitlower")
     {
         dc_.tc_shm_->low_init_signal = true;
+    }
+    else if(msg->data == "ecatinitwaist")
+    {
+        dc_.tc_shm_->waist_init_signal = true;
     }
 
     //Controlling GUI
