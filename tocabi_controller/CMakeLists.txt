@@ -66,8 +66,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
    INCLUDE_DIRS include
-#  LIBRARIES tocabi_controller
-   CATKIN_DEPENDS roscpp roslib tocabi_msgs tocabi_ecat
+   LIBRARIES tocabi_controller
+   CATKIN_DEPENDS roscpp roslib tocabi_data tocabi_cc tocabi_msgs tocabi_ecat
 #  DEPENDS system_lib
 )
 

@@ -617,12 +617,15 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     }
     else if (msg->data == "ecatinit")
     {
-        dc_.tc_shm_->upper_init_signal = true;
-        dc_.tc_shm_->waist_init_signal = true;
+        dc_.tc_shm_->upper_init_signal = true;  
     }
     else if (msg->data == "ecatinitlower")
     {
         dc_.tc_shm_->low_init_signal = true;
+    }
+    else if(msg->data == "ecatinitwaist")
+    {
+        dc_.tc_shm_->waist_init_signal = true;
     }
 
     //Controlling GUI
