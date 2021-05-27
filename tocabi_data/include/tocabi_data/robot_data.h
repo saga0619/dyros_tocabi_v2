@@ -128,6 +128,7 @@ struct RobotData
     bool signal_yaw_init = false;
     volatile bool firstCalc = false;
 
+    std::chrono::steady_clock::time_point rc_t_;
     // bool contact_calc;
     // bool task_force_control;
     // bool task_force_control_feedback;

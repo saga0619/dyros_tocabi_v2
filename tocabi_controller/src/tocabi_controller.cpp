@@ -85,8 +85,25 @@ void *TocabiController::Thread1()
         //Send Data To thread2
 
         //Data2Thread2
-
+        static std::chrono::steady_clock::time_point t_c_ = std::chrono::steady_clock::now();
         SendCommand(rd_.torque_grav + rd_.torque_contact);
+
+        auto d2 = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - dc_.rd_.rc_t_).count(); //150us without march=native
+
+        static int d2_total = 0;
+
+        d2_total += d2;
+
+        if (d2 > 350)
+        {
+            std::cout << rd_.control_time_ << "command duration over 350us , " << d2 << std::endl;
+        }
+
+        if (thread1_count % 2000 == 0)
+        {
+            std::cout << rd_.control_time_ << "s : avg rcv2send : " << d2_total / thread1_count << " us" << std::endl;
+        }
+        t_c_ = std::chrono::steady_clock::now();
 
         //std::cout<<"21"<<std::endl;
     }

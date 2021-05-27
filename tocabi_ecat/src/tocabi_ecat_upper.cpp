@@ -251,7 +251,19 @@ void *ethercatThread1(void *data)
                 query_check_state = true;
 
                 struct timespec ts;
+                cout<<"ELMO 1 : Waiting for lowerecat Ready"<<endl;
+                while(!shm_msgs_->lowerReady)
+                {
+                    std::this_thread::sleep_for(std::chrono::microseconds(1));
+                }
+
                 clock_gettime(CLOCK_MONOTONIC, &ts);
+
+                shm_msgs_->tv_sec = ts.tv_sec;
+                shm_msgs_->tv_nsec = ts.tv_nsec;
+                shm_msgs_->ecatTimerSet = true;
+
+                cout<<"ELMO 1 : Timer Set "<<endl;
 
                 ts.tv_nsec += PERIOD_NS;
                 while (ts.tv_nsec >= SEC_IN_NSEC)
@@ -692,13 +704,13 @@ void *ethercatThread1(void *data)
                 savg = 0;
                 sat = 0;
 
-                clock_gettime(CLOCK_MONOTONIC, &ts);
-                ts.tv_nsec += PERIOD_NS;
-                while (ts.tv_nsec >= SEC_IN_NSEC)
-                {
-                    ts.tv_sec++;
-                    ts.tv_nsec -= SEC_IN_NSEC;
-                }
+                // clock_gettime(CLOCK_MONOTONIC, &ts);
+                // ts.tv_nsec += PERIOD_NS;
+                // while (ts.tv_nsec >= SEC_IN_NSEC)
+                // {
+                //     ts.tv_sec++;
+                //     ts.tv_nsec -= SEC_IN_NSEC;
+                // }
 
                 struct timespec ts1, ts2;
 

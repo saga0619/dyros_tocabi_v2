@@ -250,7 +250,29 @@ void *ethercatThread1(void *data)
                 query_check_state = true;
 
                 struct timespec ts;
-                clock_gettime(CLOCK_MONOTONIC, &ts);
+                //clock_gettime(CLOCK_MONOTONIC, &ts);
+                shm_msgs_->lowerReady = true;
+                cout<<"ELMO 2 : Ready to Sync "<<endl;
+
+                //wait for upper timer set.
+                while(!shm_msgs_->ecatTimerSet)
+                {
+                    std::this_thread::sleep_for(std::chrono::microseconds(1));
+                }
+
+                ts.tv_sec = shm_msgs_->tv_sec;
+                ts.tv_nsec = shm_msgs_->tv_nsec;
+                struct timespec ts_check;
+                clock_gettime(CLOCK_MONOTONIC, &ts_check);
+
+                int sync_delay = ts_check.tv_nsec - ts.tv_nsec;
+                if(sync_delay<0)
+                {
+                    sync_delay += SEC_IN_NSEC;
+                }
+
+                printf("ELMO 2 : Timer Synced! delay : %5.3f us", (double)sync_delay/1000.0);
+
 
                 ts.tv_nsec += PERIOD_NS;
                 while (ts.tv_nsec >= SEC_IN_NSEC)
@@ -689,13 +711,13 @@ void *ethercatThread1(void *data)
                 savg = 0;
                 sat = 0;
 
-                clock_gettime(CLOCK_MONOTONIC, &ts);
-                ts.tv_nsec += PERIOD_NS;
-                while (ts.tv_nsec >= SEC_IN_NSEC)
-                {
-                    ts.tv_sec++;
-                    ts.tv_nsec -= SEC_IN_NSEC;
-                }
+                // clock_gettime(CLOCK_MONOTONIC, &ts);
+                // ts.tv_nsec += PERIOD_NS;
+                // while (ts.tv_nsec >= SEC_IN_NSEC)
+                // {
+                //     ts.tv_sec++;
+                //     ts.tv_nsec -= SEC_IN_NSEC;
+                // }
 
                 struct timespec ts1, ts2;
 

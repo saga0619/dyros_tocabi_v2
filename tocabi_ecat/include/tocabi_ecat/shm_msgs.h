@@ -18,6 +18,11 @@ typedef struct SHMmsgs
     int8_t ecat_status[MODEL_DOF];
     int8_t zp_status[MODEL_DOF];
 
+    long tv_sec;
+    long tv_nsec;
+    std::atomic<bool> lowerReady;
+    std::atomic<bool> ecatTimerSet;
+
     std::atomic<int> statusCount;
     std::atomic<int> statusCount2;
     std::atomic<int> statusWriting;
