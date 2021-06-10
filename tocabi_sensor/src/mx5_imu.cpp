@@ -196,18 +196,18 @@ sensor_msgs::Imu MX5IMU::getIMU(int &imu_state)
             //Publish IMU-VALID
 
             //pub_to_gui(dc, "imuvalid");
-            std::cout<<"state change2 "<<std::endl;
+            //std::cout<<"state change2 "<<std::endl;
             imu_state = 2;
-            std::cout<<"state change2 "<<std::endl;
+            //std::cout<<"state change2 "<<std::endl;
         }
         else if (ef_state == 3)
         {
             std::cout << cyellow << "IMU : running, solution error" << std::hex << ef_state_flag << std::dec << creset << std::endl;
             //Publish IMU not VALID
             //pub_to_gui(dc, "imunotvalid");
-            std::cout<<"state change1 "<<std::endl;
+            //std::cout<<"state change1 "<<std::endl;
             imu_state = 1;
-            std::cout<<"state change1 "<<std::endl;
+            //std::cout<<"state change1 "<<std::endl;
         }
         else
         {

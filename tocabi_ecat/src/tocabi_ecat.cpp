@@ -205,9 +205,7 @@ void *ethercatThread1(void *data)
 
             /* send one valid process data to make outputs in slaves happy*/
             ec_send_processdata();
-            cout<<"first send"<<endl;
             ec_receive_processdata(EC_TIMEOUTRET);
-            cout<<"first receive"<<endl;
             /* request OP state for all slaves */
             ec_writestate(0);
 

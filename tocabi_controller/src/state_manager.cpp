@@ -123,6 +123,7 @@ void *StateManager::StateThread()
                 std::cout << "missed packet : " << dc_.tc_shm_->statusCount - rcv_tcnt << std::endl;
             }
             rcv_tcnt = dc_.tc_shm_->statusCount;
+            dc_.rd_.rc_t_ = std::chrono::steady_clock::now();
 
             if (false) //dc.imu_ignore == true)
             {

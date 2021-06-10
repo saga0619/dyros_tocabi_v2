@@ -34,20 +34,33 @@
 ## Prerequisities
 > This project was developed in Ubuntu 18.04, with Ros Melodic.
 > Realrobot mode is developed on Xenomai 3.0.10, linux-4.14.134
-> Simulation mode is available with mujoco, license is required. 
+> Simulation mode is available with mujoco. For simulation, mujoco license is required. 
 
 ## Installation
 ```sh
+cd catkin_ws/src
 git clone --recurse-submodules https://github.com/saga0619/dyros_tocabi_v2
 ```
 
-### All-in-One installation
+## GUI
 ```sh
-cd dyros_tocabi
+cd catkin_ws/src
+git clone -b v2.1 https://github.com/saga0619/tocabi_gui
+```
+
+## Simulator
+```sh
+cd catkin_ws/src
+git clone https://github.com/saga0619/mujoco_ros_sim
+```
+
+### All-in-One Requirements installation
+```sh
+cd catkin_ws/src/dyros_tocabi_v2
 sudo ./install_prereq.sh
 ```
 
-### Individual installation
+### Individual installation (If All-in-One script not working ...)
 
 #### 1. mscl installation
  * download [MSCL](https://github.com/LORD-MicroStrain/MSCL/releases/download/v52.2.1/c++-mscl_52.2.1_amd64.deb) 

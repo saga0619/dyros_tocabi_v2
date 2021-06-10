@@ -158,6 +158,7 @@ struct RobotData
     bool semode = false;
     bool semode_init = false;
 
+    std::chrono::steady_clock::time_point rc_t_;
     // bool contact_calc;
     // bool task_force_control;
     // bool task_force_control_feedback;
