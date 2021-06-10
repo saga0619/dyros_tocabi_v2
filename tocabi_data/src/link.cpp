@@ -8,7 +8,13 @@ void LinkData::Initialize(RigidBodyDynamics::Model &model_, int id_)
     com_position = model_.mBodies[id_].mCenterOfMass;
     inertia = model_.mBodies[id_].mInertia;
 
-    
+    pos_p_gain << 400, 400, 400;
+    pos_d_gain << 40, 40, 40;
+    pos_a_gain << 1, 1, 1;
+
+    rot_p_gain << 400, 400, 400;
+    rot_d_gain << 40, 40, 40;
+    rot_a_gain << 1, 1, 1;
 }
 
 void LinkData::UpdatePosition(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_)
@@ -25,16 +31,22 @@ void LinkData::UpdateVW(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQ
     v = vw.segment(3, 3);
     w = vw.segment(0, 3);
 }
-/*
-Eigen::Matrix6Vd LinkData::GetJac()
+
+void LinkData::GetPointPos(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_, const Eigen::VectorVQd &q_dot_virtual_, Eigen::Vector3d &local_pos, Eigen::Vector3d &global_pos, Eigen::Vector6d &global_velocity6D)
+{
+    global_pos = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_, q_virtual_, id, local_pos, false);
+    global_velocity6D = RigidBodyDynamics::CalcPointVelocity6D(model_, q_virtual_, q_dot_virtual_, id, local_pos, false);
+}
+
+Eigen::Matrix6Vd LinkData::Jac()
 {
 
     return jac.cast<Eigen::rScalar>();
 }
-Eigen::Matrix6Vd LinkData::GetJacCOM()
+Eigen::Matrix6Vd LinkData::JacCOM()
 {
     return jac_com.cast<Eigen::rScalar>();
-}*/
+}
 
 void LinkData::UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_)
 {
@@ -50,8 +62,8 @@ void LinkData::UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::Vec
 
     RigidBodyDynamics::CalcPointJacobian6D(model_, q_virtual_, id, Eigen::Vector3d::Zero(), j_temp, false);
 
-    jac.block<3, MODEL_DOF + 6>(0, 0) = j_temp.block<3, MODEL_DOF + 6>(3, 0).cast<Eigen::lScalar>();
-    jac.block<3, MODEL_DOF + 6>(3, 0) = j_temp.block<3, MODEL_DOF + 6>(0, 0).cast<Eigen::lScalar>();
+    jac.block(0, 0, 3, MODEL_DOF_VIRTUAL) = j_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL).cast<Eigen::lScalar>();
+    jac.block(3, 0, 3, MODEL_DOF_VIRTUAL) = j_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL).cast<Eigen::lScalar>();
 }
 
 void LinkData::UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_, const Eigen::VectorVQd &q_dot_virtual_)
@@ -68,8 +80,8 @@ void LinkData::UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::Vec
 
     RigidBodyDynamics::CalcPointJacobian6D(model_, q_virtual_, id, Eigen::Vector3d::Zero(), j_temp, false);
 
-    jac.block<3, MODEL_DOF + 6>(0, 0) = j_temp.block<3, MODEL_DOF + 6>(3, 0).cast<Eigen::lScalar>();
-    jac.block<3, MODEL_DOF + 6>(3, 0) = j_temp.block<3, MODEL_DOF + 6>(0, 0).cast<Eigen::lScalar>();
+    jac.block(0, 0, 3, MODEL_DOF_VIRTUAL) = j_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL).cast<Eigen::lScalar>();
+    jac.block(3, 0, 3, MODEL_DOF_VIRTUAL) = j_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL).cast<Eigen::lScalar>();
 
     Eigen::Vector6d vw = RigidBodyDynamics::CalcPointVelocity6D(model_, q_virtual_, q_dot_virtual_, id, Eigen::Vector3d::Zero(), false);
 
@@ -153,6 +165,34 @@ void LinkData::SetTrajectoryQuintic(double current_time, double start_time, doub
 
     r_traj = rot_init;
     w_traj = Eigen::Vector3d::Zero();
+}
+
+void LinkData::SetTrajectoryRotation(double current_time, double start_time, double end_time)
+{
+    Eigen::Quaterniond q0(rot_init);
+    Eigen::Quaterniond q1(rot_desired);
+
+    Eigen::Vector3d qs_ = DyrosMath::QuinticSpline(current_time, start_time, end_time, 0, 0, 0, 1, 0, 0);
+
+    Eigen::Quaterniond q_traj = q0.slerp(qs_(0), q1);
+
+    r_traj = q_traj.toRotationMatrix();
+
+    Eigen::AngleAxisd axd(q1 * q0.inverse());
+
+    w_traj = axd.angle() * qs_(1) * axd.axis();
+    ra_traj = axd.angle() * qs_(2) * axd.axis();
+}
+
+void LinkData::SetGain(double pos_p, double pos_d, double pos_a, double rot_p, double rot_d, double rot_a)
+{
+    pos_p_gain << pos_p, pos_p, pos_p;
+    pos_d_gain << pos_d, pos_d, pos_d;
+    pos_a_gain << pos_a, pos_a, pos_a;
+
+    rot_p_gain << rot_p, rot_p, rot_p;
+    rot_d_gain << rot_d, rot_d, rot_d;
+    rot_a_gain << rot_a, rot_a, rot_a;
 }
 
 void LinkData::SetTrajectoryRotation(double current_time, double start_time, double end_time, bool local_)
@@ -281,7 +321,6 @@ void EndEffector::InitializeEE(LinkData &lk_, float x_length, float y_length, fl
     contact_force_minimum = min_force;
     friction_ratio = friction_ratio_;
     friction_ratio_z = friction_ratio_z_;
-
 }
 
 void EndEffector::UpdateLinkData(LinkData &lk_)

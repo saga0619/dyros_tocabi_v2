@@ -4,7 +4,7 @@
 #include <rbdl/addons/urdfreader/urdfreader.h>
 
 #include "tocabi_data/tocabi.h"
-#include "tocabi_data/math_type_define.h"
+#include "math_type_define.h"
 
 using namespace std;
 using namespace Eigen;
@@ -16,7 +16,6 @@ public:
   // Update link i of rbdl link id. name : link name, mass : link mass, xipos : local center of mass position
   void Initialize(RigidBodyDynamics::Model &model_, int id_);
 
-
   bool CheckName(RigidBodyDynamics::Model &model_);
 
   // Update xpos, xipos, rotm.
@@ -24,6 +23,8 @@ public:
 
   // update link velocity(6D, translation and rotation) from jacobian matrix Jac.
   void UpdateVW(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_, const Eigen::VectorVQd &q_dot_virtual_);
+
+  void GetPointPos(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_, const Eigen::VectorVQd &q_dot_virtual_, Eigen::Vector3d &local_pos, Eigen::Vector3d &global_pos, Eigen::Vector6d &global_velocity6D);
 
   // Update COM jacobian
   void UpdateJacobian(RigidBodyDynamics::Model &model_, const Eigen::VectorQVQd &q_virtual_);
@@ -66,16 +67,21 @@ public:
   // set realtime trajectory of rotation of link
   void SetTrajectoryRotation(double current_time, double start_time, double end_time, Eigen::Matrix3d rot_desired, bool local_);
 
+  // quat trajectory using slerp
+  void SetTrajectoryRotation(double current_time, double start_time, double end_time);
+
   // set link initial position and rotation. initial position for task control.
   void SetInitialWithPosition();
 
   void SetInitialWithTrajectory();
 
+  void SetGain(double pos_p, double pos_d, double pos_a, double rot_p, double rot_d, double rot_a);
+
   Eigen::Matrix6Vf jac;
   Eigen::Matrix6Vf jac_com;
 
-  //Eigen::Matrix6Vd GetJac();
-  //Eigen::Matrix6Vd GetJacCOM();
+  Eigen::Matrix6Vd Jac();
+  Eigen::Matrix6Vd JacCOM();
 
   //void Get_PointPos(Eigen::VectorQVQd &q_virtual_, Eigen::VectorVQd &q_dot_virtual, Eigen::Vector3d &local_pos, Eigen::Vector3d &global_pos, Eigen::Vector6d &global_velocity6D);
 
@@ -91,6 +97,7 @@ public:
   Eigen::Matrix3d inertia;
 
   //local sensor point
+  Eigen::Vector3d contact_point;
   Eigen::Vector3d sensor_point;
 
   //changing variables
@@ -156,9 +163,11 @@ public:
 
   Eigen::Vector3d pos_p_gain;
   Eigen::Vector3d pos_d_gain;
+  Eigen::Vector3d pos_a_gain;
+
   Eigen::Vector3d rot_p_gain;
   Eigen::Vector3d rot_d_gain;
-  Eigen::Vector3d acc_p_gain;
+  Eigen::Vector3d rot_a_gain;
 
   Eigen::Vector3d max_p_acc_;
   Eigen::Vector3d max_p_vel_;
@@ -182,8 +191,6 @@ public:
   //global position of contact point at body
   Eigen::Vector3d xpos_contact;
   //local contact point
-  Eigen::Vector3d contact_point;
-  Eigen::Vector3d sensor_point;
 
   double friction_ratio;
   double friction_ratio_z;

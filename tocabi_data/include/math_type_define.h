@@ -813,7 +813,7 @@ namespace DyrosMath
     //return qr.inverse();
 
     Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(A);
-    //qr.setThreshold(10e-10);
+    qr.setThreshold(10e-8);
     int rank = qr.rank();
 
     int cols, rows;

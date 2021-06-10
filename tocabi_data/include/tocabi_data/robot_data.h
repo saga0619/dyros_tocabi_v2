@@ -42,6 +42,9 @@ struct EndEffector
 struct RobotData
 {
     ~RobotData() { std::cout << "rd terminate" << std::endl; }
+    /////////////////////////////////////////////////
+    ///////////REFRESHING VARIABLES START////////////
+
     std::atomic<int> us_from_start_{};
     float control_time_ = 0;
 
@@ -61,27 +64,49 @@ struct RobotData
     Eigen::VectorVQd q_dot_virtual_;
     Eigen::VectorVQd q_ddot_virtual_;
 
-    ///////////////////////////////////////////
+    
+    Eigen::Vector3d imu_lin_acc;
+    Eigen::Vector3d imu_ang_vel;
+    Eigen::Vector3d imu_ang_vel_before;
 
     double roll = 0;
     double pitch = 0;
     double yaw = 0;
 
-    ///////////
     Eigen::VectorVQd q_dot_virtual_lpf;
+    Eigen::VectorQd torque_elmo_;
     Eigen::VectorQd q_ext_;
     Eigen::VectorQd q_dot_est_;
     Eigen::VectorQd q_dot_est_1;
     Eigen::VectorQd q_hold_lower_;
-    Eigen::VectorQd torque_elmo_;
 
+    ///////////////////////////////////////////////
+    ///////////REFRESHING VARIABLES END////////////
+
+
+    Eigen::VectorQd q_desired;
     Eigen::VectorQd torque_desired;
 
     ///////////////////////////
-    //Dynamics Data
+    /////Dynamics Data
 
+    // task_dof * MODEL_DOF_VIRTUAL
+    MatrixXd J_task;
+    MatrixXd J_task_T;
+    MatrixXd J_task_inv_T;
+    
+    // task_dof X task_dof 
+    MatrixXd lambda_inv;
+    MatrixXd lambda;
+    MatrixXd Q;   
+    MatrixXd Q_T_;
+    MatrixXd Q_temp;
+    MatrixXd Q_temp_inv;
+
+    //contact_dof * MODEL_DOF_VIRTUAL
     MatrixXd J_C;
     MatrixXd J_C_INV_T;
+
     MatrixXd I_C;
 
     MatrixVVd N_C;
@@ -102,6 +127,8 @@ struct RobotData
 
     //EndEffector ee_[ENDEFFECTOR_NUMBER]; //ee_ : 0: Left 1: Right
 
+    double yaw_init = 0;
+
     int contact_index = 0;
     int contact_part[4] = {-1, -1, -1, -1};
     int ee_idx[4] = {-1, -1, -1, -1};
@@ -112,11 +139,11 @@ struct RobotData
     tocabi_msgs::TaskCommandQue tc_q_;
     atomic<bool> task_que_signal_{};
     bool tc_init = false;
+    bool tc_run = false;
     double tc_time_;
 
     //Bools...... might be moved to other..
     bool qp_error = false;
-
     bool task_control_switch = false;
     bool lambda_calc = false;
     bool init_qp = false;
@@ -127,6 +154,9 @@ struct RobotData
     bool qp2nd = false;
     bool signal_yaw_init = false;
     volatile bool firstCalc = false;
+
+    bool semode = false;
+    bool semode_init = false;
 
     // bool contact_calc;
     // bool task_force_control;
@@ -161,6 +191,8 @@ struct DataContainer
     bool imuResetSwtich = false;
     bool stateEstimateSwitch = false;
     bool safetyResetSwitch = false;
+
+    bool useSimVirtual = false;
 
     double torqueOnTime = -1;
     double torqueOffTime = -1;

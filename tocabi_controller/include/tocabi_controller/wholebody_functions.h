@@ -1,4 +1,5 @@
 #include "tocabi_data/robot_data.h"
+#include "tocabi_controller/qp.h"
 
 using namespace TOCABI;
 
@@ -37,7 +38,6 @@ namespace WBC
         rd_.W = rd_.A_inv_.bottomRows(MODEL_DOF) * rd_.N_C.rightCols(MODEL_DOF);
 
         rd_.W_inv = DyrosMath::WinvCalc(rd_.W, rd_.qr_V2);
-
     }
 
     void SetContact(RobotData &Robot, bool left_foot, bool right_foot, bool left_hand = 0, bool right_hand = 0)
@@ -88,6 +88,49 @@ namespace WBC
         CalcContact(Robot);
     }
 
+    Vector3d GetFstarPos(LinkData &link_)
+    {
+        Vector3d fstar;
+
+        for (int i = 0; i < 3; i++)
+            fstar(i) = link_.pos_p_gain(i) * (link_.x_traj(i) - link_.xpos(i)) + link_.pos_d_gain(i) * (link_.v_traj(i) - link_.v(i));
+
+        //return link_.pos_a_gain.cwiseProduct(link_.a_traj) + link_.pos_p_gain.cwiseProduct(link_.x_traj - link_.xpos) + link_.pos_d_gain.cwiseProduct(link_.v_traj - link_.v);
+
+        return fstar;
+    }
+
+    Vector3d GetFstarRot(LinkData &link_)
+    {
+        //Matrix3d rotyaw = DyrosMath::rotateWithZ()
+        Vector3d fstar;
+
+        Vector3d ad;
+
+        ad = DyrosMath::getPhi(link_.rotm, link_.r_traj);
+
+        for (int i = 0; i < 3; i++)
+            fstar(i) = -link_.rot_p_gain(i) * ad(i) + link_.rot_d_gain(i) * (link_.w_traj(i) - link_.w(i));
+
+        //std::cout << ad.transpose() << "\t" << (link_.w_traj - link_.w).transpose() << std::endl;
+
+        //std::cout << DyrosMath::rot2Euler_tf(link_.rotm).transpose() << "\t" << DyrosMath::rot2Euler_tf(link_.r_traj) << std::endl;
+
+        //return link_.rot_p_gain.cwiseProduct(DyrosMath::getPhi(link_.rotm, link_.r_traj)); // + link_.rot_d_gain.cwiseProduct(link_.w_traj - link_.w);
+
+        return fstar;
+    }
+
+    Vector6d GetFstar6d(LinkData &link_)
+    {
+        Vector6d f_star;
+
+        f_star.segment(0, 3) = GetFstarPos(link_);
+        f_star.segment(3, 3) = GetFstarRot(link_);
+
+        return f_star;
+    }
+
     // void CalcNonlinear(RobotData &rd_)
     // {
     //     RigidBodyDynamics::Math::VectorNd tau_;
@@ -96,17 +139,42 @@ namespace WBC
     //     std::cout<<tau_.transpose();
     // }
 
-    VectorQd gravity_compensation_torque(RobotData &rd_)
+    VectorQd GravityCompensationTorque(RobotData &rd_)
     {
         rd_.G.setZero();
         for (int i = 0; i < MODEL_DOF + 1; i++)
             rd_.G -= rd_.link_[i].jac_com.cast<double>().topRows(3).transpose() * rd_.link_[i].mass * rd_.grav_ref;
 
-
         rd_.torque_grav = rd_.W_inv * (rd_.A_inv_.bottomRows(MODEL_DOF) * (rd_.N_C * rd_.G));
         rd_.P_C = rd_.J_C_INV_T * rd_.G;
-       
+
         return rd_.torque_grav;
+    }
+
+    VectorQd TaskControlTorque(RobotData &rd_, VectorXd f_star)
+    {
+        int task_dof = rd_.J_task.rows();
+        //rd_.J_task = J_task;
+        rd_.J_task_T = rd_.J_task.transpose();
+
+        rd_.lambda_inv = rd_.J_task * rd_.A_inv_ * rd_.N_C * rd_.J_task_T;
+
+        rd_.lambda = rd_.lambda_inv.inverse();
+
+        rd_.J_task_inv_T = rd_.lambda * rd_.J_task * rd_.A_inv_ * rd_.N_C;
+
+        rd_.Q = rd_.J_task_inv_T.rightCols(MODEL_DOF);
+
+        rd_.Q_T_ = rd_.Q.transpose();
+
+        //std::cout<<"1"<<std::endl;
+        rd_.Q_temp = rd_.Q * rd_.W_inv * rd_.Q_T_;
+        //std::cout<<"2"<<std::endl;
+
+        rd_.Q_temp_inv = DyrosMath::pinv_QR(rd_.Q_temp);
+        //std::cout<<"3"<<std::endl;
+
+        return rd_.W_inv * (rd_.Q_T_ * (rd_.Q_temp_inv * (rd_.lambda * f_star)));
     }
 
     void ForceRedistributionTwoContactMod2(double eta_cust, double footlength, double footwidth, double staticFrictionCoeff, double ratio_x, double ratio_y, Eigen::Vector3d P1, Eigen::Vector3d P2, Eigen::Vector12d &F12, Eigen::Vector6d &ResultantForce, Eigen::Vector12d &ForceRedistribution, double &eta)
@@ -283,7 +351,7 @@ namespace WBC
             {
                 desired_force(i + 6) = -ContactForce_(i + 6) + ForceRedistribution(i + 6);
             }
-            Robot.torque_contact = Robot.qr_V2.transpose() * (Robot.J_C_INV_T.rightCols(MODEL_DOF).bottomRows(6) * Robot.qr_V2.transpose()).inverse() * desired_force.segment(6,6);
+            Robot.torque_contact = Robot.qr_V2.transpose() * (Robot.J_C_INV_T.rightCols(MODEL_DOF).bottomRows(6) * Robot.qr_V2.transpose()).inverse() * desired_force.segment(6, 6);
         }
         else
         {

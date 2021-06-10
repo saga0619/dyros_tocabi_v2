@@ -57,28 +57,116 @@ void *TocabiController::Thread1()
 
         auto t1 = std::chrono::steady_clock::now();
 
-        //Start Tocabi Controll
+        //////////////////////////////////////////////////////////
+        ////////////////////Start Tocabi Controll/////////////////
+        //////////////////////////////////////////////////////////
 
-        if (rd_.task_signal_)
+        if (rd_.task_signal_ || rd_.task_que_signal_)
         {
             std::cout << "task signal received" << std::endl;
-            rd_.task_signal_ = false;
-        }
-        if (rd_.task_que_signal_)
-        {
-            std::cout << "task que signal received" << std::endl;
-            rd_.task_signal_ = false;
+            rd_.tc_time_ = rd_.control_time_;
+            rd_.tc_run = true;
+            rd_.link_[Right_Foot].SetInitialWithPosition();
+            rd_.link_[Left_Foot].SetInitialWithPosition();
+            rd_.link_[Right_Hand].SetInitialWithPosition();
+            rd_.link_[Left_Hand].SetInitialWithPosition();
+            rd_.link_[Pelvis].SetInitialWithPosition();
+            rd_.link_[Upper_Body].SetInitialWithPosition();
+            rd_.link_[COM_id].SetInitialWithPosition();
+
+            double pos_p = 400.0;
+            double pos_d = 40.0;
+            double pos_a = 1;
+            double rot_p = 400.0;
+            double rot_d = 40.0;
+            double rot_a = 1.0;
+
+            rd_.link_[Right_Foot].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+            rd_.link_[Left_Foot].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+            rd_.link_[Right_Hand].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+            rd_.link_[Left_Hand].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+            rd_.link_[Pelvis].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+            rd_.link_[Upper_Body].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+            rd_.link_[COM_id].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+
+            if (rd_.task_signal_)
+            {
+                rd_.task_signal_ = false;
+            }
+
+            if (rd_.task_que_signal_)
+            {
+                rd_.task_que_signal_ = false;
+            }
         }
 
-        WBC::SetContact(rd_, 1, 1);
-        WBC::gravity_compensation_torque(rd_);
+        VectorQd torque_task_, torque_grav_, torque_contact_;
+        torque_task_.setZero();
+        torque_grav_.setZero();
+        torque_contact_.setZero();
+
+        if (rd_.tc_run)
+        {
+            if (rd_.tc_.mode == 0)
+            {
+                if (rd_.tc_init)
+                {
+
+                    rd_.tc_init = false;
+
+                    rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
+                }
+
+                WBC::SetContact(rd_, 1, 1);
+                torque_grav_ = WBC::GravityCompensationTorque(rd_);
+
+                rd_.J_task.setZero(9, MODEL_DOF_VIRTUAL);
+                rd_.J_task.block(0, 0, 6, MODEL_DOF_VIRTUAL) = rd_.link_[COM_id].Jac();
+                rd_.J_task.block(6, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[Upper_Body].Jac().block(3, 0, 3, MODEL_DOF_VIRTUAL);
+
+                rd_.link_[COM_id].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
+                rd_.link_[COM_id].x_desired(2) = rd_.tc_.height;
+
+                rd_.link_[Upper_Body].rot_desired = DyrosMath::rotateWithX(rd_.tc_.roll) * DyrosMath::rotateWithY(rd_.tc_.pitch) * DyrosMath::rotateWithZ(rd_.tc_.yaw);
+
+                Eigen::VectorXd fstar;
+                rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                rd_.link_[Upper_Body].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                fstar.setZero(9);
+
+                rd_.link_[COM_id].r_traj = Eigen::Matrix3d::Identity();
+                fstar.segment(0, 6) = WBC::GetFstar6d(rd_.link_[COM_id]);
+                fstar.segment(6, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
+
+                //std::cout << rd_.link_[COM_id].r_traj << "\t" << rd_.link_[COM_id].rotm << std::endl;
+
+                //Quaterniond q_pelv(rd_.link_[COM_id].rotm);
+
+                //q_pelv.
+
+                //std::cout << fstar.transpose() << std::endl;
+
+                torque_task_ = WBC::TaskControlTorque(rd_, fstar);
+
+                //qstd::cout << rd_.link_[COM_id].x_traj.transpose() <<"\t"<< fstar.transpose() <<std::endl;
+
+                //rd_.link_[COM_id].SetTrajectory()
+            }
+        }
+        else
+        {
+            WBC::SetContact(rd_, 1, 1);
+            WBC::GravityCompensationTorque(rd_);
+            torque_grav_ = rd_.torque_grav;
+        }
 
         Vector12d fc_redis;
         fc_redis.setZero();
         double fc_ratio = 0.9;
-        rd_.torque_desired = rd_.torque_grav;
 
-        WBC::contact_force_redistribution_torque(rd_, rd_.torque_desired, fc_redis, fc_ratio);
+        torque_contact_ = WBC::contact_force_redistribution_torque(rd_, torque_grav_ + torque_task_, fc_redis, fc_ratio);
 
         auto d1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - t1).count(); //150us without march=native
 
@@ -86,7 +174,11 @@ void *TocabiController::Thread1()
 
         //Data2Thread2
 
-        SendCommand(rd_.torque_grav + rd_.torque_contact);
+        rd_.torque_desired = torque_task_ + torque_grav_ + torque_contact_;
+
+        std::cout << torque_task_.norm() << "\t" << torque_grav_.norm() << "\t" << torque_contact_.norm() << std::endl;
+
+        SendCommand(rd_.torque_desired);
 
         //std::cout<<"21"<<std::endl;
     }

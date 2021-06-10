@@ -33,6 +33,7 @@ public:
     void *StateThread();
     static void *ThreadStarter(void *context) { return ((StateManager *)context)->StateThread(); }
     void GetJointData();
+    void InitYaw();
     void GetSensorData();
     void StoreState(RobotData &robotd_);
     void CalcNonlinear();
@@ -56,9 +57,10 @@ public:
     Eigen::MatrixVVd Motor_inertia;
     Eigen::MatrixVVd Motor_inertia_inverse;
 
-    RigidBodyDynamics::Model model_, model_2;
+    RigidBodyDynamics::Model model_local_, model_global_;
 
     DataContainer &dc_;
+    RobotData &rd_gl_;
     RobotData rd_;
 
     float q_a_[MODEL_DOF] = {};
@@ -77,6 +79,16 @@ public:
     Eigen::VectorQVQd q_virtual_local_;
     Eigen::VectorVQd q_dot_virtual_local_;
     Eigen::VectorVQd q_ddot_virtual_local_;
+    Eigen::VectorQVQd q_virtual_local_yaw_initialized;
+
+    Eigen::Vector6d RF_FT, LF_FT;
+    Eigen::Vector6d LF_CF_FT;
+    Eigen::Vector6d RF_CF_FT;
+
+    Eigen::Vector3d LF_CP_est;
+    Eigen::Vector3d RF_CP_est;
+
+    double rf_s_ratio, lf_s_ratio;
 
     //Eigen::VectorXf<MODEL_DOF_VIRTUAL> q_virtual_;
     Eigen::VectorQd q_;
