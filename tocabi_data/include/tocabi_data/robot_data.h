@@ -85,6 +85,7 @@ struct RobotData
 
 
     Eigen::VectorQd q_desired;
+    Eigen::VectorQd q_dot_desired;
     Eigen::VectorQd torque_desired;
 
     ///////////////////////////
@@ -119,6 +120,8 @@ struct RobotData
 
     VectorQd torque_grav;
     VectorQd torque_contact;
+
+    Vector12d fc_redist_;
 
     VectorVQd non_linear;
     Vector3d grav_ref;
@@ -175,6 +178,9 @@ struct DataContainer
     ros::NodeHandle nh;
     RobotData rd_;
 
+    std::vector<float> Kps;
+    std::vector<float> Kvs;
+
     double total_mass_ = 0;
 
     bool simMode = false;
@@ -183,6 +189,11 @@ struct DataContainer
     bool torqueOnSwitch = false;
     bool torqueOffSwitch = false;
     bool emergencySwitch = false;
+    bool emergencyStatus = false;
+    bool E1Switch = false;
+    bool E1Status = false;
+    bool E2Switch = false;
+    bool E2Status = false;
     bool torqueRisingSeq = false;
     bool toruqeDecreaseSeq = false;
     bool torqueOn = false;
@@ -197,6 +208,8 @@ struct DataContainer
 
     double torqueOnTime = -1;
     double torqueOffTime = -1;
+
+    atomic<bool> triggerThread1;
 
 };
 

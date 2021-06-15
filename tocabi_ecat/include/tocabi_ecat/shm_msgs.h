@@ -26,6 +26,7 @@ typedef struct SHMmsgs
     std::atomic<int> statusCount;
     std::atomic<int> statusCount2;
     std::atomic<int> statusWriting;
+    std::atomic<bool> triggerS1;
 
     int status[MODEL_DOF];
     float torqueActual[MODEL_DOF];

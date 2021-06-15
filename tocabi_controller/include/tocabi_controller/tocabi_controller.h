@@ -3,7 +3,7 @@
 
 #include "tocabi_controller/state_manager.h"
 #include "tocabi_controller/wholebody_functions.h"
-#include "tocabi_cc/cc.h"
+#include "cc.h"
 
 class TocabiController
 {

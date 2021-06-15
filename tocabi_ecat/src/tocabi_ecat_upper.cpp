@@ -1212,6 +1212,8 @@ void sendJointStatus()
 
     shm_msgs_->statusWriting--;
     shm_msgs_->statusCount = cycle_count;
+    
+    shm_msgs_->triggerS1 = true;
 }
 
 void getJointCommand()

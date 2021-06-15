@@ -19,6 +19,17 @@ int main(int argc, char **argv)
     DataContainer dc_;
 
     dc_.nh.param("/tocabi_controller/sim_mode", dc_.simMode, false);
+    dc_.nh.getParam("/tocabi_controller/Kp", dc_.Kps);
+    dc_.nh.getParam("/tocabi_controller/Kv", dc_.Kvs);
+
+    if (dc_.Kps.size() != MODEL_DOF)
+    {
+        std::cout << "Kps size error ! " << dc_.Kps.size() << std::endl;
+    }
+    if (dc_.Kvs.size() != MODEL_DOF)
+    {
+        std::cout << "Kps size error ! " << dc_.Kvs.size() << std::endl;
+    }
 
     StateManager stm(dc_);
 

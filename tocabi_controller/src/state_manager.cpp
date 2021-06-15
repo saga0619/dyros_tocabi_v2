@@ -109,36 +109,19 @@ void *StateManager::StateThread()
         //////////////////////////////
 
         ros::spinOnce();
-        if (rcv_tcnt >= dc_.tc_shm_->statusCount)
-        {
-            std::this_thread::sleep_for(std::chrono::microseconds(1));
-        }
-        else
+        if (dc_.tc_shm_->triggerS1)
         {
             cycle_count_++;
             stm_count_++;
 
-            if (rcv_tcnt + 1 != dc_.tc_shm_->statusCount)
-            {
-                std::cout << "missed packet : " << dc_.tc_shm_->statusCount - rcv_tcnt << std::endl;
-            }
             rcv_tcnt = dc_.tc_shm_->statusCount;
             dc_.rd_.rc_t_ = std::chrono::steady_clock::now();
-
-            if (false) //dc.imu_ignore == true)
-            {
-                for (int i = 0; i < 6; i++)
-                {
-                    q_virtual_local_(i) = 0.0;
-                    q_dot_virtual_local_(i) = 0.0;
-                    q_ddot_virtual_local_(i) = 0.0;
-                }
-                q_virtual_local_(MODEL_DOF + 6) = 1.0;
-            }
 
             auto t1 = chrono::steady_clock::now();
             GetJointData(); //0.246 us //w/o march native 0.226
             GetSensorData();
+
+            dc_.tc_shm_->triggerS1 = false;
 
             InitYaw();
 
@@ -180,6 +163,10 @@ void *StateManager::StateThread()
             //     printf("%8d %8d avg : %7.3f max : %4d min : %4d, cnt : %4d, cnt2 : %4d, cnt3 : %4d ", rcv_tcnt, cycle_count_, avg, max, min, cnt, cnt2, cnt3);
             //     fflush(stdout);
             // }
+        }
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::microseconds(1));
         }
     }
     cout << "StateManager Thread END" << endl;
@@ -444,6 +431,7 @@ void StateManager::StoreState(RobotData &rd_dst)
     }
 
     rd_dst.control_time_ = control_time_;
+    dc_.triggerThread1 = true;
 }
 
 void StateManager::UpdateKinematics_local(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual_f, const Eigen::VectorXd &q_dot_virtual_f, const Eigen::VectorXd &q_ddot_virtual_f)
@@ -787,7 +775,6 @@ void StateManager::StateEstimate()
         double tau = 0.6;
         double alpha = tau / (tau + dt);
 
-
         pelv_v = alpha * (imu_acc_dat * dt + pelv_v_before) + (1 - alpha) * mod_base_vel;
         pelv_v_before = pelv_v;
         q_virtual_ = q_virtual_local_;
@@ -1101,10 +1088,21 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         dc_.torqueOffSwitch = true;
     }
-    else if (msg->data == "emergencyoff")
+    else if (msg->data == "E0")
     {
+        std::cout << "Emergency Switch pressed! " << std::endl;
         dc_.emergencySwitch = true;
         dc_.tc_shm_->emergencyOff = true;
+    }
+    else if (msg->data == "E1")
+    {
+        std::cout << "Emergency Stop Activated !" << std::endl;
+        dc_.E1Switch = true;
+    }
+    else if (msg->data == "E2")
+    {
+        std::cout << "Emergency Damping mode Active ! " << std::endl;
+        dc_.E2Switch = true;
     }
     else if (msg->data == "gravity")
     {

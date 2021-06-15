@@ -172,6 +172,9 @@ namespace WBC
         //std::cout<<"2"<<std::endl;
 
         rd_.Q_temp_inv = DyrosMath::pinv_QR(rd_.Q_temp);
+
+        //DyrosMath::dc_inv_QR(rd_.J_task)
+
         //std::cout<<"3"<<std::endl;
 
         return rd_.W_inv * (rd_.Q_T_ * (rd_.Q_temp_inv * (rd_.lambda * f_star)));
@@ -310,7 +313,7 @@ namespace WBC
         //ForceRedistribution(11) = (1.0-eta)/eta*ForceRedistribution(5);
     }
 
-    VectorXd contact_force_redistribution_torque(RobotData &Robot, VectorQd command_torque, Eigen::Vector12d &ForceRedistribution, double &eta)
+    VectorXd contact_force_redistribution_torque(RobotData &Robot, VectorQd command_torque, double eta = 0.9)
     {
         int contact_dof_ = Robot.J_C.rows();
 
@@ -343,14 +346,12 @@ namespace WBC
             double foot_width = 0.1;
 
             ForceRedistributionTwoContactMod2(0.99, foot_length, foot_width, 1.0, 0.9, 0.9, Rotyaw * P1_, Rotyaw * P2_, F12, ResultantForce_, ResultRedistribution_, eta);
-            ForceRedistribution = force_rot_yaw.transpose() * ResultRedistribution_;
+            Robot.fc_redist_ = force_rot_yaw.transpose() * ResultRedistribution_;
 
             Vector12d desired_force;
             desired_force.setZero();
-            for (int i = 0; i < 6; i++)
-            {
-                desired_force(i + 6) = -ContactForce_(i + 6) + ForceRedistribution(i + 6);
-            }
+
+            desired_force.segment(6, 6) = -ContactForce_.segment(6, 6) + Robot.fc_redist_.segment(6, 6);
             Robot.torque_contact = Robot.qr_V2.transpose() * (Robot.J_C_INV_T.rightCols(MODEL_DOF).bottomRows(6) * Robot.qr_V2.transpose()).inverse() * desired_force.segment(6, 6);
         }
         else
