@@ -348,6 +348,14 @@ namespace DyrosMath
     tf2::Matrix3x3 m(Rot(0, 0), Rot(0, 1), Rot(0, 2), Rot(1, 0), Rot(1, 1), Rot(1, 2), Rot(2, 0), Rot(2, 1), Rot(2, 2));
     m.getRPY(roll, pitch, yaw);
   }
+  static Eigen::Matrix3d Euler2rot(double roll, double pitch, double yaw)
+  {
+    Eigen::Matrix3d m_;
+
+    m_ = Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()) * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX());
+
+    return m_;
+  }
 
   static Eigen::Matrix3d Euler2rot_tf(Eigen::Vector3d eulr)
   {
@@ -852,7 +860,7 @@ namespace DyrosMath
       }
     }
   }
-  
+
   static Eigen::MatrixXd dc_inv_QR(const Eigen::MatrixXd &A, const Eigen::MatrixXd &W)
   {
     Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(A);
@@ -874,7 +882,7 @@ namespace DyrosMath
 
     if (rank == 0)
     {
-      std::cout<<"dynamically consistent inverse error"<<std::endl;
+      std::cout << "dynamically consistent inverse error" << std::endl;
     }
     else
     {

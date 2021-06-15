@@ -20,7 +20,7 @@
         + Tocabi Ethercat Master based on SOEM
     + tocabi_msgs
         + ROS Message definitons required for task command and status check 
-    + tocabi_data
+    + tocabi_lib
         + tocabi link and data container librariy
     + tocabi_sensor
         + tocabi sensor managament package. imu, ft

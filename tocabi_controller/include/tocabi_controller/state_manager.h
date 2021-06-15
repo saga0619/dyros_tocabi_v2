@@ -20,7 +20,7 @@
 #include <std_msgs/Int8MultiArray.h>
 #include <sensor_msgs/JointState.h>
 
-#include "tocabi_data/robot_data.h"
+#include "tocabi_lib/robot_data.h"
 #include "mujoco_ros_msgs/SimStatus.h"
 #include "mujoco_ros_msgs/JointSet.h"
 
@@ -149,6 +149,8 @@ public:
     
     ros::Subscriber gui_command_sub_;
     ros::Publisher gui_state_pub_;
+    std_msgs::Int8MultiArray syspub_msg;
+    
     void GuiCommandCallback(const std_msgs::StringConstPtr &msg);
 
     void StatusPub(const char *str, ...);

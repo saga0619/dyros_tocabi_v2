@@ -174,6 +174,7 @@ sensor_msgs::Imu MX5IMU::getIMU(int &imu_state)
         if (ef_state == 0)
         {
             std::cout << "IMU : start up" << std::endl;
+            imu_state = 0;
         }
         else if (ef_state == 1)
         {

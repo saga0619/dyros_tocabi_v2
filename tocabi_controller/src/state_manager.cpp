@@ -68,7 +68,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     task_command_sub_ = dc_.nh.subscribe("/tocabi/taskcommand", 100, &StateManager::TaskCommandCallback, this);
     task_command_que_sub_ = dc_.nh.subscribe("/tocabi/taskquecommand", 100, &StateManager::TaskQueCommandCallback, this);
     gui_command_sub_ = dc_.nh.subscribe("/tocabi/command", 100, &StateManager::GuiCommandCallback, this);
-    gui_state_pub_ = dc_.nh.advertise<std_msgs::Int32MultiArray>("/tocabi/systemstate", 100);
+    gui_state_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/systemstate", 100);
     point_pub_ = dc_.nh.advertise<geometry_msgs::PolygonStamped>("/tocabi/point", 100);
     status_pub_ = dc_.nh.advertise<std_msgs::String>("/tocabi/guilog", 100);
     timer_pub_ = dc_.nh.advertise<std_msgs::Float32>("/tocabi/time", 100);
@@ -76,6 +76,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     elmo_status_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/ecatstates", 100);
 
     point_pub_msg_.polygon.points.resize(13);
+    syspub_msg.data.resize(8);
     elmo_status_msg_.data.resize(MODEL_DOF * 3);
 }
 
@@ -1018,6 +1019,32 @@ void StateManager::PublishData()
         elmo_status_pub_.publish(elmo_status_msg_);
     }
 
+    if (dc_.simMode)
+    {
+        syspub_msg.data[0] = 3;
+        syspub_msg.data[1] = 3;
+        syspub_msg.data[2] = 3;
+        syspub_msg.data[3] = 3;
+    }
+    else
+    {
+        syspub_msg.data[0] = dc_.tc_shm_->imu_state;
+        syspub_msg.data[1] = 3;
+        syspub_msg.data[2] = dc_.tc_shm_->ft_state;
+        syspub_msg.data[3] = 3;
+    }
+    syspub_msg.data[4] = rd_gl_.semode;
+    if (rd_gl_.tc_run) //tc on warn error off
+    {
+        syspub_msg.data[5] = 0; //on
+    }
+    else
+    {
+        syspub_msg.data[5] = 3; //off
+    }
+
+    gui_state_pub_.publish(syspub_msg);
+    //
     //memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
 }
 

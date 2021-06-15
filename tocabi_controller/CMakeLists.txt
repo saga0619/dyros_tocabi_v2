@@ -18,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2
   tf2_ros
   tocabi_ecat
-  tocabi_data
+  tocabi_lib
   tocabi_description
   tocabi_msgs
   tocabi_cc
@@ -67,7 +67,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES tocabi_controller
-   CATKIN_DEPENDS roscpp roslib tocabi_data tocabi_cc tocabi_msgs tocabi_ecat
+   CATKIN_DEPENDS roscpp roslib tocabi_lib tocabi_cc tocabi_msgs tocabi_ecat
 #  DEPENDS system_lib
 )
 
@@ -122,7 +122,7 @@ add_executable(${PROJECT_NAME} src/main.cpp)
 
 target_link_libraries(${PROJECT_NAME}_lib
   ${catkin_LIBRARIES}
-  tocabi_data
+  tocabi_lib
   tocabi_cc
   -lpthread
 )

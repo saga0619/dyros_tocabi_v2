@@ -1,5 +1,8 @@
-#include "tocabi_data/robot_data.h"
-#include "tocabi_controller/qp.h"
+#ifndef WBF_H
+#define WBF_H
+
+#include "tocabi_lib/robot_data.h"
+#include "qp.h"
 
 using namespace TOCABI;
 
@@ -313,7 +316,7 @@ namespace WBC
         //ForceRedistribution(11) = (1.0-eta)/eta*ForceRedistribution(5);
     }
 
-    VectorXd contact_force_redistribution_torque(RobotData &Robot, VectorQd command_torque, double eta = 0.9)
+    VectorXd ContactForceRedistributionTorque(RobotData &Robot, VectorQd command_torque, double eta = 0.9)
     {
         int contact_dof_ = Robot.J_C.rows();
 
@@ -359,7 +362,9 @@ namespace WBC
             Robot.torque_contact.setZero();
         }
 
-        return Robot.torque_contact;
+        return Robot.torque_contact + command_torque;
     }
 
 }
+
+#endif

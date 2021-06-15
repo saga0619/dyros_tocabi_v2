@@ -92,6 +92,10 @@ void *TocabiController::Thread1()
                 rd_.link_[Upper_Body].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
                 rd_.link_[COM_id].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
 
+                std::cout << " pelv yaw init : " << rd_.link_[Pelvis].yaw_init << std::endl;
+
+                std::cout << "upperbody rotation init : " << DyrosMath::rot2Euler_tf(rd_.link_[Upper_Body].rot_init).transpose() << std::endl;
+
                 if (rd_.task_signal_)
                 {
                     rd_.task_signal_ = false;
@@ -122,7 +126,6 @@ void *TocabiController::Thread1()
                     }
 
                     WBC::SetContact(rd_, 1, 1);
-                    torque_grav_ = WBC::GravityCompensationTorque(rd_);
 
                     rd_.J_task.setZero(9, MODEL_DOF_VIRTUAL);
                     rd_.J_task.block(0, 0, 6, MODEL_DOF_VIRTUAL) = rd_.link_[COM_id].Jac();
@@ -131,34 +134,19 @@ void *TocabiController::Thread1()
                     rd_.link_[COM_id].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
                     rd_.link_[COM_id].x_desired(2) = rd_.tc_.height;
 
-                    rd_.link_[Upper_Body].rot_desired = DyrosMath::rotateWithX(rd_.tc_.roll) * DyrosMath::rotateWithY(rd_.tc_.pitch) * DyrosMath::rotateWithZ(rd_.tc_.yaw);
+                    rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll, rd_.tc_.pitch, rd_.tc_.yaw + rd_.link_[Pelvis].yaw_init);
 
                     Eigen::VectorXd fstar;
                     rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
-
                     rd_.link_[Upper_Body].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
 
                     fstar.setZero(9);
-
-                    rd_.link_[COM_id].r_traj = Eigen::Matrix3d::Identity();
                     fstar.segment(0, 6) = WBC::GetFstar6d(rd_.link_[COM_id]);
                     fstar.segment(6, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
 
-                    //std::cout << rd_.link_[COM_id].r_traj << "\t" << rd_.link_[COM_id].rotm << std::endl;
-
-                    //Quaterniond q_pelv(rd_.link_[COM_id].rotm);
-
-                    //q_pelv.
-
-                    //std::cout << fstar.transpose() << std::endl;
-
-                    torque_task_ = WBC::TaskControlTorque(rd_, fstar);
-
-                    //qstd::cout << rd_.link_[COM_id].x_traj.transpose() <<"\t"<< fstar.transpose() <<std::endl;
-
-                    //rd_.link_[COM_id].SetTrajectory()
+                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + WBC::TaskControlTorque(rd_, fstar));
                 }
-                else if (rd_.tc_.mode > 10)
+                else if (rd_.tc_.mode > 9)
                 {
                     my_cc.computeSlow();
                 }
@@ -167,18 +155,14 @@ void *TocabiController::Thread1()
             {
                 WBC::SetContact(rd_, 1, 1);
                 WBC::GravityCompensationTorque(rd_);
-                torque_grav_ = rd_.torque_grav;
+                rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_));
             }
-
-            torque_contact_ = WBC::contact_force_redistribution_torque(rd_, torque_grav_ + torque_task_);
 
             auto d1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - t1).count(); //150us without march=native
 
             //Send Data To thread2
 
             //Data2Thread2
-
-            rd_.torque_desired = torque_task_ + torque_grav_ + torque_contact_;
 
             //std::cout << torque_task_.norm() << "\t" << torque_grav_.norm() << "\t" << torque_contact_.norm() << std::endl;
 
@@ -200,6 +184,8 @@ void *TocabiController::Thread1()
             if (thread1_count % 2000 == 0)
             {
                 std::cout << rd_.control_time_ << "s : avg rcv2send : " << d2_total / thread1_count << " us" << std::endl;
+                d2_total = 0;
+                thread1_count = 0;
             }
             t_c_ = std::chrono::steady_clock::now();
 
@@ -365,6 +351,7 @@ void TocabiController::SendCommand(Eigen::VectorQd torque_command)
             rd_.q_desired = rd_.q_;
             rd_.q_dot_desired.setZero();
             dc_.E1Status = true;
+            dc_.rd_.tc_run = false;
         }
 
         dc_.E1Switch = false;
@@ -378,6 +365,7 @@ void TocabiController::SendCommand(Eigen::VectorQd torque_command)
         else
         {
             dc_.E2Status = true;
+            dc_.rd_.tc_run = false;
 
             //Damping mode = true!
         }
@@ -386,7 +374,8 @@ void TocabiController::SendCommand(Eigen::VectorQd torque_command)
     }
     if (dc_.emergencySwitch)
     {
-        dc_.emergencyStatus = true;
+        dc_.emergencyStatus = true; //
+        dc_.rd_.tc_run = false;
     }
 
     memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
@@ -408,7 +397,7 @@ void TocabiController::SendCommand(Eigen::VectorQd torque_command)
     {
         memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
         for (int i = 0; i < MODEL_DOF; i++)
-            dc_.tc_shm_->torqueCommand[i] = - 4.0 * dc_.Kvs[i] * dc_.rd_.q_dot_(i);
+            dc_.tc_shm_->torqueCommand[i] = -4.0 * dc_.Kvs[i] * dc_.rd_.q_dot_(i);
     }
 
     if (dc_.emergencyStatus)

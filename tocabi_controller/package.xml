@@ -74,9 +74,9 @@
   <build_export_depend>tocabi_msgs</build_export_depend>
   <exec_depend>tocabi_msgs</exec_depend>
 
-  <build_depend>tocabi_data</build_depend>
-  <build_export_depend>tocabi_data</build_export_depend>
-  <exec_depend>tocabi_data</exec_depend>
+  <build_depend>tocabi_lib</build_depend>
+  <build_export_depend>tocabi_lib</build_export_depend>
+  <exec_depend>tocabi_lib</exec_depend>
   <build_depend>tocabi_cc</build_depend>
   <build_export_depend>tocabi_cc</build_export_depend>
   <exec_depend>tocabi_cc</exec_depend>

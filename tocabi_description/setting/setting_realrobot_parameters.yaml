@@ -3,14 +3,19 @@ TaskControlStop: 1000
 
 TaskGainPCOM: [80, 80, 80, 200, 200, 200]
 TaskGainDCOM: [0, 0, 0, 20, 20, 20]
+TaskGainACOM: [1, 1, 1, 1, 1, 1]
 TaskGainPPelvis: [80, 80, 80, 200, 200, 200]
 TaskGainDPelvis: [0, 0, 0, 20, 20, 20]
+TaskGainAPelvis: [1, 1, 1, 1, 1, 1]
 TaskGainPUpperbody: [0, 0, 0, 200, 200, 200]
 TaskGainDUpperbody: [0, 0, 0, 20, 20, 20]
+TaskGainAUpperbody: [1, 1, 1, 1, 1, 1]
 TaskGainPFoot: [80, 80, 80, 200, 200, 200]
 TaskGainDFoot: [0, 0, 0, 20, 20, 20]
+TaskGainAFoot: [1, 1, 1, 1, 1, 1]
 TaskGainPHand: [80, 80, 80, 200, 200, 200]
 TaskGainDHand: [0, 0, 0, 20, 20, 20]
+TaskGainAHand: [1, 1, 1, 1, 1, 1]
 
 
 

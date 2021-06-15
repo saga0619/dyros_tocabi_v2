@@ -1,4 +1,4 @@
-#include <tocabi_data/link.h>
+#include <tocabi_lib/link.h>
 
 void LinkData::Initialize(RigidBodyDynamics::Model &model_, int id_)
 {
@@ -274,6 +274,7 @@ void LinkData::SetInitialWithPosition()
     v_init = v;
     rot_init = rotm;
     w_init = w;
+    DyrosMath::rot2Euler_tf2(rotm, roll_init, pitch_init, yaw_init);
 }
 
 void LinkData::SetInitialWithTrajectory()

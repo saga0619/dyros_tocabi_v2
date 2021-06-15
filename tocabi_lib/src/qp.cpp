@@ -1,4 +1,4 @@
-#include "tocabi_controller/qp.h"
+#include "qp.h"
 
 CQuadraticProgram::CQuadraticProgram()
 {

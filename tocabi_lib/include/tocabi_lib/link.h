@@ -3,7 +3,7 @@
 #include <rbdl/rbdl.h>
 #include <rbdl/addons/urdfreader/urdfreader.h>
 
-#include "tocabi_data/tocabi.h"
+#include "tocabi_lib/tocabi.h"
 #include "math_type_define.h"
 
 using namespace std;
@@ -121,6 +121,9 @@ public:
 
   //fstar of current link
   Eigen::Vector6d fstar;
+
+  double roll, pitch, yaw;
+  double roll_init, pitch_init, yaw_init;
 
   //realtime traj of cartesian & orientation.
   //)) traj is outcome of cubic or quintic function, which will be used to make fstar!

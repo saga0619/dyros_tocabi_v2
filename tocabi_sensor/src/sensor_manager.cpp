@@ -43,23 +43,18 @@ void *SensorManager::IMUThread(void)
         mx5.initIMU();
 
         int cycle_count = 0;
-        //std::cout << "S00" << std::endl;
 
         std::cout << "Sensor Thread Start" << std::endl;
 
         auto t_begin = std::chrono::steady_clock::now();
 
-        //std::cout << "S0" << std::endl;
         shm_->imu_state = 0;
         shm_->ft_state = 0;
 
-        //std::cout << "S1" << std::endl;
         while (!shm_->shutdown && ros::ok())
         {
-        //std::cout << "S2" << std::endl;
             ros::spinOnce();
 
-        //std::cout << "S3" << std::endl;
             //std::this_thread::sleep_until(t_begin + cycle_count * std::chrono::microseconds(500));
             cycle_count++;
 
@@ -73,9 +68,7 @@ void *SensorManager::IMUThread(void)
 
             imu_msg = mx5.getIMU(shm_->imu_state);
 
-        //std::cout << "S4" << std::endl;
             mx5.checkIMUData();
-        //std::cout << "S5" << std::endl;
 
             shm_->imuWriting = true;
 
@@ -120,7 +113,7 @@ int main(int argc, char **argv)
         exit(0);
     }
     sm_.shm_->shutdown = false;
-    sm_.shm_->process_num ++; 
+    sm_.shm_->process_num++;
 
     struct sched_param param;
     pthread_attr_t attr;
@@ -166,7 +159,7 @@ int main(int argc, char **argv)
 
     pthread_join(thread, NULL);
 
-    sm_.shm_->process_num --; 
+    sm_.shm_->process_num--;
     if (sm_.shm_->process_num == 0)
         deleteSharedMemory();
 

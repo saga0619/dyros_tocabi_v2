@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>tocabi_data</name>
+  <name>tocabi_lib</name>
   <version>0.0.0</version>
-  <description>The tocabi_data package</description>
+  <description>The tocabi_lib package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
