@@ -496,8 +496,8 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
     // sector 2 end : 57 us
 
     // sector 3 start : mass matrix inverse
-    A_inv_ = A_.inverse();
-    //A_inv_ = A_.llt().solve(Eigen::MatrixVVd::Identity());
+    //A_inv_ = A_.inverse();
+    A_inv_ = A_.llt().solve(Eigen::MatrixVVd::Identity());
     // sector 3 end : 39 us
 
     // sector 4 start : com calculation

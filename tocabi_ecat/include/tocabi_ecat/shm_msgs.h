@@ -140,10 +140,10 @@ enum ESTATE
     COMMUTATION_DONE,
 };
 
-static void init_var(SHMmsgs *shm_p_)
-{
+// static void init_var(SHMmsgs *shm_p_)
+// {
     
-}
+// }
 
 static void init_shm()
 {
@@ -174,54 +174,54 @@ static void deleteSharedMemory()
     }
 }
 
-static void init_shm_master()
-{
+// static void init_shm_master()
+// {
 
-    if ((shm_msg_id = shmget(shm_msg_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
-    {
-        std::cout << "shm mtx failed " << std::endl;
-        exit(0);
-    }
+//     if ((shm_msg_id = shmget(shm_msg_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
+//     {
+//         std::cout << "shm mtx failed " << std::endl;
+//         exit(0);
+//     }
 
-    if ((shm_msgs_ = (SHMmsgs *)shmat(shm_msg_id, NULL, 0)) == (SHMmsgs *)-1)
-    {
-        std::cout << "shmat failed " << std::endl;
-        exit(0);
-    }
+//     if ((shm_msgs_ = (SHMmsgs *)shmat(shm_msg_id, NULL, 0)) == (SHMmsgs *)-1)
+//     {
+//         std::cout << "shmat failed " << std::endl;
+//         exit(0);
+//     }
 
-    if (shmctl(shm_msg_id, SHM_LOCK, NULL) == 0)
-    {
-        //std::cout << "SHM_LOCK enabled" << std::endl;
-    }
-    else
-    {
-        std::cout << "SHM lock failed" << std::endl;
-    }
+//     if (shmctl(shm_msg_id, SHM_LOCK, NULL) == 0)
+//     {
+//         //std::cout << "SHM_LOCK enabled" << std::endl;
+//     }
+//     else
+//     {
+//         std::cout << "SHM lock failed" << std::endl;
+//     }
 
-    shm_msgs_->t_cnt = 0;
-    shm_msgs_->t_cnt2 = 0;
-    shm_msgs_->controllerReady = false;
-    shm_msgs_->statusWriting = 0;
-    shm_msgs_->commanding = false;
-    shm_msgs_->reading = false;
-    shm_msgs_->shutdown = false;
+//     shm_msgs_->t_cnt = 0;
+//     shm_msgs_->t_cnt2 = 0;
+//     shm_msgs_->controllerReady = false;
+//     shm_msgs_->statusWriting = 0;
+//     shm_msgs_->commanding = false;
+//     shm_msgs_->reading = false;
+//     shm_msgs_->shutdown = false;
 
-    //
-    //float lat_avg, lat_min, lat_max, lat_dev;
-    //float send_avg, send_min, send_max, send_dev;
+//     //
+//     //float lat_avg, lat_min, lat_max, lat_dev;
+//     //float send_avg, send_min, send_max, send_dev;
 
-    shm_msgs_->lat_avg2 = 0;
-    shm_msgs_->lat_min2 = 0;
-    shm_msgs_->lat_max2 = 100000;
-    shm_msgs_->lat_dev2 = 0;
+//     shm_msgs_->lat_avg2 = 0;
+//     shm_msgs_->lat_min2 = 0;
+//     shm_msgs_->lat_max2 = 100000;
+//     shm_msgs_->lat_dev2 = 0;
 
-    shm_msgs_->send_avg2 = 0;
-    shm_msgs_->send_min2 = 0;
-    shm_msgs_->send_max2 = 100000;
-    shm_msgs_->send_dev2 = 0;
+//     shm_msgs_->send_avg2 = 0;
+//     shm_msgs_->send_min2 = 0;
+//     shm_msgs_->send_max2 = 100000;
+//     shm_msgs_->send_dev2 = 0;
 
-    //std::cout << "shm master initialized" << std::endl;
-}
+//     //std::cout << "shm master initialized" << std::endl;
+// }
 
 // void SendCommand(float *torque_command, float *position_command, int *mode)
 // {

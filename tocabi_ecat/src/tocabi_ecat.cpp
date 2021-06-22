@@ -106,17 +106,26 @@ void elmoInit()
     memset(ElmoSafteyMode, 0, sizeof(int) * ELMO_DOF);
 }
 
-void ec_sync(int64 reftime, int64 cycletime , int64 *offsettime)
+void ec_sync(int64 reftime, int64 cycletime, int64 *offsettime)
 {
-   static int64 integral = 0;
-   int64 delta;
-   /* set linux sync point 50us later than DC sync, just as example */
-   delta = (reftime - 50000) % cycletime;
-   if(delta> (cycletime / 2)) { delta= delta - cycletime; }
-   if(delta>0){ integral++; }
-   if(delta<0){ integral--; }
-   *offsettime = -(delta / 100) - (integral / 20);
-   gl_delta = delta;
+    static int64 integral = 0;
+    int64 delta;
+    /* set linux sync point 50us later than DC sync, just as example */
+    delta = (reftime - 50000) % cycletime;
+    if (delta > (cycletime / 2))
+    {
+        delta = delta - cycletime;
+    }
+    if (delta > 0)
+    {
+        integral++;
+    }
+    if (delta < 0)
+    {
+        integral--;
+    }
+    *offsettime = -(delta / 100) - (integral / 20);
+    gl_delta = delta;
 }
 
 void *ethercatThread1(void *data)
@@ -209,7 +218,6 @@ void *ethercatThread1(void *data)
             /* request OP state for all slaves */
             ec_writestate(0);
 
-
             int wait_cnt = 200;
 
             /* wait for all slaves to reach OP state */
@@ -218,7 +226,7 @@ void *ethercatThread1(void *data)
                 ec_send_processdata();
                 ec_receive_processdata(EC_TIMEOUTRET);
                 ec_statecheck(0, EC_STATE_OPERATIONAL, 50000);
-                
+
             } while (wait_cnt-- && (ec_slave[0].state != EC_STATE_OPERATIONAL));
 
             if (ec_slave[0].state == EC_STATE_OPERATIONAL)
@@ -1060,11 +1068,7 @@ double elmoJointMove(double init, double angle, double start_time, double traj_t
     {
         des_pos = init + angle * (control_time_real_ - start_time) / traj_time;
     }
-    // else if ((control_time_real_ >= (start_time + traj_time)) && (control_time_real_ < (start_time + 3 * traj_time)))
-    //{
-    //    des_pos = init + angle - 2 * angle * (control_time_real_ - (start_time + traj_time)) / traj_time;
-    //}
-    else if (control_time_real_ > (start_time + traj_time))
+    else
     {
         des_pos = init + angle;
     }
@@ -1171,7 +1175,6 @@ void initSharedMemory()
         std::cout << "SHM lock failed" << std::endl;
     }
 
-    
     shm_msgs_->t_cnt = 0;
     shm_msgs_->controllerReady = false;
     shm_msgs_->statusWriting = 0;
@@ -1397,7 +1400,7 @@ void findzeroLeg()
 }
 void findZeroPointlow(int slv_number)
 {
-    double velocity = 0.05;
+    //double velocity = 0.05;
     double fztime = 1.0;
     if (elmofz[slv_number].findZeroSequence == FZ_CHECKHOMMINGSTATUS)
     {

@@ -145,6 +145,30 @@ void *TocabiController::Thread1()
                     fstar.segment(6, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
 
                     rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + WBC::TaskControlTorque(rd_, fstar));
+
+                    auto ts = std::chrono::steady_clock::now();
+                    WBC::GetJKT1(rd_, rd_.J_task);
+                    auto ds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - ts).count();
+
+                    auto ts2 = std::chrono::steady_clock::now();
+                    WBC::GetJKT2(rd_, rd_.J_task);
+                    auto ds2 = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - ts2).count();
+
+                    rd_.time_for_inverse += ds;
+                    rd_.time_for_inverse_total += ds2;
+
+                    rd_.count_for_inverse++;
+                    rd_.count_for_inverse_total++;
+
+                    if (rd_.count_for_inverse == 2000)
+                    {
+                        std::cout << "avg 1 : " << rd_.time_for_inverse / rd_.count_for_inverse << " 2 : " << rd_.time_for_inverse_total / rd_.count_for_inverse_total << std::endl;
+
+                        rd_.time_for_inverse = 0;
+                        rd_.time_for_inverse_total = 0;
+                        rd_.count_for_inverse = 0;
+                        rd_.count_for_inverse_total = 0;
+                    }
                 }
                 else if (rd_.tc_.mode > 9)
                 {
@@ -183,6 +207,12 @@ void *TocabiController::Thread1()
 
             if (thread1_count % 2000 == 0)
             {
+                WBC::SetContact(rd_, 1, 1);
+
+                WBC::SetContact(rd_, 1, 0);
+
+                WBC::SetContact(rd_, 0, 1);
+
                 std::cout << rd_.control_time_ << "s : avg rcv2send : " << d2_total / thread1_count << " us" << std::endl;
                 d2_total = 0;
                 thread1_count = 0;
@@ -395,6 +425,7 @@ void TocabiController::SendCommand(Eigen::VectorQd torque_command)
 
     if (dc_.E2Status)
     {
+
         memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
         for (int i = 0; i < MODEL_DOF; i++)
             dc_.tc_shm_->torqueCommand[i] = -4.0 * dc_.Kvs[i] * dc_.rd_.q_dot_(i);

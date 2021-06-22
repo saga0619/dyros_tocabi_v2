@@ -3,6 +3,7 @@
 
 #include "tocabi_lib/robot_data.h"
 #include "qp.h"
+#include <fstream>
 
 using namespace TOCABI;
 
@@ -10,7 +11,6 @@ namespace WBC
 {
     void SetContactInit(RobotData &rd_)
     {
-
         rd_.grav_ref << 0, 0, -9.81;
 
         rd_.ee_[0].contact_point << 0.03, 0, -0.1585;
@@ -41,6 +41,89 @@ namespace WBC
         rd_.W = rd_.A_inv_.bottomRows(MODEL_DOF) * rd_.N_C.rightCols(MODEL_DOF);
 
         rd_.W_inv = DyrosMath::WinvCalc(rd_.W, rd_.qr_V2);
+    }
+
+    bool GravMinMax(VectorQd torque)
+    {
+        static bool loading = false;
+        char gf_[] = "/home/dyros/.tocabi_bootlog/minmax_log";
+        char gf_v[] = "/home/dyros/.tocabi_bootlog/minmax_view";
+        static double tminmax[66];
+        // torque,
+
+        if (!loading)
+        {
+            std::ifstream ifs(gf_, std::ios::binary);
+
+            if (!ifs.is_open())
+            {
+                std::cout << "GMM read failed " << std::endl;
+            }
+            else
+            {
+                for (int i = 0; i < 66; i++)
+                {
+                    ifs.read(reinterpret_cast<char *>(&tminmax[i]), sizeof(double));
+                }
+
+                ifs.close();
+            }
+            loading = true;
+        }
+
+        bool record = false;
+        for (int i = 0; i < 33; i++)
+        {
+            if (tminmax[i] > torque[i])
+            {
+                record = true;
+
+                tminmax[i] = torque[i];
+            }
+
+            if (tminmax[i + 33] < torque[i])
+            {
+                record = true;
+
+                tminmax[i + 33] = torque[i];
+            }
+        }
+
+        if (record)
+        {
+            std::ofstream ofs(gf_, std::ios::binary);
+            std::ofstream ofs_view(gf_v);
+            if (!ofs.is_open())
+            {
+                std::cout << "GMM write failed " << std::endl;
+            }
+            else
+            {
+                for (int i = 0; i < 66; i++)
+                    ofs.write(reinterpret_cast<char const *>(&tminmax[i]), sizeof(double));
+                ofs.close();
+            }
+
+            if (!ofs_view.is_open())
+            {
+                std::cout << "GMM view write failed " << std::endl;
+            }
+            else
+            {
+                ofs_view << "MIN VALUE : " << std::endl;
+                for (int i = 0; i < 33; i++)
+                {
+                    ofs_view << tminmax[i] << std::endl;
+                }
+                ofs_view << "MAX VALUE : " << std::endl;
+                for (int i = 0; i < 33; i++)
+                {
+                    ofs_view << tminmax[i + 33] << std::endl;
+                }
+            }
+        }
+
+        return true;
     }
 
     void SetContact(RobotData &Robot, bool left_foot, bool right_foot, bool left_hand = 0, bool right_hand = 0)
@@ -87,7 +170,6 @@ namespace WBC
         {
             Robot.J_C.block(i * 6, 0, 6, MODEL_DOF_VIRTUAL) = Robot.ee_[Robot.ee_idx[i]].jac_contact.cast<double>();
         }
-
         CalcContact(Robot);
     }
 
@@ -98,14 +180,11 @@ namespace WBC
         for (int i = 0; i < 3; i++)
             fstar(i) = link_.pos_p_gain(i) * (link_.x_traj(i) - link_.xpos(i)) + link_.pos_d_gain(i) * (link_.v_traj(i) - link_.v(i));
 
-        //return link_.pos_a_gain.cwiseProduct(link_.a_traj) + link_.pos_p_gain.cwiseProduct(link_.x_traj - link_.xpos) + link_.pos_d_gain.cwiseProduct(link_.v_traj - link_.v);
-
         return fstar;
     }
 
     Vector3d GetFstarRot(LinkData &link_)
     {
-        //Matrix3d rotyaw = DyrosMath::rotateWithZ()
         Vector3d fstar;
 
         Vector3d ad;
@@ -116,9 +195,7 @@ namespace WBC
             fstar(i) = -link_.rot_p_gain(i) * ad(i) + link_.rot_d_gain(i) * (link_.w_traj(i) - link_.w(i));
 
         //std::cout << ad.transpose() << "\t" << (link_.w_traj - link_.w).transpose() << std::endl;
-
         //std::cout << DyrosMath::rot2Euler_tf(link_.rotm).transpose() << "\t" << DyrosMath::rot2Euler_tf(link_.r_traj) << std::endl;
-
         //return link_.rot_p_gain.cwiseProduct(DyrosMath::getPhi(link_.rotm, link_.r_traj)); // + link_.rot_d_gain.cwiseProduct(link_.w_traj - link_.w);
 
         return fstar;
@@ -154,6 +231,38 @@ namespace WBC
         return rd_.torque_grav;
     }
 
+    VectorQd GravityCompenstationTorque_Isolated(RobotData &rd_, bool contact_left_foot_, bool contact_right_foot_)
+    {
+    }
+
+    // template <int TaskNum>
+    // Eigen::Matrix<double, MODEL_DOF, TaskNum> GetJKT(Matrix<double, TaskNum, MODEL_DOF_VIRTUAL> J_task_)
+    // {
+    //     Matrix<double, MODEL_DOF, TaskNum> res;
+    //     Matrix<double, TaskNum, TaskNum> lambda_ = (J_task_ * rd_.A_inv_ * rd_.N_C * J_task_.transpose()).inverse();
+    //     Matrix<double, TaskNum, MODEL_DOF> Q_ = lambda_ * J_task_ * rd_.A_inv_ * rd_.N_C.rightCols(MODEL_DOF);
+
+    //     res = rd_.W_inv * DyrosMath::pinv_QR(Q_ * rd_.W_inv * Q_.transpose());
+
+    //     return res;
+    // }
+    MatrixXd GetJKT1(RobotData &rd_, MatrixXd &J_task)
+    {
+        MatrixXd lambda_ = (J_task * rd_.A_inv_ * rd_.N_C * J_task.transpose()).inverse();
+        MatrixXd Q_ = lambda_ * J_task * rd_.A_inv_ * rd_.N_C.rightCols(MODEL_DOF);
+
+        return rd_.W_inv * Q_.transpose() * DyrosMath::pinv_QR_prev(Q_ * rd_.W_inv * Q_.transpose());
+    }
+
+    MatrixXd GetJKT2(RobotData &rd_, MatrixXd &J_task)
+    {
+        int t_d = J_task.rows();
+        MatrixXd lambda_ = (J_task * rd_.A_inv_ * rd_.N_C * J_task.transpose()).llt().solve(MatrixXd::Identity(t_d, t_d));
+        MatrixXd Q_ = lambda_ * J_task * rd_.A_inv_ * rd_.N_C.rightCols(MODEL_DOF);
+
+        return rd_.W_inv * Q_.transpose() * DyrosMath::pinv_QR(Q_ * rd_.W_inv * Q_.transpose());
+    }
+
     VectorQd TaskControlTorque(RobotData &rd_, VectorXd f_star)
     {
         int task_dof = rd_.J_task.rows();
@@ -162,7 +271,7 @@ namespace WBC
 
         rd_.lambda_inv = rd_.J_task * rd_.A_inv_ * rd_.N_C * rd_.J_task_T;
 
-        rd_.lambda = rd_.lambda_inv.inverse();
+        rd_.lambda = rd_.lambda_inv.llt().solve(MatrixXd::Identity(task_dof, task_dof));
 
         rd_.J_task_inv_T = rd_.lambda * rd_.J_task * rd_.A_inv_ * rd_.N_C;
 
@@ -174,7 +283,7 @@ namespace WBC
         rd_.Q_temp = rd_.Q * rd_.W_inv * rd_.Q_T_;
         //std::cout<<"2"<<std::endl;
 
-        rd_.Q_temp_inv = DyrosMath::pinv_QR(rd_.Q_temp);
+        rd_.Q_temp_inv = DyrosMath::pinv_QRs(rd_.Q_temp);
 
         //DyrosMath::dc_inv_QR(rd_.J_task)
 

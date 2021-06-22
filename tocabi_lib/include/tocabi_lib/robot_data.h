@@ -170,6 +170,14 @@ struct RobotData
     // bool showdata;
     // bool target_arrived_[4];
     // bool debug;
+
+    ////Temp Sector////
+    double time_for_inverse = 0;
+    double time_for_inverse_total = 0;
+    int count_for_inverse = 0;
+    int count_for_inverse_total = 0;
+
+    ///////////////////
 };
 
 struct DataContainer
