@@ -900,8 +900,8 @@ void *ethercatThread1(void *data)
                         printf("\x1b[A\x1b[A\x1b[A\33[2K\r");
 
                         printf("Current Count : %d\n", cycle_count);
-                        printf("Lat Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", lat, lmin, lmax, lavg, ldev);
-                        printf("Sen Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", sat, smin, smax, savg, sdev);
+                        printf("Lat Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", lat/1000.0, lmin/1000.0, lmax/1000.0, lavg/1000.0, ldev/1000.0);
+                        printf("Sen Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", sat/1000.0, smin/1000.0, smax/1000.0, savg/1000.0, sdev/1000.0);
 
                         fflush(stdout);
                     }
