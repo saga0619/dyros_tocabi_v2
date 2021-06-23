@@ -701,8 +701,6 @@ void *ethercatThread1(void *data)
 
                 struct timespec ts1, ts2;
 
-                
-
                 while (!de_shutdown)
                 {
                     chrono::steady_clock::time_point rcv_ = chrono::steady_clock::now();
@@ -904,8 +902,8 @@ void *ethercatThread1(void *data)
                         printf("\x1b[A\x1b[A\x1b[A\33[2K\r");
 
                         printf("Current Count : %d\n", cycle_count);
-                        printf("Lat Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", lat/1000.0, lmin/1000.0, lmax/1000.0, lavg/1000.0, ldev/1000.0);
-                        printf("Sen Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", sat/1000.0, smin/1000.0, smax/1000.0, savg/1000.0, sdev/1000.0);
+                        printf("Lat Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", lat / 1000.0, lmin / 1000.0, lmax / 1000.0, lavg / 1000.0, ldev / 1000.0);
+                        printf("Sen Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", sat / 1000.0, smin / 1000.0, smax / 1000.0, savg / 1000.0, sdev / 1000.0);
 
                         fflush(stdout);
                     }
@@ -976,6 +974,7 @@ void *ethercatThread2(void *data)
 {
     while (!de_shutdown)
     {
+        this_thread::sleep_for(std::chrono::milliseconds(10));
         ethercatCheck();
 
         int ch = kbhit();
@@ -1024,8 +1023,6 @@ void *ethercatThread2(void *data)
                 std::cout << "Force Control Mode" << std::endl;
                 force_control_mode = true;
             }
-
-            this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
