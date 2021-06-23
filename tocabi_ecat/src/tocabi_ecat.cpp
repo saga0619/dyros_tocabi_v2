@@ -103,7 +103,7 @@ void elmoInit()
     q_zero_mod_elmo_[Waist1_Joint] = -15.0 * DEG2RAD;
     q_zero_mod_elmo_[Upperbody_Joint] = 0.0541;
 
-    memset(ElmoSafteyMode, 0, sizeof(int) * ELMO_DOF);
+    memset(ElmoSafteyMode, 0, sizeof(int) * ec_slavecount);
 }
 
 void ec_sync(int64 reftime, int64 cycletime, int64 *offsettime)
@@ -133,9 +133,7 @@ void *ethercatThread1(void *data)
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
 
-    string ifname_str = "enp4s0";
-
-    const char *ifname = ifname_str.c_str();
+    const char *ifname = soem_port.c_str();
 
     if (ec_init(ifname))
     {
@@ -148,7 +146,7 @@ void *ethercatThread1(void *data)
         if (ec_config_init(FALSE) > 0) // TRUE when using configtable to init slaves, FALSE otherwise
         {
             printf("ELMO : %d slaves found and configured.\n", ec_slavecount); // ec_slavecount -> slave num
-            if (ec_slavecount == ELMO_DOF)
+            if (ec_slavecount == expected_counter)
             {
                 ecat_number_ok = true;
             }
@@ -203,7 +201,7 @@ void *ethercatThread1(void *data)
             expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
             printf("ELMO : Request operational state for all slaves. Calculated workcounter : %d\n", expectedWKC);
 
-            if (expectedWKC != 3 * ELMO_DOF)
+            if (expectedWKC != 3 * expected_counter)
             {
                 std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << creset << std::endl;
                 ecat_WKC_ok = true;
@@ -259,6 +257,11 @@ void *ethercatThread1(void *data)
                 while (!de_shutdown)
                 {
                     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
+
+                    if (force_control_mode)
+                    {
+                        break;
+                    }
 
                     ts.tv_nsec += PERIOD_NS;
                     while (ts.tv_nsec >= SEC_IN_NSEC)
@@ -323,13 +326,13 @@ void *ethercatThread1(void *data)
                         if (check_commutation_first)
                         {
                             cout << "Commutation Status : " << endl;
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                                 printf("--");
                             cout << endl;
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                                 printf("%2d", (i - i % 10) / 10);
                             printf("\n");
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                                 printf("%2d", i % 10);
                             cout << endl;
                             cout << endl;
@@ -339,7 +342,7 @@ void *ethercatThread1(void *data)
                         if (query_check_state)
                         {
                             printf("\x1b[A\x1b[A\33[2K\r");
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                             {
                                 if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
@@ -351,7 +354,7 @@ void *ethercatThread1(void *data)
                                 }
                             }
                             cout << endl;
-                            for (int i = 0; i < ELMO_DOF; i++)
+                            for (int i = 0; i < ec_slavecount; i++)
                                 printf("--");
                             cout << endl;
                             fflush(stdout);
@@ -444,7 +447,6 @@ void *ethercatThread1(void *data)
                         {
                             if (elmost[i].commutation_required)
                             {
-
                                 total_commutation_cnt++;
                                 if (total_commutation_cnt < 10)
                                     controlWordGenerate(rxPDO[i]->statusWord, txPDO[i]->controlWord);
@@ -656,7 +658,7 @@ void *ethercatThread1(void *data)
 
                 cout << "ELMO : Control Mode Start ... " << endl;
 
-                memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ELMO_DOF);
+                memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ec_slavecount);
                 st_start_time = std::chrono::steady_clock::now();
                 cycle_count = 1;
                 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -760,12 +762,12 @@ void *ethercatThread1(void *data)
                                 {
                                     hommingElmo[slave - 1] = !hommingElmo[slave - 1];
                                 }
-                                txPDO[slave - 1]->maxTorque = (uint16)1; // originaly 1000
+                                txPDO[slave - 1]->maxTorque = (uint16)0; // originaly 1000
                             }
                         }
                     }
 
-                    for (int i = 0; i < ELMO_DOF; i++)
+                    for (int i = 0; i < ec_slavecount; i++)
                     {
                         q_[i] = q_elmo_[JointMap[i]];
                         q_dot_[i] = q_dot_elmo_[JointMap[i]];
@@ -776,54 +778,7 @@ void *ethercatThread1(void *data)
 
                     sendJointStatus();
 
-                    /*
-                            for (int i = 0; i < ec_slavecount; i++)
-                            {
-                                if (operation_ready)
-                                {
-                                    if (dc.torqueOn)
-                                    {
-                                        //If torqueOn command received, torque will increases slowly, for rising_time, which is currently 3 seconds.
-                                        to_ratio = DyrosMath::minmax_cut((control_time_real_ - dc.torqueOnTime) / rising_time, 0.0, 1.0);
-                                        ElmoMode[i] = EM_TORQUE;
-                                        dc.t_gain = to_ratio;
-
-                                        ELMO_torque[i] = to_ratio * ELMO_torque[i];
-                                    }
-                                    else if (dc.torqueOff)
-                                    {
-                                        //If torqueOff command received, torque will decreases slowly, for rising_time(3 seconds. )
-
-                                        if (dc.torqueOnTime + rising_time > dc.torqueOffTime)
-                                        {
-                                            to_calib = (dc.torqueOffTime - dc.torqueOnTime) / rising_time;
-                                        }
-                                        else
-                                        {
-                                            to_calib = 0.0;
-                                        }
-                                        to_ratio = DyrosMath::minmax_cut(1.0 - to_calib - (control_time_real_ - dc.torqueOffTime) / rising_time, 0.0, 1.0);
-
-                                        dc.t_gain = to_ratio;
-
-                                        ELMO_torque[i] = to_ratio * ELMO_torque[i];
-                                    }
-                                    else
-                                    {
-                                        ElmoMode[i] = EM_TORQUE;
-                                        ELMO_torque[i] = 0.0;
-                                    }
-                                }
-                                else
-                                {
-                                    if ((!zp_upper_check) && (!zp_low_check))
-                                    {
-                                        ElmoMode[i] = EM_TORQUE;
-                                        ELMO_torque[i] = 0.0;
-                                    }
-                                }
-                            }*/
-                    getJointCommand();
+                    //getJointCommand();
 
                     //ECAT JOINT COMMAND
                     for (int i = 0; i < ec_slavecount; i++)
@@ -939,6 +894,17 @@ void *ethercatThread1(void *data)
                     shm_msgs_->send_dev = sdev;
 
                     cycle_count++;
+
+                    if (de_debug_level == 1)
+                    {
+                        printf("\x1b[A\x1b[A\x1b[A\33[2K\r");
+
+                        printf("Current Count : %d\n", cycle_count);
+                        printf("Lat Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", lat, lmin, lmax, lavg, ldev);
+                        printf("Sen Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", sat, smin, smax, savg, sdev);
+
+                        fflush(stdout);
+                    }
                     /*
                             if (dc.disableSafetyLock)
                             {
@@ -1030,23 +996,29 @@ void *ethercatThread2(void *data)
             }
             else if ((ch % 256 == 'd'))
             {
-                std::cout << "ELMO : start debug mode" << std::endl;
                 de_debug_level++;
                 if (de_debug_level > 2)
                     de_debug_level = 0;
+
+                std::cout << "ELMO : debug mode, level : " << (int)de_debug_level << std::endl;
             }
             else if ((ch % 256 == 'p'))
             {
                 std::cout << "------------------------------------------------------" << std::endl;
-                for (int i = 0; i < ELMO_DOF; i++)
+                for (int i = 0; i < ec_slavecount; i++)
                 { //std::cout << i << ELMO_NAME[i] <<
                     printf("%4d   %20s  %12f  ext : %12f\n", i, ELMO_NAME[i].c_str(), (double)q_elmo_[i], (double)q_ext_elmo_[i]);
                 }
             }
             else if ((ch % 256 == 'h'))
             {
-                for (int i = 0; i < ELMO_DOF; i++)
+                for (int i = 0; i < ec_slavecount; i++)
                     std::cout << i << ELMO_NAME[i] << "\t" << hommingElmo[i] << std::endl;
+            }
+            else if ((ch % 256 == 'c'))
+            {
+                std::cout << "Force Control Mode" << std::endl;
+                force_control_mode = true;
             }
 
             this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -1117,7 +1089,7 @@ bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord)
 }
 void checkJointSafety()
 {
-    for (int i = 0; i < ELMO_DOF; i++)
+    for (int i = 0; i < ec_slavecount; i++)
     {
         if ((joint_lower_limit[i] > q_elmo_[i]) || (joint_upper_limit[i] < q_elmo_[i]))
         {
@@ -1269,7 +1241,7 @@ bool saveZeroPoint()
     auto const cache_time = (chrono::system_clock::now()).time_since_epoch().count();
     comfs.write(reinterpret_cast<char const *>(&cache_time), sizeof cache_time);
 
-    for (int i = 0; i < ELMO_DOF; i++)
+    for (int i = 0; i < ec_slavecount; i++)
         comfs.write(reinterpret_cast<char const *>(&q_zero_elmo_[i]), sizeof(double));
 
     comfs.close();
@@ -1290,7 +1262,7 @@ bool loadZeroPoint()
 
     ifs.read(reinterpret_cast<char *>(&file_time_rep), sizeof file_time_rep);
     double getzp[ELMO_DOF];
-    for (int i = 0; i < ELMO_DOF; i++)
+    for (int i = 0; i < ec_slavecount; i++)
         ifs.read(reinterpret_cast<char *>(&getzp[i]), sizeof(double));
 
     ifs.close();

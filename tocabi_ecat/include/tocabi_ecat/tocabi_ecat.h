@@ -270,12 +270,13 @@ atomic<bool> de_zp_upper_switch{false};
 atomic<bool> de_zp_lower_switch{false};
 atomic<int> de_debug_level{0};
 
-
-
+std::string soem_port;
+bool force_control_mode = false;
+int soem_freq = 0;
+int expected_counter = 0;
 
 int joint_state_elmo_[ELMO_DOF]; //sendstate
-int joint_state_[ELMO_DOF]; //sendstate
-
+int joint_state_[ELMO_DOF];      //sendstate
 
 float q_elmo_[ELMO_DOF];      //sendstate
 float q_dot_elmo_[ELMO_DOF];  //sendstate
@@ -290,9 +291,8 @@ float q_ext_[ELMO_DOF];
 int command_mode_[ELMO_DOF];
 float torque_desired_elmo_[ELMO_DOF]; //get torque command
 float q_desired_elmo_[ELMO_DOF];      //get joint command
-float torque_desired_[ELMO_DOF]; //get torque command
-float q_desired_[ELMO_DOF];      //get joint command
-
+float torque_desired_[ELMO_DOF];      //get torque command
+float q_desired_[ELMO_DOF];           //get joint command
 
 double q_zero_point[ELMO_DOF];
 
