@@ -274,6 +274,7 @@ std::string soem_port;
 bool force_control_mode = false;
 int soem_freq = 0;
 int expected_counter = 0;
+int period_ns = 0;
 
 int joint_state_elmo_[ELMO_DOF]; //sendstate
 int joint_state_[ELMO_DOF];      //sendstate

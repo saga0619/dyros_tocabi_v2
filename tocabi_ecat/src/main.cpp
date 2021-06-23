@@ -40,21 +40,21 @@ int main(int argc, char *argv[])
     bool val_received = false;
 
     int ret;
-    
+
     if (argc != 4)
     {
-        std::cout << "usage : tocabi_ecat {port} {hz} {core}" << std::endl;
+        std::cout << "usage : tocabi_ecat {port} {period_us} {ecat num}" << std::endl;
 
         goto out;
     }
     else
     {
         soem_port = argv[1];
-        soem_freq = atoi(argv[2]);
+        period_ns = atoi(argv[2]);
         expected_counter = atoi(argv[3]);
 
         std::cout << " ecat port : " << soem_port << std::endl;
-        std::cout << " com freq  : " << soem_freq << std::endl;
+        std::cout << " period_us  : " << period_ns << std::endl;
         std::cout << " elmo num  : " << expected_counter << std::endl;
         std::cout << " ----------------------------- " << std::endl;
         std::cout << " command :  q(quit), l(lower init), u(upper init), d(debug), p(position), h(homming), c(force control)" << std::endl;

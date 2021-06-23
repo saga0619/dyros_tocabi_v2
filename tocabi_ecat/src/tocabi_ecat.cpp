@@ -689,8 +689,10 @@ void *ethercatThread1(void *data)
                 savg = 0;
                 sat = 0;
 
+                const int PRNS = period_ns;
+
                 clock_gettime(CLOCK_MONOTONIC, &ts);
-                ts.tv_nsec += PERIOD_NS;
+                ts.tv_nsec += PRNS;
                 while (ts.tv_nsec >= SEC_IN_NSEC)
                 {
                     ts.tv_sec++;
@@ -698,6 +700,8 @@ void *ethercatThread1(void *data)
                 }
 
                 struct timespec ts1, ts2;
+
+                
 
                 while (!de_shutdown)
                 {
@@ -713,7 +717,7 @@ void *ethercatThread1(void *data)
                         lat += SEC_IN_NSEC;
                     }
 
-                    ts.tv_nsec += PERIOD_NS;
+                    ts.tv_nsec += PRNS;
                     while (ts.tv_nsec >= SEC_IN_NSEC)
                     {
                         ts.tv_sec++;
