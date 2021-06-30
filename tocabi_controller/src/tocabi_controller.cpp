@@ -40,8 +40,13 @@ void *TocabiController::Thread1()
 
     WBC::SetContactInit(rd_);
 
+#ifdef COMPILE_TOCABI_CC
     CustomController my_cc(rd_);
+#endif
 
+#ifdef COMPILE_TOCABI_AVATAR
+    AvatarController ac_(rd_);
+#endif
     //std::cout<<"21"<<std::endl;
 
     std::cout << "entering thread1 loop" << endl;
@@ -170,10 +175,18 @@ void *TocabiController::Thread1()
                         rd_.count_for_inverse_total = 0;
                     }
                 }
-                else if (rd_.tc_.mode > 9)
+#ifdef COMPILE_TOCABI_CC
+                else if (rd_.tc_.mode > 10)
                 {
                     my_cc.computeSlow();
                 }
+#endif
+#ifdef COMPULE_TOCABI_AVATAR
+                else if(rd_.tc_.mode > 20)
+                {
+                    ac_.computeSlow();
+                }
+#endif
             }
             else
             {

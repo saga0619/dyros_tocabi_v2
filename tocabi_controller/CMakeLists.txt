@@ -21,8 +21,10 @@ find_package(catkin REQUIRED COMPONENTS
   tocabi_lib
   tocabi_description
   tocabi_msgs
-  tocabi_cc
 )
+
+find_package(tocabi_cc COMPONENTS)
+find_package(tocabi_avatar COMPONENTS)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -67,9 +69,19 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES tocabi_controller
-   CATKIN_DEPENDS roscpp roslib tocabi_lib tocabi_cc tocabi_msgs tocabi_ecat
+   CATKIN_DEPENDS roscpp roslib tocabi_lib tocabi_msgs tocabi_ecat
 #  DEPENDS system_lib
 )
+
+IF(tocabi_cc_FOUND)
+ message(" -- tocabi_cc found" )
+   ADD_DEFINITIONS(-DCOMPILE_TOCABI_CC)
+ENDIF()
+
+IF(tocabi_avatar_FOUND)
+ message(" -- tocabi_avatar found" )
+   ADD_DEFINITIONS(-DCOMPILE_TOCABI_AVATAR)
+ENDIF()
 
 ###########
 ## Build ##
@@ -123,9 +135,27 @@ add_executable(${PROJECT_NAME} src/main.cpp)
 target_link_libraries(${PROJECT_NAME}_lib
   ${catkin_LIBRARIES}
   tocabi_lib
-  tocabi_cc
+  
+  
   -lpthread
 )
+
+IF(tocabi_cc_FOUND)
+target_link_libraries(${PROJECT_NAME}_lib
+  tocabi_cc
+)
+include_directories(
+  ${tocabi_cc_INCLUDE_DIRS}
+)
+ENDIF()
+IF(tocabi_avatar_FOUND)
+target_link_libraries(${PROJECT_NAME}_lib
+  tocabi_avatar
+)
+include_directories(
+  ${tocabi_avatar_INCLUDE_DIRS}
+)
+ENDIF()
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}

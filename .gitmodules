@@ -4,3 +4,6 @@
 [submodule "tocabi_msgs"]
 	path = tocabi_msgs
 	url = https://github.com/saga0619/tocabi_msgs
+[submodule "tocabi_avatar"]
+	path = tocabi_avatar
+	url = https://github.com/saga0619/tocabi_avatar
