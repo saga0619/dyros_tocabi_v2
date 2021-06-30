@@ -6,6 +6,7 @@
 #include <Eigen/Sparse>
 #include <vector>
 #include <ros/ros.h>
+#include <ros/callback_queue.h>
 
 #include "tocabi_lib/link.h"
 #include "tocabi_ecat/shm_msgs.h"

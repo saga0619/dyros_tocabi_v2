@@ -1088,8 +1088,6 @@ void StateManager::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &m
 {
     rd_.tc_ = *msg;
     rd_.task_signal_ = true;
-    rd_.tc_init = true;
-    rd_.tc_time_ = control_time_;
 
     std::cout << "tc received" << std::endl;
 }

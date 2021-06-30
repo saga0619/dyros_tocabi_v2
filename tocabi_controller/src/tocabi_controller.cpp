@@ -71,9 +71,10 @@ void *TocabiController::Thread1()
 
             if (rd_.task_signal_ || rd_.task_que_signal_)
             {
-                std::cout << "task signal received" << std::endl;
+                std::cout << "task signal received mode :"<<rd_.tc_.mode << std::endl;
                 rd_.tc_time_ = rd_.control_time_;
                 rd_.tc_run = true;
+                rd_.tc_init = true;
                 rd_.link_[Right_Foot].SetInitialWithPosition();
                 rd_.link_[Left_Foot].SetInitialWithPosition();
                 rd_.link_[Right_Hand].SetInitialWithPosition();
@@ -124,7 +125,7 @@ void *TocabiController::Thread1()
                 {
                     if (rd_.tc_init)
                     {
-
+                        std::cout<<"mode 0 init"<<std::endl;
                         rd_.tc_init = false;
 
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
@@ -151,6 +152,7 @@ void *TocabiController::Thread1()
 
                     rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + WBC::TaskControlTorque(rd_, fstar));
 
+                    
                     auto ts = std::chrono::steady_clock::now();
                     WBC::GetJKT1(rd_, rd_.J_task);
                     auto ds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - ts).count();
@@ -175,16 +177,17 @@ void *TocabiController::Thread1()
                         rd_.count_for_inverse_total = 0;
                     }
                 }
-#ifdef COMPILE_TOCABI_CC
-                else if (rd_.tc_.mode > 10)
-                {
-                    my_cc.computeSlow();
-                }
-#endif
-#ifdef COMPULE_TOCABI_AVATAR
-                else if(rd_.tc_.mode > 20)
+
+#ifdef COMPILE_TOCABI_AVATAR
+                if(rd_.tc_.mode == 10)
                 {
                     ac_.computeSlow();
+                }
+#endif
+#ifdef COMPILE_TOCABI_CC
+                if (rd_.tc_.mode == 11)
+                {
+                    my_cc.computeSlow();
                 }
 #endif
             }
@@ -220,11 +223,12 @@ void *TocabiController::Thread1()
 
             if (thread1_count % 2000 == 0)
             {
+                /*
                 WBC::SetContact(rd_, 1, 1);
 
                 WBC::SetContact(rd_, 1, 0);
 
-                WBC::SetContact(rd_, 0, 1);
+                WBC::SetContact(rd_, 0, 1);*/
 
                 std::cout << rd_.control_time_ << "s : avg rcv2send : " << d2_total / thread1_count << " us" << std::endl;
                 d2_total = 0;
