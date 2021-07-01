@@ -65,8 +65,6 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     for (int i = 0; i < MODEL_DOF; i++)
         joint_state_msg_.name[i] = JOINT_NAME[i];
 
-    task_command_sub_ = dc_.nh.subscribe("/tocabi/taskcommand", 100, &StateManager::TaskCommandCallback, this);
-    task_command_que_sub_ = dc_.nh.subscribe("/tocabi/taskquecommand", 100, &StateManager::TaskQueCommandCallback, this);
     gui_command_sub_ = dc_.nh.subscribe("/tocabi/command", 100, &StateManager::GuiCommandCallback, this);
     gui_state_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/systemstate", 100);
     point_pub_ = dc_.nh.advertise<geometry_msgs::PolygonStamped>("/tocabi/point", 100);
@@ -143,6 +141,8 @@ void *StateManager::StateThread()
             auto d2 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t2).count();
             //MeasureTime(stm_count_, d1, d2);
 
+            rd_gl_.state_ctime_total_ += (d1 + d2) / 1000.0;
+            rd_gl_.state_ctime_avg_ += rd_gl_.state_ctime_total_ / stm_count_;
             rd_gl_.us_from_start_ = dur_start_;
 
             if (stm_count_ % 33 == 0)
@@ -416,19 +416,6 @@ void StateManager::StoreState(RobotData &rd_dst)
         memcpy(&rd_dst.link_, link_, (LINK_NUMBER + 1) * sizeof(LinkData));
 
         rd_dst.firstCalc = true;
-    }
-
-    if (rd_.task_signal_)
-    {
-        rd_.task_signal_ = false;
-        memcpy(&rd_dst.tc_, &rd_.tc_, sizeof(tocabi_msgs::TaskCommand));
-        rd_dst.task_signal_ = true;
-    }
-    if (rd_.task_que_signal_)
-    {
-        rd_.task_que_signal_ = false;
-        memcpy(&rd_dst.tc_q_, &rd_.tc_q_, sizeof(tocabi_msgs::TaskCommandQue));
-        rd_dst.task_que_signal_ = true;
     }
 
     rd_dst.control_time_ = control_time_;
@@ -1082,22 +1069,6 @@ void StateManager::SimCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         dc_.tc_shm_->shutdown = true;
     }
-}
-
-void StateManager::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg)
-{
-    rd_.tc_ = *msg;
-    rd_.task_signal_ = true;
-
-    std::cout << "tc received" << std::endl;
-}
-
-void StateManager::TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueConstPtr &msg)
-{
-    rd_.tc_q_ = *msg;
-    rd_.task_que_signal_ = true;
-
-    std::cout << "tc_que received" << std::endl;
 }
 
 void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)

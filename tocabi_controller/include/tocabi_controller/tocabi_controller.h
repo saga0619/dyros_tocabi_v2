@@ -37,6 +37,22 @@ public:
     float lmax = 0.0, lmin = 10000.00, ldev = 0.0, lavg = 0.0, lat = 0.0;
     float smax = 0.0, smin = 10000.00, sdev = 0.0, savg = 0.0, sat = 0.0;
 
+
+
+    ros::NodeHandle nh_controller_;
+    ros::CallbackQueue queue_controller_;
+    
+    ros::Subscriber task_command_que_sub_;
+    tocabi_msgs::TaskCommandQue tc_que_msg_;
+    ros::Subscriber task_command_sub_;
+    tocabi_msgs::TaskCommand tc_msg_;
+    ros::Subscriber position_command_sub_;
+
+    void PositionCommandCallback(const tocabi_msgs::positionCommandConstPtr &msg);
+    void TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg);
+    void TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueConstPtr &msg);
+
+
 };
 
 #endif

@@ -5,6 +5,15 @@ using namespace std;
 TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc_), stm_(stm_global), rd_(stm_global.dc_.rd_)
 {
     //Tocabi Controller Initialize Component
+
+    nh_controller_.setCallbackQueue(&queue_controller_);
+    //sub_1 = nh_controller_.subscribe("/tocabi/avatar_test", 1, &AvatarController::avatar_callback, this);
+
+    task_command_sub_ = nh_controller_.subscribe("/tocabi/taskcommand", 100, &TocabiController::TaskCommandCallback, this);
+    task_command_que_sub_ = nh_controller_.subscribe("/tocabi/taskquecommand", 100, &TocabiController::TaskQueCommandCallback, this);
+    position_command_sub_ = nh_controller_.subscribe("/tocabi/positioncommand", 100, &TocabiController::PositionCommandCallback, this);
+
+    
 }
 
 TocabiController::~TocabiController()
@@ -69,9 +78,11 @@ void *TocabiController::Thread1()
             ////////////////////Start Tocabi Controll/////////////////
             //////////////////////////////////////////////////////////
 
+            queue_controller_.callAvailable(ros::WallDuration());
+
             if (rd_.task_signal_ || rd_.task_que_signal_)
             {
-                std::cout << "task signal received mode :"<<rd_.tc_.mode << std::endl;
+                std::cout << "task signal received mode :" << rd_.tc_.mode << std::endl;
                 rd_.tc_time_ = rd_.control_time_;
                 rd_.tc_run = true;
                 rd_.tc_init = true;
@@ -125,7 +136,7 @@ void *TocabiController::Thread1()
                 {
                     if (rd_.tc_init)
                     {
-                        std::cout<<"mode 0 init"<<std::endl;
+                        std::cout << "mode 0 init" << std::endl;
                         rd_.tc_init = false;
 
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
@@ -152,7 +163,7 @@ void *TocabiController::Thread1()
 
                     rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + WBC::TaskControlTorque(rd_, fstar));
 
-                    
+                    /*
                     auto ts = std::chrono::steady_clock::now();
                     WBC::GetJKT1(rd_, rd_.J_task);
                     auto ds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - ts).count();
@@ -175,11 +186,11 @@ void *TocabiController::Thread1()
                         rd_.time_for_inverse_total = 0;
                         rd_.count_for_inverse = 0;
                         rd_.count_for_inverse_total = 0;
-                    }
+                    }*/
                 }
 
 #ifdef COMPILE_TOCABI_AVATAR
-                if(rd_.tc_.mode == 10)
+                if (rd_.tc_.mode == 10)
                 {
                     ac_.computeSlow();
                 }
@@ -213,8 +224,10 @@ void *TocabiController::Thread1()
             auto d2 = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - dc_.rd_.rc_t_).count(); //150us without march=native
 
             static int d2_total = 0;
+            static double d1_total = 0;
 
             d2_total += d2;
+            d1_total += d1 / 1000.0;
 
             // if (d2 > 350)
             // {
@@ -230,7 +243,7 @@ void *TocabiController::Thread1()
 
                 WBC::SetContact(rd_, 0, 1);*/
 
-                std::cout << rd_.control_time_ << "s : avg rcv2send : " << d2_total / thread1_count << " us" << std::endl;
+                std::cout << rd_.control_time_ << "s : avg rcv2send : " << d2_total / thread1_count << " us, state : " << rd_.state_ctime_avg_ << " controller : " << d1_total / 1000.0 << std::endl;
                 d2_total = 0;
                 thread1_count = 0;
             }
@@ -462,6 +475,22 @@ void TocabiController::SendCommand(Eigen::VectorQd torque_command)
 
 void TocabiController::GetTaskCommand(tocabi_msgs::TaskCommand &msg)
 {
+}
+
+void TocabiController::PositionCommandCallback(const tocabi_msgs::positionCommandConstPtr &msg)
+{
+}
+
+void TocabiController::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg)
+{
+    rd_.tc_ = *msg;
+    rd_.task_signal_ = true;
+}
+
+void TocabiController::TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueConstPtr &msg)
+{
+    rd_.tc_q_ = *msg;
+    rd_.task_que_signal_ = true;
 }
 
 /*

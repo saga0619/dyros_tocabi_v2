@@ -23,6 +23,7 @@
 #include "tocabi_lib/robot_data.h"
 #include "mujoco_ros_msgs/SimStatus.h"
 #include "mujoco_ros_msgs/JointSet.h"
+#include "tocabi_msgs/positionCommand.h"
 
 class StateManager
 {
@@ -126,10 +127,6 @@ public:
     ros::Publisher joint_state_pub_;
     sensor_msgs::JointState joint_state_msg_;
 
-    ros::Subscriber task_command_que_sub_;
-    tocabi_msgs::TaskCommandQue tc_que_msg_;
-    ros::Subscriber task_command_sub_;
-    tocabi_msgs::TaskCommand tc_msg_;
 
     ros::Publisher point_pub_;
     geometry_msgs::PolygonStamped point_pub_msg_;
@@ -140,11 +137,13 @@ public:
     std_msgs::Int8MultiArray elmo_status_msg_;
 
 
+
+
     void SimCommandCallback(const std_msgs::StringConstPtr &msg);
     //void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);
 
-    void TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg);
-    void TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueConstPtr &msg);
+
+
 
     
     ros::Subscriber gui_command_sub_;

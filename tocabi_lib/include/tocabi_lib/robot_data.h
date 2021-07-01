@@ -65,7 +65,6 @@ struct RobotData
     Eigen::VectorVQd q_dot_virtual_;
     Eigen::VectorVQd q_ddot_virtual_;
 
-    
     Eigen::Vector3d imu_lin_acc;
     Eigen::Vector3d imu_ang_vel;
     Eigen::Vector3d imu_ang_vel_before;
@@ -84,7 +83,6 @@ struct RobotData
     ///////////////////////////////////////////////
     ///////////REFRESHING VARIABLES END////////////
 
-
     Eigen::VectorQd q_desired;
     Eigen::VectorQd q_dot_desired;
     Eigen::VectorQd torque_desired;
@@ -96,11 +94,11 @@ struct RobotData
     MatrixXd J_task;
     MatrixXd J_task_T;
     MatrixXd J_task_inv_T;
-    
-    // task_dof X task_dof 
+
+    // task_dof X task_dof
     MatrixXd lambda_inv;
     MatrixXd lambda;
-    MatrixXd Q;   
+    MatrixXd Q;
     MatrixXd Q_T_;
     MatrixXd Q_temp;
     MatrixXd Q_temp_inv;
@@ -162,6 +160,9 @@ struct RobotData
     bool semode = false;
     bool semode_init = false;
 
+    double state_ctime_total_ = 0;
+    double state_ctime_avg_ = 0;
+
     std::chrono::steady_clock::time_point rc_t_;
     // bool contact_calc;
     // bool task_force_control;
@@ -219,7 +220,6 @@ struct DataContainer
     double torqueOffTime = -1;
 
     atomic<bool> triggerThread1;
-
 };
 
 #endif
