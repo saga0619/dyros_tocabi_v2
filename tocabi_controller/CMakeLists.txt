@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   sensor_msgs
   std_msgs
+  mujoco_ros_msgs
   tf2
   tf2_ros
   tocabi_ecat
@@ -23,8 +24,8 @@ find_package(catkin REQUIRED COMPONENTS
   tocabi_msgs
 )
 
-find_package(tocabi_cc COMPONENTS)
-find_package(tocabi_avatar COMPONENTS)
+find_package(tocabi_cc QUIET)
+find_package(tocabi_avatar QUIET)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -100,6 +101,7 @@ add_library(${PROJECT_NAME}_lib
   src/state_manager.cpp
   src/tocabi_controller.cpp
 )
+link_directories(${CATKIN_DEVEL_PREFIX}/lib})
 
 #add_library(wbc_lib
 #  src/wholebody_controller.cpp
@@ -134,13 +136,14 @@ add_executable(${PROJECT_NAME} src/main.cpp)
 
 target_link_libraries(${PROJECT_NAME}_lib
   ${catkin_LIBRARIES}
-  tocabi_lib
   -lpthread
+  -lrbdl
+  -lrbdl_urdfreader
 )
 
 IF(tocabi_cc_FOUND)
 target_link_libraries(${PROJECT_NAME}_lib
-  tocabi_cc
+  ${tocabi_cc_LIBRARIES}
 )
 include_directories(
   ${tocabi_cc_INCLUDE_DIRS}
@@ -148,7 +151,7 @@ include_directories(
 ENDIF()
 IF(tocabi_avatar_FOUND)
 target_link_libraries(${PROJECT_NAME}_lib
-  tocabi_avatar
+  ${tocabi_avatar_LIBRARIES}
 )
 include_directories(
   ${tocabi_avatar_INCLUDE_DIRS}
