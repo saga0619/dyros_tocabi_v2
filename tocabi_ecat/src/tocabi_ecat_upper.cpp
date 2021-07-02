@@ -251,8 +251,8 @@ void *ethercatThread1(void *data)
                 query_check_state = true;
 
                 struct timespec ts;
-                cout<<"ELMO 1 : Waiting for lowerecat Ready"<<endl;
-                while(!shm_msgs_->lowerReady)
+                cout << "ELMO 1 : Waiting for lowerecat Ready" << endl;
+                while (!shm_msgs_->lowerReady)
                 {
                     std::this_thread::sleep_for(std::chrono::microseconds(1));
                 }
@@ -263,7 +263,7 @@ void *ethercatThread1(void *data)
                 shm_msgs_->tv_nsec = ts.tv_nsec;
                 shm_msgs_->ecatTimerSet = true;
 
-                cout<<"ELMO 1 : Timer Set "<<endl;
+                cout << "ELMO 1 : Timer Set " << endl;
 
                 ts.tv_nsec += PERIOD_NS;
                 while (ts.tv_nsec >= SEC_IN_NSEC)
@@ -499,10 +499,7 @@ void *ethercatThread1(void *data)
                             {
                                 q_elmo_[slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1];
                                 hommingElmo[slave - 1] =
-                                    (((uint32_t)ec_slave[slave].inputs[4]) +
-                                     ((uint32_t)ec_slave[slave].inputs[5] << 8) +
-                                     ((uint32_t)ec_slave[slave].inputs[6] << 16) +
-                                     ((uint32_t)ec_slave[slave].inputs[7] << 24));
+                                    (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
                                 q_dot_elmo_[slave - 1] =
                                     (((int32_t)ec_slave[slave].inputs[10]) +
                                      ((int32_t)ec_slave[slave].inputs[11] << 8) +
@@ -766,10 +763,7 @@ void *ethercatThread1(void *data)
                             {
                                 q_elmo_[slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1] - q_zero_elmo_[slave - 1];
                                 hommingElmo[slave - 1] =
-                                    (((uint32_t)ec_slave[slave].inputs[4]) +
-                                     ((uint32_t)ec_slave[slave].inputs[5] << 8) +
-                                     ((uint32_t)ec_slave[slave].inputs[6] << 16) +
-                                     ((uint32_t)ec_slave[slave].inputs[7] << 24));
+                                    (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
                                 q_dot_elmo_[slave - 1] =
                                     (((int32_t)ec_slave[slave].inputs[10]) +
                                      ((int32_t)ec_slave[slave].inputs[11] << 8) +
@@ -1212,7 +1206,7 @@ void sendJointStatus()
 
     shm_msgs_->statusWriting--;
     shm_msgs_->statusCount = cycle_count;
-    
+
     shm_msgs_->triggerS1 = true;
 }
 
@@ -1241,7 +1235,7 @@ void getJointCommand()
     if (commandCount <= commandCount_before)
     {
         if (errorCount != commandCount)
-            std::cout <<control_time_us_<< "ELMO_UPP : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+            std::cout << control_time_us_ << "ELMO_UPP : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
         errorCount = commandCount;
     }
 

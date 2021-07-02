@@ -1222,8 +1222,8 @@ namespace DyrosMath
       return rotation_0;
     }
     double tau = cubic(time, time_0, time_f, 0, 1, 0, 0);
-    Eigen::Matrix3d rot_scaler_skew;
-    rot_scaler_skew = (rotation_0.transpose() * rotation_f).log();
+    //Eigen::Matrix3d rot_scaler_skew;
+    //rot_scaler_skew = (rotation_0.transpose() * rotation_f).log();
     //rot_scaler_skew = rot_scaler_skew.log();
     /*
 		Eigen::Matrix3d rotation_exp;
@@ -1248,8 +1248,12 @@ namespace DyrosMath
 		rotation_exp(2,1) =  exp_vector(0);
 		*/
     //Eigen::Matrix3d result = rotation_0 * rotation_exp.exp();
-    Eigen::Matrix3d result = rotation_0 * (rot_scaler_skew * tau).exp();
-
+    //Eigen::Matrix3d result = rotation_0 * (rot_scaler_skew * tau).exp();
+    Eigen::AngleAxisd ang_diff(rotation_f * rotation_0.transpose());
+    Eigen::Matrix3d diff_m;
+    diff_m = Eigen::AngleAxisd(ang_diff.angle() * tau, ang_diff.axis());
+    Eigen::Matrix3d result = diff_m * rotation_0;
+    
     return result;
   }
 
@@ -1331,7 +1335,7 @@ namespace DyrosMath
 
   static inline double lpf(double input, double prev_res, double samping_freq, double cutoff_freq)
   {
-    double rc = 1.0 / (cutoff_freq * 2 * 3.141592);
+    double rc = 1.0 / (cutoff_freq * 2 * M_PI);
     double dt = 1.0 / samping_freq;
     double a = dt / (rc + dt);
 
@@ -1341,6 +1345,45 @@ namespace DyrosMath
   static inline double lowPassFilter(double input, double prev, double ts, double tau)
   {
     return (tau * prev + ts * input) / (tau + ts);
+  }
+
+  static double secondOrderLowPassFilter(
+      double x_k,   ///< input x[k]
+      double x_k_1, ///< x[k-1]
+      double x_k_2, ///< x[k-2]
+      double y_k_1, ///< y[k-1]
+      double y_k_2, ///< y[k-2]
+      double fc,    ///< cut off frequency
+      double d,     ///< damping ratio
+      double hz)    ///< sampling freqeuncy
+  {
+    double y_k;
+    double omega = 2 * M_PI * fc / hz;
+    double D = 4 + 4 * d * omega + omega * omega;
+
+    y_k = (8 - 2 * omega * omega) / D * y_k_1 - (4 - 4 * d * omega + omega * omega) / D * y_k_2 + omega * omega / D * (x_k + 2 * x_k_1 + x_k_2);
+
+    return y_k;
+  }
+
+  template <int N>
+  static Eigen::Matrix<double, N, 1> secondOrderLowPassFilter(
+
+      Eigen::Matrix<double, N, 1> x_k,   ///< input x[k]
+      Eigen::Matrix<double, N, 1> x_k_1, ///< x[k-1]
+      Eigen::Matrix<double, N, 1> x_k_2, ///< x[k-2]
+      Eigen::Matrix<double, N, 1> y_k_1, ///< y[k-1]
+      Eigen::Matrix<double, N, 1> y_k_2, ///< y[k-2]
+      double fc,                         ///< cut off frequency
+      double d,                          ///< damping ratio
+      double hz)                         ///< sampling freqeuncy
+  {
+    Eigen::Matrix<double, N, 1> res;
+    for (int i = 0; i < N; i++)
+    {
+      res(i) = secondOrderLowPassFilter(x_k(i), x_k_1(i), x_k_2(i), y_k_1(i), y_k_2(i), fc, d, hz);
+    }
+    return res;
   }
 
   static double getOrientation2d(Eigen::Vector2d p1, Eigen::Vector2d p2)

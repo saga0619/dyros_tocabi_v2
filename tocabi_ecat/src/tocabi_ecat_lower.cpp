@@ -252,10 +252,10 @@ void *ethercatThread1(void *data)
                 struct timespec ts;
                 //clock_gettime(CLOCK_MONOTONIC, &ts);
                 shm_msgs_->lowerReady = true;
-                cout<<"ELMO 2 : Ready to Sync "<<endl;
+                cout << "ELMO 2 : Ready to Sync " << endl;
 
                 //wait for upper timer set.
-                while(!shm_msgs_->ecatTimerSet)
+                while (!shm_msgs_->ecatTimerSet)
                 {
                     std::this_thread::sleep_for(std::chrono::microseconds(1));
                 }
@@ -266,13 +266,12 @@ void *ethercatThread1(void *data)
                 clock_gettime(CLOCK_MONOTONIC, &ts_check);
 
                 int sync_delay = ts_check.tv_nsec - ts.tv_nsec;
-                if(sync_delay<0)
+                if (sync_delay < 0)
                 {
                     sync_delay += SEC_IN_NSEC;
                 }
 
-                printf("ELMO 2 : Timer Synced! delay : %5.3f us", (double)sync_delay/1000.0);
-
+                printf("ELMO 2 : Timer Synced! delay : %5.3f us", (double)sync_delay / 1000.0);
 
                 ts.tv_nsec += PERIOD_NS;
                 while (ts.tv_nsec >= SEC_IN_NSEC)
@@ -507,10 +506,7 @@ void *ethercatThread1(void *data)
                             {
                                 q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
                                 hommingElmo[START_N + slave - 1] =
-                                    (((uint32_t)ec_slave[slave].inputs[4]) +
-                                     ((uint32_t)ec_slave[slave].inputs[5] << 8) +
-                                     ((uint32_t)ec_slave[slave].inputs[6] << 16) +
-                                     ((uint32_t)ec_slave[slave].inputs[7] << 24));
+                                    (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
                                 q_dot_elmo_[START_N + slave - 1] =
                                     (((int32_t)ec_slave[slave].inputs[10]) +
                                      ((int32_t)ec_slave[slave].inputs[11] << 8) +
@@ -773,10 +769,7 @@ void *ethercatThread1(void *data)
                             {
                                 q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1] - q_zero_elmo_[START_N + slave - 1];
                                 hommingElmo[START_N + slave - 1] =
-                                    (((uint32_t)ec_slave[slave].inputs[4]) +
-                                     ((uint32_t)ec_slave[slave].inputs[5] << 8) +
-                                     ((uint32_t)ec_slave[slave].inputs[6] << 16) +
-                                     ((uint32_t)ec_slave[slave].inputs[7] << 24));
+                                    (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
                                 q_dot_elmo_[START_N + slave - 1] =
                                     (((int32_t)ec_slave[slave].inputs[10]) +
                                      ((int32_t)ec_slave[slave].inputs[11] << 8) +
@@ -1015,7 +1008,7 @@ void *ethercatThread2(void *data)
         //         std::cout << "ELMO : torque on " << std::endl;
         //     }
 
-        //     
+        //
         // }
         this_thread::sleep_for(std::chrono::milliseconds(1));
         if (shm_msgs_->low_init_signal)
@@ -1257,12 +1250,12 @@ void getJointCommand()
     static int commandCount_before = -1;
     static int errorCount = -2;
     int commandCount = shm_msgs_->commandCount;
-    static double ct_before = 0 ;
+    static double ct_before = 0;
     //control_time_real_
     if (commandCount <= commandCount_before)
     {
         if (errorCount != commandCount)
-            std::cout << control_time_us_<< "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before<<" before t :"<<ct_before << std::endl;
+            std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << " before t :" << ct_before << std::endl;
         errorCount = commandCount;
     }
     ct_before = control_time_real_;
