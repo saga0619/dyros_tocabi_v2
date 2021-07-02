@@ -114,12 +114,12 @@ void *StateManager::StateThread()
             stm_count_++;
 
             rcv_tcnt = dc_.tc_shm_->statusCount;
-            dc_.rd_.rc_t_ = std::chrono::steady_clock::now();
+            rd_.tp_state_ = std::chrono::steady_clock::now();
+            auto t1 = rd_.tp_state_;
 
-            auto t1 = chrono::steady_clock::now();
             GetJointData(); //0.246 us //w/o march native 0.226
             GetSensorData();
-
+            
             dc_.tc_shm_->triggerS1 = false;
 
             InitYaw();
@@ -129,7 +129,7 @@ void *StateManager::StateThread()
             //local kinematics update : 33.7 us // w/o march native 20 us
             UpdateKinematics_local(model_local_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
 
-            auto d1 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t1).count();
+            auto d1 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t1).count();
             auto t2 = chrono::steady_clock::now();
             StateEstimate();
 
@@ -138,11 +138,11 @@ void *StateManager::StateThread()
 
             StoreState(rd_gl_); //6.2 us //w/o march native 8us
 
-            auto d2 = chrono::duration_cast<chrono::nanoseconds>(chrono::steady_clock::now() - t2).count();
+            auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
             //MeasureTime(stm_count_, d1, d2);
 
-            rd_gl_.state_ctime_total_ += (d1 + d2) / 1000.0;
-            rd_gl_.state_ctime_avg_ += rd_gl_.state_ctime_total_ / stm_count_;
+            rd_gl_.state_ctime_total_ += (d1 + d2);
+            rd_gl_.state_ctime_avg_ = rd_gl_.state_ctime_total_ / stm_count_;
             rd_gl_.us_from_start_ = dur_start_;
 
             if (stm_count_ % 33 == 0)
@@ -419,6 +419,8 @@ void StateManager::StoreState(RobotData &rd_dst)
     }
 
     rd_dst.control_time_ = control_time_;
+
+    rd_dst.tp_state_ = rd_.tp_state_;
     dc_.triggerThread1 = true;
 }
 

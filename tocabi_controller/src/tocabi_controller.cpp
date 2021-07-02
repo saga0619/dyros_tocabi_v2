@@ -12,8 +12,6 @@ TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc
     task_command_sub_ = nh_controller_.subscribe("/tocabi/taskcommand", 100, &TocabiController::TaskCommandCallback, this);
     task_command_que_sub_ = nh_controller_.subscribe("/tocabi/taskquecommand", 100, &TocabiController::TaskQueCommandCallback, this);
     position_command_sub_ = nh_controller_.subscribe("/tocabi/positioncommand", 100, &TocabiController::PositionCommandCallback, this);
-
-    
 }
 
 TocabiController::~TocabiController()
@@ -66,7 +64,6 @@ void *TocabiController::Thread1()
         if (dc_.triggerThread1)
         {
             dc_.triggerThread1 = false;
-
             thread1_count++;
             if (dc_.tc_shm_->shutdown)
                 break;
@@ -209,8 +206,6 @@ void *TocabiController::Thread1()
                 rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_));
             }
 
-            auto d1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - t1).count(); //150us without march=native
-
             //Send Data To thread2
 
             //Data2Thread2
@@ -221,13 +216,16 @@ void *TocabiController::Thread1()
 
             SendCommand(rd_.torque_desired);
 
-            auto d2 = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - dc_.rd_.rc_t_).count(); //150us without march=native
+            auto t_end = std::chrono::steady_clock::now();
+
+            auto d1 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - t1).count();            //150us without march=native
+            auto d2 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - rd_.tp_state_).count(); //150us without march=native
 
             static int d2_total = 0;
             static double d1_total = 0;
 
             d2_total += d2;
-            d1_total += d1 / 1000.0;
+            d1_total += d1;
 
             // if (d2 > 350)
             // {
@@ -243,8 +241,11 @@ void *TocabiController::Thread1()
 
                 WBC::SetContact(rd_, 0, 1);*/
 
-                std::cout << rd_.control_time_ << "s : avg rcv2send : " << d2_total / thread1_count << " us, state : " << rd_.state_ctime_avg_ << " controller : " << d1_total / 1000.0 << std::endl;
+                std::cout << rd_.control_time_ << "s : avg rcv2send : " << d2_total / thread1_count << " us, state : " << rd_.state_ctime_total_ / thread1_count << " controller : " << d1_total / thread1_count << " diff : " << (d2_total - rd_.state_ctime_total_ - d1_total) / thread1_count << std::endl;
+
+                d1_total = 0;
                 d2_total = 0;
+                rd_.state_ctime_total_ = 0;
                 thread1_count = 0;
             }
             t_c_ = std::chrono::steady_clock::now();

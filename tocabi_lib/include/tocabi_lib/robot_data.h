@@ -164,6 +164,8 @@ struct RobotData
     double state_ctime_avg_ = 0;
 
     std::chrono::steady_clock::time_point rc_t_;
+
+    std::chrono::steady_clock::time_point tp_state_;
     // bool contact_calc;
     // bool task_force_control;
     // bool task_force_control_feedback;
