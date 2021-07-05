@@ -20,7 +20,7 @@ TocabiController::~TocabiController()
 }
 
 // Thread1 : running
-void *TocabiController::Thread1()
+void *TocabiController::Thread1() //Thread1, running with 2Khz.
 {
     std::cout << "thread1_entered" << std::endl;
 
@@ -47,6 +47,9 @@ void *TocabiController::Thread1()
 
     WBC::SetContactInit(rd_);
 
+    EnableThread2(false); //Set true for Thread2
+    EnableThread3(false); //True for thread3 ...
+
 #ifdef COMPILE_TOCABI_CC
     CustomController my_cc(rd_);
 #endif
@@ -58,6 +61,7 @@ void *TocabiController::Thread1()
 
     std::cout << "entering thread1 loop" << endl;
 
+    signalThread1 = true;
     int thread1_count = 0;
     while (!dc_.tc_shm_->shutdown)
     {
@@ -221,6 +225,13 @@ void *TocabiController::Thread1()
             auto d1 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - t1).count();            //150us without march=native
             auto d2 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - rd_.tp_state_).count(); //150us without march=native
 
+            static int d1_over_cnt = 0;
+
+            if (d1 > 500)
+            {
+                d1_over_cnt++;
+            }
+
             static int d2_total = 0;
             static double d1_total = 0;
 
@@ -243,6 +254,12 @@ void *TocabiController::Thread1()
 
                 std::cout << rd_.control_time_ << "s : avg rcv2send : " << d2_total / thread1_count << " us, state : " << rd_.state_ctime_total_ / thread1_count << " controller : " << d1_total / thread1_count << " diff : " << (d2_total - rd_.state_ctime_total_ - d1_total) / thread1_count << std::endl;
 
+                if (d1_over_cnt > 0)
+                {
+                    std::cout << cred << "Controller Thread1 calculation time over 500us.. : " << d1_over_cnt << "times" << std::endl;
+                    d1_over_cnt = 0;
+                }
+
                 d1_total = 0;
                 d2_total = 0;
                 rd_.state_ctime_total_ = 0;
@@ -261,20 +278,79 @@ void *TocabiController::Thread1()
     cout << "thread1 terminate" << endl;
 }
 
-//Thread2 : running with 2khz matching
+//Thread2 : running with request
 void *TocabiController::Thread2()
 {
-    std::cout << "thread2_entered" << std::endl;
 
-    while (!dc_.tc_shm_->shutdown)
+    while (true)
     {
+        if (signalThread1 || dc_.tc_shm_->shutdown)
+            break;
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+    }
+    if (enableThread2)
+    {
+        std::cout << "thread2_entered" << std::endl;
+        while (!dc_.tc_shm_->shutdown)
+        {
+            if (triggerThread2)
+            {
+                triggerThread2 = false;
+                /////////////////////////////////////////////
+                /////////////Do something in Thread2 !!!!!!!
+
+                /////////////////////////////////////////////
+            }
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::microseconds(1));
+            }
+        }
+    }
+    else
+    {
+        std::cout << "thread2 disabled" << std::endl;
     }
 
     std::cout << "thread2 terminate" << std::endl;
 }
 
+//Thread3 : running with request
 void *TocabiController::Thread3()
 {
+    while (true)
+    {
+        if (signalThread1 || dc_.tc_shm_->shutdown)
+            break;
+
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+    }
+    if (enableThread3)
+    {
+        std::cout << "thread3_entered" << std::endl;
+
+        while (!dc_.tc_shm_->shutdown)
+        {
+            if (triggerThread3)
+            {
+                triggerThread3 = false;
+                /////////////////////////////////////////////
+                /////////////Do something in Thread3 !!!!!!!
+
+                /////////////////////////////////////////////
+            }
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::microseconds(1));
+            }
+        }
+    }
+    else
+    {
+        std::cout << "thread3 disabled" << std::endl;
+    }
+
+    std::cout << "thread3 terminate" << std::endl;
 }
 
 void TocabiController::MeasureTime(int currentCount, int nanoseconds1, int nanoseconds2)
@@ -472,6 +548,23 @@ void TocabiController::SendCommand(Eigen::VectorQd torque_command)
 
     dc_.tc_shm_->commandCount++;
     dc_.tc_shm_->commanding = false;
+}
+void TocabiController::EnableThread2(bool enable)
+{
+    enableThread2 = enable;
+}
+void TocabiController::EnableThread3(bool enable)
+{
+    enableThread3 = enable;
+}
+
+void TocabiController::RequestThread2()
+{
+    triggerThread2 = true;
+}
+void TocabiController::RequestThread3()
+{
+    triggerThread3 = true;
 }
 
 void TocabiController::GetTaskCommand(tocabi_msgs::TaskCommand &msg)

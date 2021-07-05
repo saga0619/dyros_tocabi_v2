@@ -38,6 +38,17 @@ public:
     float smax = 0.0, smin = 10000.00, sdev = 0.0, savg = 0.0, sat = 0.0;
 
 
+    std::atomic<bool> enableThread2;
+    void EnableThread2(bool enable);
+    std::atomic<bool> enableThread3;
+    void EnableThread3(bool enable);
+
+    void RequestThread2();
+    void RequestThread3();
+
+    std::atomic<bool> signalThread1;
+    std::atomic<bool> triggerThread2;
+    std::atomic<bool> triggerThread3;
 
     ros::NodeHandle nh_controller_;
     ros::CallbackQueue queue_controller_;
