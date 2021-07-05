@@ -256,7 +256,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
                 if (d1_over_cnt > 0)
                 {
-                    std::cout << cred << "Controller Thread1 calculation time over 500us.. : " << d1_over_cnt << "times" << std::endl;
+                    std::cout << cred << "Controller Thread1 calculation time over 500us.. : " << d1_over_cnt << "times" << creset << std::endl;
                     d1_over_cnt = 0;
                 }
 
