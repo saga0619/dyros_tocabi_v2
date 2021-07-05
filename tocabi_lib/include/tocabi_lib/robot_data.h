@@ -79,6 +79,9 @@ struct RobotData
     Eigen::VectorQd q_dot_est_;
     Eigen::VectorQd q_dot_est_1;
     Eigen::VectorQd q_hold_lower_;
+    
+    Eigen::Vector6d LF_FT, RF_FT;           //f/t data with local sensor frame
+    Eigen::Vector6d LF_CF_FT, RF_CF_FT;     //f/t data with global rotation frame
 
     ///////////////////////////////////////////////
     ///////////REFRESHING VARIABLES END////////////
