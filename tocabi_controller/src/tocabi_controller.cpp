@@ -47,7 +47,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
     WBC::SetContactInit(rd_);
 
-    EnableThread2(false); //Set true for Thread2
+    EnableThread2(true); //Set true for Thread2
     EnableThread3(false); //True for thread3 ...
 
 #ifdef COMPILE_TOCABI_CC
