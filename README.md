@@ -42,6 +42,17 @@ cd catkin_ws/src
 git clone --recurse-submodules https://github.com/saga0619/dyros_tocabi_v2
 ```
 
+## CustomController (optional)
+```sh
+git clone https://github.com/saga0619/tocai_cc
+```
+
+## AvatarController (optional)
+```sh
+git clone https://github.com/saga0619/tocabi_avatar
+```
+
+
 ## GUI
 ```sh
 cd catkin_ws/src
@@ -60,7 +71,7 @@ cd catkin_ws/src/dyros_tocabi_v2
 sudo ./install_prereq.sh
 ```
 
-### Individual installation (If All-in-One script not working ...)
+### Individual installation (If All-in-One script is not working ...)
 
 #### 1. mscl installation
  * download [MSCL](https://github.com/LORD-MicroStrain/MSCL/releases/download/v52.2.1/c++-mscl_52.2.1_amd64.deb) 
@@ -116,6 +127,5 @@ sudo make install
 -----------------------------------------
 ## Todo
 + [ ] link realtime Robot Status indicator
-+ [ ] Implant Whole-Body controller 
 + [ ] link F/T sensor
 + [ ] link Robot chest led 
