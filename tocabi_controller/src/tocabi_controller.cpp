@@ -191,13 +191,17 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
                 }
 
 #ifdef COMPILE_TOCABI_AVATAR
-                if (rd_.tc_.mode == 10)
+                if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
                 {
                     ac_.computeSlow();
+                    //If necessary, use
+                    //To Enable Thread2, you need to fix the 50th line. Change EnableThread2(false) to EnableThread2(true).
+                    //If not, thread2 is disabled, so that you cannot use thread2
+                    //RequestThread2() : call this function to trigger Thread2 at each tick.
                 }
 #endif
 #ifdef COMPILE_TOCABI_CC
-                if (rd_.tc_.mode == 11)
+                if (rd_.tc_.mode == 15)
                 {
                     my_cc.computeSlow();
                 }
@@ -299,6 +303,21 @@ void *TocabiController::Thread2()
                 /////////////////////////////////////////////
                 /////////////Do something in Thread2 !!!!!!!
 
+                if (rd_.tc_run)
+                {
+#ifdef COMPILE_TOCABI_AVATAR
+                    if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
+                    {
+                        ac_.computeFast();
+                    }
+#endif
+#ifdef COMPILE_TOCABI_CC
+                    if (rd_.tc_.mode == 15)
+                    {
+                        my_cc.computeFast();
+                    }
+#endif
+                }
                 /////////////////////////////////////////////
             }
             else
