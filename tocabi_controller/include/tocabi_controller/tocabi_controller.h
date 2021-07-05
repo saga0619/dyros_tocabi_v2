@@ -25,7 +25,18 @@ public:
     StateManager &stm_;
     RobotData &rd_;
 
-    static void *Thread1Starter(void *context) { return ((TocabiController *)context)->Thread1(); }
+#ifdef COMPILE_TOCABI_CC
+    CustomController &my_cc;
+#endif
+
+#ifdef COMPILE_TOCABI_AVATAR
+    AvatarController &ac_;
+#endif
+
+    static void *Thread1Starter(void *context)
+    {
+        return ((TocabiController *)context)->Thread1();
+    }
     static void *Thread2Starter(void *context) { return ((TocabiController *)context)->Thread2(); }
     static void *Thread3Starter(void *context) { return ((TocabiController *)context)->Thread3(); }
 
@@ -36,7 +47,6 @@ public:
     int64_t total1 = 0, total2 = 0, total_dev1 = 0, total_dev2 = 0;
     float lmax = 0.0, lmin = 10000.00, ldev = 0.0, lavg = 0.0, lat = 0.0;
     float smax = 0.0, smin = 10000.00, sdev = 0.0, savg = 0.0, sat = 0.0;
-
 
     std::atomic<bool> enableThread2;
     void EnableThread2(bool enable);
@@ -52,7 +62,7 @@ public:
 
     ros::NodeHandle nh_controller_;
     ros::CallbackQueue queue_controller_;
-    
+
     ros::Subscriber task_command_que_sub_;
     tocabi_msgs::TaskCommandQue tc_que_msg_;
     ros::Subscriber task_command_sub_;
@@ -62,8 +72,6 @@ public:
     void PositionCommandCallback(const tocabi_msgs::positionCommandConstPtr &msg);
     void TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg);
     void TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueConstPtr &msg);
-
-
 };
 
 #endif

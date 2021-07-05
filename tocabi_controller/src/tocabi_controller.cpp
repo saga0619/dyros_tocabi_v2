@@ -2,7 +2,15 @@
 
 using namespace std;
 
-TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc_), stm_(stm_global), rd_(stm_global.dc_.rd_)
+TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc_)
+,stm_(stm_global)
+,rd_(stm_global.dc_.rd_)
+#ifdef COMPILE_TOCABI_CC
+,my_cc(*(new CustomController(rd_)))
+#endif
+#ifdef COMPILE_TOCABI_AVATAR
+,ac_(*(new AvatarController(rd_)))
+#endif
 {
     //Tocabi Controller Initialize Component
 
@@ -47,16 +55,9 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
     WBC::SetContactInit(rd_);
 
-    EnableThread2(true); //Set true for Thread2
+    EnableThread2(true);  //Set true for Thread2
     EnableThread3(false); //True for thread3 ...
 
-#ifdef COMPILE_TOCABI_CC
-    CustomController my_cc(rd_);
-#endif
-
-#ifdef COMPILE_TOCABI_AVATAR
-    AvatarController ac_(rd_);
-#endif
     //std::cout<<"21"<<std::endl;
 
     std::cout << "entering thread1 loop" << endl;
@@ -123,6 +124,12 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
                 {
                     std::cout << "task que received ... but doing nothing .." << std::endl;
                     rd_.task_que_signal_ = false;
+                }
+
+                if (!rd_.semode)
+                {
+                    std::cout << "State Estimate is not running. disable task command" << std::endl;
+                    rd_.tc_run = false;
                 }
             }
 
@@ -193,7 +200,9 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 #ifdef COMPILE_TOCABI_AVATAR
                 if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
                 {
+                    RequestThread2();
                     ac_.computeSlow();
+
                     //If necessary, use
                     //To Enable Thread2, you need to fix the 50th line. Change EnableThread2(false) to EnableThread2(true).
                     //If not, thread2 is disabled, so that you cannot use thread2
@@ -203,6 +212,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 #ifdef COMPILE_TOCABI_CC
                 if (rd_.tc_.mode == 15)
                 {
+                    RequestThread2();
                     my_cc.computeSlow();
                 }
 #endif
@@ -285,7 +295,6 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 //Thread2 : running with request
 void *TocabiController::Thread2()
 {
-
     while (true)
     {
         if (signalThread1 || dc_.tc_shm_->shutdown)
