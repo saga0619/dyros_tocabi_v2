@@ -424,8 +424,77 @@ namespace WBC
         //ForceRedistribution(10) = (1.0-eta)/eta*ForceRedistribution(4);
         //ForceRedistribution(11) = (1.0-eta)/eta*ForceRedistribution(5);
     }
+    VectorQd ContactForceRedistributionTorqueWalking(RobotData &Robot, VectorQd command_torque, double eta = 0.9, double ratio = 1.0, int supportFoot = 0)
+    {
 
-    VectorXd ContactForceRedistributionTorque(RobotData &Robot, VectorQd command_torque, double eta = 0.9)
+        int contact_dof_ = Robot.J_C.rows();
+
+        if (contact_dof_ == 12)
+        {
+            Vector12d ContactForce_ = Robot.J_C_INV_T.rightCols(MODEL_DOF) * command_torque - Robot.P_C;
+
+            Vector3d P1_ = Robot.ee_[0].xpos_contact - Robot.link_[COM_id].xpos;
+            Vector3d P2_ = Robot.ee_[1].xpos_contact - Robot.link_[COM_id].xpos;
+
+            Matrix3d Rotyaw = DyrosMath::rotateWithZ(-Robot.yaw);
+
+            Eigen::Matrix<double, 12, 12> force_rot_yaw;
+            force_rot_yaw.setZero();
+            for (int i = 0; i < 4; i++)
+            {
+                force_rot_yaw.block(i * 3, i * 3, 3, 3) = Rotyaw;
+            }
+
+            Vector6d ResultantForce_;
+            ResultantForce_.setZero();
+
+            Vector12d ResultRedistribution_;
+            ResultRedistribution_.setZero();
+
+            Vector12d F12 = force_rot_yaw * ContactForce_;
+
+            double eta_cust = 0.99;
+            double foot_length = 0.26;
+            double foot_width = 0.1;
+
+            ForceRedistributionTwoContactMod2(0.99, foot_length, foot_width, 1.0, 0.9, 0.9, Rotyaw * P1_, Rotyaw * P2_, F12, ResultantForce_, ResultRedistribution_, eta);
+            Robot.fc_redist_ = force_rot_yaw.transpose() * ResultRedistribution_;
+
+            Vector12d desired_force;
+            desired_force.setZero();
+
+            bool right_master;
+
+            if (supportFoot == 0)
+            {
+                right_master = 1.0;
+            }
+            else
+            {
+                right_master = 0.0;
+            }
+
+            if (right_master)
+            {
+
+                desired_force.segment(0, 6) = -ContactForce_.segment(0, 6) + ratio * Robot.fc_redist_.segment(0, 6);
+                Robot.torque_contact = Robot.qr_V2.transpose() * (Robot.J_C_INV_T.rightCols(MODEL_DOF).topRows(6) * Robot.qr_V2.transpose()).inverse() * desired_force.segment(0, 6);
+            }
+            else
+            {
+                desired_force.segment(6, 6) = -ContactForce_.segment(6, 6) + ratio * Robot.fc_redist_.segment(6, 6);
+                Robot.torque_contact = Robot.qr_V2.transpose() * (Robot.J_C_INV_T.rightCols(MODEL_DOF).bottomRows(6) * Robot.qr_V2.transpose()).inverse() * desired_force.segment(6, 6);
+            }
+        }
+        else
+        {
+            Robot.torque_contact.setZero();
+        }
+
+        return Robot.torque_contact + command_torque;
+    }
+
+    VectorQd ContactForceRedistributionTorque(RobotData &Robot, VectorQd command_torque, double eta = 0.9)
     {
         int contact_dof_ = Robot.J_C.rows();
 
