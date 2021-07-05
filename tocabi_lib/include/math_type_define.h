@@ -1018,7 +1018,7 @@ namespace DyrosMath
 
     int rank = qr.rank();
 
-    if (rank == MODEL_DOF - 6)
+    if ((rank == MODEL_DOF - 18) || (rank == MODEL_DOF - 12) || (rank == MODEL_DOF - 6) || (rank == MODEL_DOF))
     {
       Eigen::MatrixQQd Rpsinv;
       Rpsinv.setZero();
@@ -1253,7 +1253,7 @@ namespace DyrosMath
     Eigen::Matrix3d diff_m;
     diff_m = Eigen::AngleAxisd(ang_diff.angle() * tau, ang_diff.axis());
     Eigen::Matrix3d result = diff_m * rotation_0;
-    
+
     return result;
   }
 
