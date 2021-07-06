@@ -1022,7 +1022,7 @@ namespace DyrosMath
     {
       Eigen::MatrixQQd Rpsinv;
       Rpsinv.setZero();
-      Rpsinv.topLeftCorner(rank, rank) = qr.matrixQR().topLeftCorner(rank, rank).template triangularView<Eigen::Upper>().solve(Eigen::Matrix<double, MODEL_DOF - 6, MODEL_DOF - 6>::Identity());
+      Rpsinv.topLeftCorner(rank, rank) = qr.matrixQR().topLeftCorner(rank, rank).template triangularView<Eigen::Upper>().solve(Eigen::MatrixXd::Identity(rank, rank));
       Eigen::MatrixQQd P;
       P = qr.householderQ().transpose();
       V2 = P.block(rank, 0, P.rows() - rank, P.cols());
