@@ -1012,20 +1012,24 @@ namespace DyrosMath
   {
     Eigen::ColPivHouseholderQR<Eigen::MatrixQQd> qr(W);
     qr.setThreshold(1.0e-6);
-
+    std::cout << "test9-1"<<std::endl;
     int cols = W.cols();
     int rows = W.rows();
 
     int rank = qr.rank();
-
+    std::cout << "test9-2"<<std::endl;
     if ((rank == MODEL_DOF - 18) || (rank == MODEL_DOF - 12) || (rank == MODEL_DOF - 6) || (rank == MODEL_DOF))
     {
       Eigen::MatrixQQd Rpsinv;
       Rpsinv.setZero();
+      std::cout << "test9-3"<<std::endl;
       Rpsinv.topLeftCorner(rank, rank) = qr.matrixQR().topLeftCorner(rank, rank).template triangularView<Eigen::Upper>().solve(Eigen::Matrix<double, MODEL_DOF - 6, MODEL_DOF - 6>::Identity());
+      std::cout << "test9-4"<<std::endl;
       Eigen::MatrixQQd P;
       P = qr.householderQ().transpose();
+      std::cout << "test9-5"<<std::endl;
       V2 = P.block(rank, 0, P.rows() - rank, P.cols());
+      std::cout << "test9-6"<<std::endl;
       return qr.colsPermutation() * Rpsinv * P;
     }
     else

@@ -30,17 +30,19 @@ namespace WBC
 
     void CalcContact(RobotData &rd_)
     {
+        std::cout << "test4"<<std::endl;
         rd_.I_C.setIdentity(rd_.contact_index * 6, rd_.contact_index * 6);
-
+        std::cout << "test5"<<std::endl;
         rd_.Lambda_c = (rd_.J_C * rd_.A_inv_ * rd_.J_C.transpose()).inverse();
-
+        std::cout << "test6"<<std::endl;
         rd_.J_C_INV_T = rd_.Lambda_c * rd_.J_C * rd_.A_inv_;
-
+        std::cout << "test7"<<std::endl;
         rd_.N_C = MatrixVVd::Identity() - rd_.J_C.transpose() * rd_.J_C_INV_T;
-
+        std::cout << "test8"<<std::endl;
         rd_.W = rd_.A_inv_.bottomRows(MODEL_DOF) * rd_.N_C.rightCols(MODEL_DOF);
-
+        std::cout << "test9"<<std::endl;
         rd_.W_inv = DyrosMath::WinvCalc(rd_.W, rd_.qr_V2);
+        std::cout << "test10"<<std::endl;
     }
 
     bool GravMinMax(VectorQd torque)
@@ -132,7 +134,8 @@ namespace WBC
         Robot.ee_[1].contact = right_foot;
         Robot.ee_[2].contact = left_hand;
         Robot.ee_[3].contact = right_hand;
-
+        std::cout << "test1"<<std::endl;
+        
         Robot.contact_index = 0;
         if (left_foot)
         {
@@ -165,11 +168,12 @@ namespace WBC
         Robot.ee_[1].SetContact(Robot.model_, Robot.q_virtual_);
         Robot.ee_[2].SetContact(Robot.model_, Robot.q_virtual_);
         Robot.ee_[3].SetContact(Robot.model_, Robot.q_virtual_);
-
+        std::cout << "test2"<<std::endl;
         for (int i = 0; i < Robot.contact_index; i++)
         {
             Robot.J_C.block(i * 6, 0, 6, MODEL_DOF_VIRTUAL) = Robot.ee_[Robot.ee_idx[i]].jac_contact.cast<double>();
         }
+        std::cout << "test3"<<std::endl;
         CalcContact(Robot);
     }
 
