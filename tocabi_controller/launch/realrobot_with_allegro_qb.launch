@@ -1,0 +1,21 @@
+<launch>
+    <node name="tocabi_controller" pkg="tocabi_controller" type="tocabi_controller" output="screen">
+        <param name="sim_mode" value="false"/>
+        <param name="urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi_with_allegro_qb.urdf"/>
+
+        <rosparam command="load" file="$(find tocabi_description)/setting/setting_realrobot_positionPDgain.yaml"/>
+        <rosparam command="load" file="$(find tocabi_description)/setting/setting_realrobot_parameters.yaml"/>
+    </node>
+
+    <node name="tocabi_sensor" pkg="tocabi_sensor" type="tocabi_sensor" output="screen" respawn="true">
+
+    </node>
+
+    <node name="tocabi_ecat_lower" pkg="tocabi_ecat" type="tocabi_ecat_lower" output="screen">
+        <param name="verbose" value="false"/>
+    </node>
+
+    <node name="tocabi_ecat_upper" pkg="tocabi_ecat" type="tocabi_ecat_upper" output="screen">
+        <param name="verbose" value="false"/>
+    </node>
+</launch>
