@@ -1,9 +1,0 @@
-<launch>
-    <node name="tocabi_controller" pkg="tocabi_controller" type="tocabi_controller" output="screen">
-        <param name="sim_mode" value="false"/>
-        <param name="urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi.urdf"/>
-        <rosparam command="load" file="$(find tocabi_description)/setting/setting_realrobot_parameters.yaml"/>
-    </node>
-
-    <node name="tocabi_sensor" pkg="tocabi_controller" type="sensor_manager" output="screen"/>
-</launch>

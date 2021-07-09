@@ -5,8 +5,9 @@ using namespace TOCABI;
 
 StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc_global.rd_)
 {
-    string t_path_ = ros::package::getPath("tocabi_description");
-    string urdf_path = t_path_ + "/robots/dyros_tocabi.urdf";
+    string urdf_path;
+
+    ros::param::get("/tocabi_controller/urdf_path", urdf_path);
 
     bool verbose = false;
 

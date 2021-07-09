@@ -2,14 +2,14 @@
 
 using namespace std;
 
-TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc_)
-,stm_(stm_global)
-,rd_(stm_global.dc_.rd_)
+TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc_), stm_(stm_global), rd_(stm_global.dc_.rd_)
 #ifdef COMPILE_TOCABI_CC
-,my_cc(*(new CustomController(rd_)))
+                                                               ,
+                                                               my_cc(*(new CustomController(rd_)))
 #endif
 #ifdef COMPILE_TOCABI_AVATAR
-,ac_(*(new AvatarController(rd_)))
+                                                               ,
+                                                               ac_(*(new AvatarController(rd_)))
 #endif
 {
     //Tocabi Controller Initialize Component
@@ -20,6 +20,9 @@ TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc
     task_command_sub_ = nh_controller_.subscribe("/tocabi/taskcommand", 100, &TocabiController::TaskCommandCallback, this);
     task_command_que_sub_ = nh_controller_.subscribe("/tocabi/taskquecommand", 100, &TocabiController::TaskQueCommandCallback, this);
     position_command_sub_ = nh_controller_.subscribe("/tocabi/positioncommand", 100, &TocabiController::PositionCommandCallback, this);
+
+    ros::param::get("/tocabi_controller/Kp", rd_.pos_kp_v);
+    ros::param::get("/tocabi_controller/Kv", rd_.pos_kv_v);
 }
 
 TocabiController::~TocabiController()
@@ -76,69 +79,36 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
             auto t1 = std::chrono::steady_clock::now();
 
+            queue_controller_.callAvailable(ros::WallDuration());
+
             //////////////////////////////////////////////////////////
             ////////////////////Start Tocabi Controll/////////////////
             //////////////////////////////////////////////////////////
-
-            queue_controller_.callAvailable(ros::WallDuration());
-
-            if (rd_.task_signal_ || rd_.task_que_signal_)
-            {
-                std::cout << "task signal received mode :" << rd_.tc_.mode << std::endl;
-                rd_.tc_time_ = rd_.control_time_;
-                rd_.tc_run = true;
-                rd_.tc_init = true;
-                rd_.link_[Right_Foot].SetInitialWithPosition();
-                rd_.link_[Left_Foot].SetInitialWithPosition();
-                rd_.link_[Right_Hand].SetInitialWithPosition();
-                rd_.link_[Left_Hand].SetInitialWithPosition();
-                rd_.link_[Pelvis].SetInitialWithPosition();
-                rd_.link_[Upper_Body].SetInitialWithPosition();
-                rd_.link_[COM_id].SetInitialWithPosition();
-
-                double pos_p = 400.0;
-                double pos_d = 40.0;
-                double pos_a = 1;
-                double rot_p = 400.0;
-                double rot_d = 40.0;
-                double rot_a = 1.0;
-
-                rd_.link_[Right_Foot].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-                rd_.link_[Left_Foot].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-                rd_.link_[Right_Hand].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-                rd_.link_[Left_Hand].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-                rd_.link_[Pelvis].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-                rd_.link_[Upper_Body].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-                rd_.link_[COM_id].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-
-                std::cout << " pelv yaw init : " << rd_.link_[Pelvis].yaw_init << std::endl;
-
-                std::cout << "upperbody rotation init : " << DyrosMath::rot2Euler_tf(rd_.link_[Upper_Body].rot_init).transpose() << std::endl;
-
-                if (rd_.task_signal_)
-                {
-                    rd_.task_signal_ = false;
-                }
-
-                if (rd_.task_que_signal_)
-                {
-                    std::cout << "task que received ... but doing nothing .." << std::endl;
-                    rd_.task_que_signal_ = false;
-                }
-
-                if (!rd_.semode)
-                {
-                    std::cout << "State Estimate is not running. disable task command" << std::endl;
-                    rd_.tc_run = false;
-                }
-            }
 
             VectorQd torque_task_, torque_grav_, torque_contact_;
             torque_task_.setZero();
             torque_grav_.setZero();
             torque_contact_.setZero();
 
-            if (rd_.tc_run)
+            static VectorQd zero_m = VectorQd::Zero();
+
+            if (rd_.pc_mode)
+            {
+                rd_.q_desired = DyrosMath::cubicVector(rd_.control_time_, rd_.pc_time_, rd_.pc_time_ + rd_.pc_traj_time_, rd_.pc_pos_init, rd_.pc_pos_des, zero_m, zero_m);
+
+                for (int i = 0; i < MODEL_DOF; i++)
+                {
+                    rd_.torque_desired[i] = rd_.pos_kp_v[i] * (rd_.q_desired[i] - rd_.q_[i]) + rd_.pos_kv_v[i] * (zero_m[i] - rd_.q_dot_[i]);
+                }
+
+                if (rd_.pc_gravity)
+                {
+                    WBC::SetContact(rd_, 1, 1);
+
+                    rd_.torque_desired = rd_.torque_desired + WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_));
+                }
+            }
+            else if (rd_.tc_run)
             {
                 if (rd_.tc_.mode == 0)
                 {
@@ -220,7 +190,6 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
             else
             {
                 WBC::SetContact(rd_, 1, 1);
-                WBC::GravityCompensationTorque(rd_);
                 rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_));
             }
 
@@ -270,7 +239,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
                 if (d1_over_cnt > 0)
                 {
-                    std::cout << cred << "Controller Thread1 calculation time over 500us.. : " << d1_over_cnt << "times" << std::endl;
+                    std::cout << cred << "Controller Thread1 calculation time over 500us.. : " << d1_over_cnt << "times" << creset << std::endl;
                     d1_over_cnt = 0;
                 }
 
@@ -429,7 +398,7 @@ void TocabiController::MeasureTime(int currentCount, int nanoseconds1, int nanos
 void TocabiController::SendCommand(Eigen::VectorQd torque_command)
 {
     const double maxTorque = 1000.0;
-    const double rTime = 6.0;
+    const double rTime = 5.0;
 
     if (dc_.torqueOnSwitch)
     {
@@ -601,18 +570,68 @@ void TocabiController::GetTaskCommand(tocabi_msgs::TaskCommand &msg)
 
 void TocabiController::PositionCommandCallback(const tocabi_msgs::positionCommandConstPtr &msg)
 {
+    rd_.pc_traj_time_ = msg->traj_time;
+
+    rd_.pc_time_ = rd_.control_time_;
+
+    for (int i = 0; i < MODEL_DOF; i++)
+    {
+        rd_.pc_pos_des(i) = msg->position[i];
+    }
+    rd_.pc_pos_init = rd_.q_;
+    rd_.pc_mode = true;
+    rd_.pc_gravity = msg->gravity;
+
+    std::cout << "position command received" << std::endl;
 }
 
 void TocabiController::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg)
 {
+    std::cout << "task signal received mode :" << rd_.tc_.mode << std::endl;
+    rd_.pc_mode = false;
     rd_.tc_ = *msg;
-    rd_.task_signal_ = true;
+    rd_.tc_time_ = rd_.control_time_;
+    rd_.tc_run = true;
+    rd_.tc_init = true;
+    rd_.link_[Right_Foot].SetInitialWithPosition();
+    rd_.link_[Left_Foot].SetInitialWithPosition();
+    rd_.link_[Right_Hand].SetInitialWithPosition();
+    rd_.link_[Left_Hand].SetInitialWithPosition();
+    rd_.link_[Pelvis].SetInitialWithPosition();
+    rd_.link_[Upper_Body].SetInitialWithPosition();
+    rd_.link_[COM_id].SetInitialWithPosition();
+
+    double pos_p = 400.0;
+    double pos_d = 40.0;
+    double pos_a = 1;
+    double rot_p = 400.0;
+    double rot_d = 40.0;
+    double rot_a = 1.0;
+
+    rd_.link_[Right_Foot].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    rd_.link_[Left_Foot].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    rd_.link_[Right_Hand].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    rd_.link_[Left_Hand].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    rd_.link_[Pelvis].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    rd_.link_[Upper_Body].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    rd_.link_[COM_id].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+
+    //std::cout << " pelv yaw init : " << rd_.link_[Pelvis].yaw_init << std::endl;
+
+    //std::cout << "upperbody rotation init : " << DyrosMath::rot2Euler_tf(rd_.link_[Upper_Body].rot_init).transpose() << std::endl;
+
+    if (!rd_.semode)
+    {
+        std::cout << "State Estimate is not running. disable task command" << std::endl;
+        rd_.tc_run = false;
+    }
 }
 
 void TocabiController::TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueConstPtr &msg)
 {
     rd_.tc_q_ = *msg;
     rd_.task_que_signal_ = true;
+    std::cout << "task que received ... but doing nothing .." << std::endl;
 }
 
 /*

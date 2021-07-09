@@ -90,6 +90,13 @@ struct RobotData
     Eigen::VectorQd q_dot_desired;
     Eigen::VectorQd torque_desired;
 
+    ///////////////////////////////////////////////
+    //////////////GAIN VARAIBLES///////////////////
+    std::vector<double> pos_kp_v;
+    std::vector<double> pos_kv_v;
+    Eigen::VectorQd pos_kp;
+    Eigen::VectorQd pos_kd;
+
     ///////////////////////////
     /////Dynamics Data
 
@@ -146,6 +153,14 @@ struct RobotData
     bool tc_init = false;
     bool tc_run = false;
     double tc_time_;
+
+    bool pc_mode = false;
+    bool pc_gravity = false;
+    VectorQd pc_pos_des;
+    VectorQd pc_pos_init;
+    double pc_traj_time_;
+    double pc_time_;
+    
 
     //Bools...... might be moved to other..
     bool qp_error = false;

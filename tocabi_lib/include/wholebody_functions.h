@@ -439,7 +439,7 @@ namespace WBC
             Matrix3d Rotyaw = DyrosMath::rotateWithZ(-Robot.yaw);
 
             Eigen::Matrix<double, 12, 12> force_rot_yaw;
-            force_rot_yaw.setZero();
+            force_rot_yaw.setZero();     
             for (int i = 0; i < 4; i++)
             {
                 force_rot_yaw.block(i * 3, i * 3, 3, 3) = Rotyaw;
