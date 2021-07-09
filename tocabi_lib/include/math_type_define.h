@@ -1012,12 +1012,10 @@ namespace DyrosMath
   {
     Eigen::ColPivHouseholderQR<Eigen::MatrixQQd> qr(W);
     qr.setThreshold(1.0e-6);
-
     int cols = W.cols();
     int rows = W.rows();
 
     int rank = qr.rank();
-
     if ((rank == MODEL_DOF - 18) || (rank == MODEL_DOF - 12) || (rank == MODEL_DOF - 6) || (rank == MODEL_DOF))
     {
       Eigen::MatrixQQd Rpsinv;

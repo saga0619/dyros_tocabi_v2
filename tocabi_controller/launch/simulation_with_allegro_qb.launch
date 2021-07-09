@@ -1,0 +1,19 @@
+<launch>
+    <node name="tocabi_controller" pkg="tocabi_controller" type="tocabi_controller" output="screen" required="true">
+        <param name="sim_mode" value="true"/>
+        <!-- <param name="urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi_with_allegro_qb.urdf"/> -->
+        <param name="urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi_with_allegro_qb.urdf"/>
+
+        <rosparam command="load" file="$(find tocabi_description)/setting/setting_simulation_positionPDgain.yaml"/>
+        <rosparam command="load" file="$(find tocabi_description)/setting/setting_simulation_parameters.yaml"/>
+    </node>
+
+    <node name="mujoco_ros" pkg="mujoco_ros" type="mujoco_ros" output="screen" required="true">
+        <param name="license" type="string" value="$(env HOME)/mjkey.txt"/>
+        <param name="model_file" type="string" value="$(find tocabi_description)/mujoco_model/simulation_scene_with_allegro_qb.xml"/>
+        <param name="use_shm" value="true"/>
+    </node>
+
+    <node name="tocabi_gui" pkg="tocabi_gui" type="tocabi_gui" />
+
+</launch>

@@ -179,19 +179,20 @@ int CQuadraticProgram::SolveQPoases(const int &num_max_iter, VectorXd &solv, boo
     }
     int_t nWSR = num_max_iter;
 
-    //_options.printLevel = PL_NONE;
     if (MPC)
         _options.setToMPC();
   
     //_options.boundTolerance = 1E-6;
     _options.boundRelaxation = 1E-4;
-    _options.printLevel = PL_LOW;
+    // _options.printLevel = PL_LOW;
+    _options.printLevel = PL_NONE;
+
     _QPprob.setOptions(_options);
 
     returnValue m_status;
     if (_bInitialized == false) //init
     {
-        std::cout << "QP init" << std::endl;
+        // std::cout << "QP init" << std::endl;
         if (_bool_constraint_Ax == true && _bool_constraint_x == true)
         {
             m_status = _QPprob.init(H_realt, g_realt, A_realt, lb_realt, ub_realt, lbA_realt, ubA_realt, nWSR);
@@ -232,10 +233,10 @@ int CQuadraticProgram::SolveQPoases(const int &num_max_iter, VectorXd &solv, boo
 
     if (m_status != SUCCESSFUL_RETURN)
     {
-        //std::cout << "QP solve error from hotstart" << std::endl;
-        //PrintMinProb();
-        //PrintSubjectToAx();
-        //PrintSubjectTox();
+        // std::cout << "QP solve error from hotstart" << std::endl;
+        // PrintMinProb();
+        // PrintSubjectToAx();
+        // PrintSubjectTox();
     }
 
     real_t Xopt_realt[_num_var];
@@ -345,13 +346,14 @@ VectorXd CQuadraticProgram::SolveQPoases(const int &num_max_iter, bool MPC)
     }
     int_t nWSR = num_max_iter;
 
-    //_options.printLevel = PL_NONE;
     if (MPC)
         _options.setToMPC();
 
     //_options.boundTolerance = 1E-6;
     //_options.boundRelaxation = 1E-6;
-    _options.printLevel = PL_DEBUG_ITER;
+    // _options.printLevel = PL_DEBUG_ITER;
+    _options.printLevel = PL_NONE;
+
     _QPprob.setOptions(_options);
 
     returnValue m_status;
@@ -405,7 +407,7 @@ VectorXd CQuadraticProgram::SolveQPoases(const int &num_max_iter, bool MPC)
 
     if (scs != SUCCESSFUL_RETURN)
     {
-        std::cout << "QP SOLVE FAILED" << std::endl;
+        // std::cout << "QP SOLVE FAILED" << std::endl;
         PrintMinProb();
 
         int size_H_ = _H.cols();

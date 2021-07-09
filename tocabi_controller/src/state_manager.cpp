@@ -5,10 +5,19 @@ using namespace TOCABI;
 
 StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc_global.rd_)
 {
+<<<<<<< HEAD
     string urdf_path;
 
     ros::param::get("/tocabi_controller/urdf_path", urdf_path);
 
+=======
+    string t_path_ = ros::package::getPath("tocabi_description");
+    // string urdf_path = t_path_ + "/robots/dyros_tocabi.urdf";
+    string urdf_path;
+    ros::param::get("/tocabi_controller/urdf_path", urdf_path); // add by dg
+    cout<<"URDF PATH: "<<urdf_path<<endl;
+    
+>>>>>>> allegro_qb_added
     bool verbose = false;
 
     RigidBodyDynamics::Addons::URDFReadFromFile(urdf_path.c_str(), &model_local_, true, verbose);
