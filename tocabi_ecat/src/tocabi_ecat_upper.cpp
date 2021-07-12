@@ -657,24 +657,24 @@ void *ethercatThread1(void *data)
                     ec_send_processdata();
                 }
 
-                cout << "ELMO 1 : Waiting for lowerecat Ready" << endl;
+                // cout << "ELMO 1 : Waiting for lowerecat Ready" << endl;
 
-                while (!shm_msgs_->lowerReady)
-                {
-                    std::this_thread::sleep_for(std::chrono::microseconds(1));
-                }
+                // while (!shm_msgs_->lowerReady)
+                // {
+                //     std::this_thread::sleep_for(std::chrono::microseconds(1));
+                // }
 
-                clock_gettime(CLOCK_MONOTONIC, &ts);
+                // clock_gettime(CLOCK_MONOTONIC, &ts);
 
-                shm_msgs_->tv_sec = ts.tv_sec;
-                shm_msgs_->tv_nsec = ts.tv_nsec;
-                shm_msgs_->ecatTimerSet = true;
+                // shm_msgs_->tv_sec = ts.tv_sec;
+                // shm_msgs_->tv_nsec = ts.tv_nsec;
+                // shm_msgs_->ecatTimerSet = true;
 
-                cout << "ELMO 1 : Timer Set " << endl;
+                // cout << "ELMO 1 : Timer Set " << endl;
 
-                cout << "ELMO 1 : Control Mode Start ... " << endl;
+                cout << cgreen << "ELMO 1 : Control Mode Start ... " << creset << endl;
 
-                memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ELMO_DOF);
+                //memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ELMO_DOF);
                 st_start_time = std::chrono::steady_clock::now();
                 ////////////////////////////////////////////////////////////////////////////////////////////
                 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -860,7 +860,6 @@ void *ethercatThread1(void *data)
                             txPDO[i]->targetTorque = (int)0;
                         }
                     }
-
 
                     if (ec_slave[0].hasdc)
                     {

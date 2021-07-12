@@ -5,6 +5,7 @@
 #include <atomic>
 #include <sys/shm.h>
 #include <sys/ipc.h>
+#include <time.h>
 
 //per link
 //Jac * 4
@@ -27,6 +28,8 @@ typedef struct SHMmsgs
     std::atomic<int> statusCount2;
     std::atomic<int> statusWriting;
     std::atomic<bool> triggerS1;
+
+    struct timespec ts;
 
     int status[MODEL_DOF];
     float torqueActual[MODEL_DOF];

@@ -57,6 +57,7 @@ git clone https://github.com/saga0619/tocabi_avatar
 
 ## GUI
 ```sh
+sudo apt install qtbase5-private-dev libqt5x11extras5*
 cd catkin_ws/src
 git clone https://github.com/saga0619/tocabi_gui
 ```
