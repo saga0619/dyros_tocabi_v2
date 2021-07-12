@@ -345,7 +345,7 @@ bool loadCommutationLog();
 chrono::system_clock::time_point commutation_save_time_;
 
 bool saveZeroPoint();
-bool loadZeroPoint();
+bool loadZeroPoint(bool force = false);
 
 void emergencyOff();
 

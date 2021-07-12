@@ -85,6 +85,7 @@ typedef struct SHMmsgs
 
     bool safety_reset_lower_signal = false;
     bool safety_reset_upper_signal = false;
+    bool force_load_saved_signal = false;
 
 } SHMmsgs;
 

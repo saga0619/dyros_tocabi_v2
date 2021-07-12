@@ -1172,6 +1172,10 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         dc_.positionControlSwitch = true;
     }
+    else if(msg->data == "forceload")
+    {
+        dc_.tc_shm_->force_load_saved_signal = true;
+    }
 
     //Controlling GUI
 }

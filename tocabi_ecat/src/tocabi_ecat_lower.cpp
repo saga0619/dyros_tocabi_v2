@@ -138,6 +138,7 @@ void *ethercatThread1(void *data)
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
     shm_msgs_->lowerReady = false;
+    shm_msgs_->force_load_saved_signal = false;
 
     if (ec_init(ifname_lower))
     {
@@ -438,6 +439,13 @@ void *ethercatThread1(void *data)
                         }
                     }
 
+                    if (shm_msgs_->force_load_saved_signal)
+                    {
+                        loadZeroPoint(true);
+                        cout << "ELMO 1 : force load ZP" << endl;
+                        break;
+                    }
+
                     bool waitcm = true;
                     for (int i = 0; i < ec_slavecount; i++)
                         waitcm = waitcm && elmost[i].commutation_not_required;
@@ -486,7 +494,7 @@ void *ethercatThread1(void *data)
 
                             if (reachedInitial[slave - 1])
                             {
-                                q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
+                                q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_ + slave - 1] * elmo_axis_direction[START_N + slave - 1];
                                 hommingElmo[START_N + slave - 1] =
                                     (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
                                 q_dot_elmo_[START_N + slave - 1] =
@@ -511,7 +519,7 @@ void *ethercatThread1(void *data)
                                 txPDO[slave - 1]->maxTorque = (uint16)500; // originaly 1000
                             }
                         }
-                    }
+                    }N
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         q_[JointMap2[START_N + i]] = q_elmo_[START_N + i];
@@ -1108,12 +1116,12 @@ void checkJointSafety()
                 //joint limit reached
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
                 ElmoSafteyMode[i] = 1;
-                std::cout << "safety lock : joint limit " << i << ELMO_NAME[i] << std::endl;
+                std::cout << "safety lock : joint limit " << i << ELMO_NAME[START_N + i] << std::endl;
             }
 
             if (joint_velocity_limit[START_N + i] < abs(q_dot_elmo_[START_N + i]))
             {
-                std::cout << "safety lock : velocity limit " << i << ELMO_NAME[i] << std::endl;
+                std::cout << "safety lock : velocity limit " << i << ELMO_NAME[START_N + i] << std::endl;
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_VELOCITY_LIMIT;
                 ElmoSafteyMode[i] = 1;
             }
@@ -1335,7 +1343,7 @@ bool saveZeroPoint()
     return true;
 }
 
-bool loadZeroPoint()
+bool loadZeroPoint(bool force)
 {
     std::ifstream ifs(zeropoint_cache_file, std::ios::binary);
 
@@ -1347,13 +1355,14 @@ bool loadZeroPoint()
 
     std::chrono::system_clock::rep file_time_rep;
 
+    std::cout << "ELMO 2 : ";
     ifs.read(reinterpret_cast<char *>(&file_time_rep), sizeof file_time_rep);
-    double getzp[ELMO_DOF];
-    for (int i = 0; i < ELMO_DOF; i++)
+    double getzp[MODEL_DOF];
+    for (int i = 0; i < MODEL_DOF; i++)
     {
         ifs.read(reinterpret_cast<char *>(&getzp[i]), sizeof(double));
-        q_zero_elmo_[i] = getzp[i];
     }
+
 
     ifs.close();
 
@@ -1362,12 +1371,15 @@ bool loadZeroPoint()
 
     std::chrono::duration<double> commutation_before = std::chrono::system_clock::now() - cache_valid_time;
 
-    loadCommutationLog();
-
-    if (commutation_save_time_ > cache_valid_time)
+    if (!force)
     {
-        std::cout << "commutation saved time is longer then cached valid time" << std::endl;
-        return false;
+        loadCommutationLog();
+
+        if (commutation_save_time_ > cache_valid_time)
+        {
+            std::cout << "commutation saved time is longer then cached valid time" << std::endl;
+            return false;
+        }
     }
 
     //std::cout << "ZP saved at " << std::ctime(&file_time);
@@ -1378,8 +1390,14 @@ bool loadZeroPoint()
     //check commutation time save point
 
     for (int i = 0; i < ELMO_DOF_LOWER; i++)
+    {
         state_zp_[JointMap2[START_N + i]] = ZSTATE::ZP_SUCCESS;
-
+        q_zero_elmo_[START_N + i] = getzp[START_N + i];
+    }
+    for (int i = 0; i < PART_ELMO_DOF; i++)
+    {
+        std::cout << q_zero_elmo_[START_N + i] << "  ";
+    }
     return true;
 }
 

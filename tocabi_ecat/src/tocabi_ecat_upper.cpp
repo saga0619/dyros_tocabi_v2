@@ -137,6 +137,7 @@ void *ethercatThread1(void *data)
 {
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
+    shm_msgs_->force_load_saved_signal = false;
 
     shm_msgs_->ecatTimerSet = false;
     if (ec_init(ifname_upper))
@@ -436,6 +437,13 @@ void *ethercatThread1(void *data)
                             }
                             pub_once = false;
                         }
+                    }
+
+                    if (shm_msgs_->force_load_saved_signal)
+                    {
+                        loadZeroPoint(true);
+                        cout << "ELMO 1 : force load ZP" << endl;
+                        break;
                     }
 
                     bool waitcm = true;
@@ -1311,7 +1319,7 @@ bool saveZeroPoint()
     return true;
 }
 
-bool loadZeroPoint()
+bool loadZeroPoint(bool force)
 {
     std::ifstream ifs(zeropoint_cache_file, std::ios::binary);
 
@@ -1322,13 +1330,12 @@ bool loadZeroPoint()
     }
 
     std::chrono::system_clock::rep file_time_rep;
-
+    std::cout<<"ELMO 1 : ";
     ifs.read(reinterpret_cast<char *>(&file_time_rep), sizeof file_time_rep);
     double getzp[PART_ELMO_DOF];
     for (int i = 0; i < PART_ELMO_DOF; i++)
     {
         ifs.read(reinterpret_cast<char *>(&getzp[i]), sizeof(double));
-        q_zero_elmo_[i] = getzp[i];
     }
 
     ifs.close();
@@ -1338,12 +1345,15 @@ bool loadZeroPoint()
 
     std::chrono::duration<double> commutation_before = std::chrono::system_clock::now() - cache_valid_time;
 
-    loadCommutationLog();
-
-    if (commutation_save_time_ > cache_valid_time)
+    if (!force)
     {
-        std::cout << "commutation saved time is longer then cached valid time" << std::endl;
-        return false;
+        loadCommutationLog();
+
+        if (commutation_save_time_ > cache_valid_time)
+        {
+            std::cout << "commutation saved time is longer then cached valid time" << std::endl;
+            return false;
+        }
     }
 
     //std::cout << "ZP saved at " << std::ctime(&file_time);
@@ -1352,8 +1362,13 @@ bool loadZeroPoint()
     //   cout << getzp[i] << endl;
 
     //check commutation time save point
-    for (int i = 0; i < ELMO_DOF_UPPER; i++)
+    for (int i = 0; i < PART_ELMO_DOF; i++)
+    {
         state_zp_[JointMap2[i]] = ZSTATE::ZP_SUCCESS;
+        q_zero_elmo_[i] = getzp[i];
+        std::cout << q_zero_elmo_[i] << "  ";
+
+    }
 
     return true;
 }
