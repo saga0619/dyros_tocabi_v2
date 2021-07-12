@@ -69,7 +69,7 @@ find_package(tocabi_avatar QUIET)
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES tocabi_controller
-   CATKIN_DEPENDS roscpp roslib tocabi_lib tocabi_msgs tocabi_ecat
+   CATKIN_DEPENDS roscpp roslib tocabi_lib tocabi_msgs
 #  DEPENDS system_lib
 )
 
