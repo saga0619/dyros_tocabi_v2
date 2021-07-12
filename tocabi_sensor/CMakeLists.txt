@@ -12,7 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   geometry_msgs
-  tocabi_ecat
+  tocabi_lib
   tf2
   tf2_ros
 )

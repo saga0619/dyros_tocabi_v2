@@ -9,7 +9,7 @@
 #include <ros/callback_queue.h>
 
 #include "tocabi_lib/link.h"
-#include "tocabi_ecat/shm_msgs.h"
+#include "shm_msgs.h"
 #include "tocabi_msgs/TaskCommandQue.h"
 #include "tocabi_msgs/TaskCommand.h"
 

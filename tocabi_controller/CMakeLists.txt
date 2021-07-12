@@ -18,7 +18,6 @@ find_package(catkin REQUIRED COMPONENTS
   mujoco_ros_msgs
   tf2
   tf2_ros
-  tocabi_ecat
   tocabi_lib
   tocabi_description
   tocabi_msgs

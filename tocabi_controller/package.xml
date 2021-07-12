@@ -64,9 +64,6 @@
   <build_depend>eigen_conversions</build_depend>
   <build_export_depend>eigen_conversions</build_export_depend>
   <exec_depend>eigen_conversions</exec_depend>
-  <build_depend>tocabi_ecat</build_depend>
-  <build_export_depend>tocabi_ecat</build_export_depend>
-  <exec_depend>tocabi_ecat</exec_depend>
   <build_depend>tocabi_description</build_depend>
   <build_export_depend>tocabi_description</build_export_depend>
   <exec_depend>tocabi_description</exec_depend>

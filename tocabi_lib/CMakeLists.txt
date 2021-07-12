@@ -10,7 +10,6 @@ add_compile_options(-std=c++17 -Ofast)
 find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   roscpp
-  tocabi_ecat
   tocabi_msgs
 )
 
@@ -106,7 +105,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES tocabi_lib
-   CATKIN_DEPENDS eigen_conversions roscpp tocabi_ecat tocabi_msgs
+   CATKIN_DEPENDS eigen_conversions roscpp tocabi_msgs
 #  DEPENDS system_lib
 )
 

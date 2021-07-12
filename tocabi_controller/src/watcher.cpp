@@ -16,7 +16,7 @@
 #include <atomic>
 #include <chrono>
 
-#include "tocabi_ecat/shm_msgs.h"
+#include "shm_msgs.h"
 #include "tocabi_ecat/ecat_settings.h"
 
 int main()

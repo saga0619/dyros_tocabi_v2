@@ -19,7 +19,7 @@
 #include <ethercat.h>
 #include <ros/ros.h>
 #include "tocabi_ecat/ecat_settings.h"
-#include "tocabi_ecat/shm_msgs.h"
+#include "shm_msgs.h"
 
 using namespace std;
 

@@ -2,7 +2,7 @@
 #include <std_msgs/Int32MultiArray.h>
 
 #include "tocabi_sensor/mx5_imu.h"
-#include "tocabi_ecat/shm_msgs.h"
+#include "shm_msgs.h"
 
 class SensorManager
 {
