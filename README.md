@@ -58,7 +58,7 @@ git clone https://github.com/saga0619/tocabi_avatar
 ## GUI
 ```sh
 cd catkin_ws/src
-git clone -b v2.1 https://github.com/saga0619/tocabi_gui
+git clone https://github.com/saga0619/tocabi_gui
 ```
 
 ## Simulator
