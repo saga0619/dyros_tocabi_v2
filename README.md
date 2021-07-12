@@ -44,11 +44,13 @@ git clone --recurse-submodules https://github.com/saga0619/dyros_tocabi_v2
 
 ## CustomController (optional)
 ```sh
-git clone https://github.com/saga0619/tocai_cc
+cd catkin_ws/src
+git clone https://github.com/saga0619/tocabi_cc
 ```
 
 ## AvatarController (optional)
 ```sh
+cd catkin_ws/src
 git clone https://github.com/saga0619/tocabi_avatar
 ```
 
@@ -65,13 +67,16 @@ cd catkin_ws/src
 git clone https://github.com/saga0619/mujoco_ros_sim
 ```
 
-### All-in-One Requirements installation
+## All-in-One Requirements installation
 ```sh
 cd catkin_ws/src/dyros_tocabi_v2
 sudo ./install_prereq.sh
 ```
 
-### Individual installation (If All-in-One script is not working ...)
++ launch ./install_prereq.sh and select simulation installation or realrobot installation.
+
+
+### Individual installation (**If All-in-One script is not working ...)
 
 #### 1. mscl installation
  * download [MSCL](https://github.com/LORD-MicroStrain/MSCL/releases/download/v52.2.1/c++-mscl_52.2.1_amd64.deb) 

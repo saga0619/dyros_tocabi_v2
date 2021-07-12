@@ -16,6 +16,7 @@
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <vector>
+#include <geometry_msgs/Pose.h>
 
 #define MODEL_DOF 33
 #define ENDEFFECTOR_NUMBER 4
@@ -920,6 +921,22 @@ namespace DyrosMath
         return qr.colsPermutation() * Rpsinv2 * qr.householderQ().transpose();
       }
     }
+  }
+
+  static Eigen::Matrix4d pose2Tmat(const geometry_msgs::Pose &p_)
+  {
+    Eigen::Quaterniond q_(p_.orientation.w, p_.orientation.x, p_.orientation.y, p_.orientation.z);
+
+    Eigen::Matrix4d ret;
+    ret.setIdentity();
+
+    ret.block(0, 0, 3, 3) = q_.normalized().toRotationMatrix();
+
+    ret(0, 3) = p_.position.x;
+    ret(1, 3) = p_.position.y;
+    ret(2, 3) = p_.position.z;
+
+    return ret;
   }
 
   static Eigen::MatrixXd dc_inv_QR(const Eigen::MatrixXd &A, const Eigen::MatrixXd &W)
