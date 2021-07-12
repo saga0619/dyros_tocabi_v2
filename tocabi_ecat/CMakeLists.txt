@@ -27,6 +27,7 @@ if(${COMPILE_REAL})
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS roscpp)
+find_package(tocabi_lib COMPONENTS)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -83,6 +84,7 @@ include_directories(
   include
   /usr/local/include/soem
   ${catkin_INCLUDE_DIRS}
+  ${tocabi_lib_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
