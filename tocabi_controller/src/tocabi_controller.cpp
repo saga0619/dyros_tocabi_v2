@@ -92,9 +92,30 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
             static VectorQd zero_m = VectorQd::Zero();
 
+            if (dc_.positionControlSwitch)
+            {
+                dc_.positionControlSwitch = false;
+                rd_.q_desired = rd_.q_;
+                rd_.positionHoldSwitch = true;
+                rd_.pc_mode = true;
+
+                std::cout << "position hold switch " << std::endl;
+
+                for (int i = 0; i < MODEL_DOF; i++)
+                {
+                    std::cout << rd_.pos_kp_v[i] << "  " << rd_.pos_kv_v[i] << std::endl;
+                }
+            }
+
             if (rd_.pc_mode)
             {
-                rd_.q_desired = DyrosMath::cubicVector(rd_.control_time_, rd_.pc_time_, rd_.pc_time_ + rd_.pc_traj_time_, rd_.pc_pos_init, rd_.pc_pos_des, zero_m, zero_m);
+                if (rd_.positionHoldSwitch)
+                {
+                }
+                else
+                {
+                    rd_.q_desired = DyrosMath::cubicVector(rd_.control_time_, rd_.pc_time_, rd_.pc_time_ + rd_.pc_traj_time_, rd_.pc_pos_init, rd_.pc_pos_des, zero_m, zero_m);
+                }
 
                 for (int i = 0; i < MODEL_DOF; i++)
                 {
@@ -512,15 +533,17 @@ void TocabiController::SendCommand(Eigen::VectorQd torque_command)
         dc_.rd_.tc_run = false;
     }
 
-    memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
+    //memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
+    
     for (int i = 0; i < MODEL_DOF; i++)
     {
+        dc_.tc_shm_->commandMode[i] = 1;
         dc_.tc_shm_->torqueCommand[i] = torque_command[i];
     }
 
     if (dc_.E1Status)
     {
-        memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
+        //memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
         for (int i = 0; i < MODEL_DOF; i++)
         {
             dc_.tc_shm_->torqueCommand[i] = dc_.Kps[i] * (dc_.rd_.q_desired(i) - dc_.rd_.q_(i)) + dc_.Kvs[i] * (dc_.rd_.q_dot_desired(i) - dc_.rd_.q_dot_(i));
@@ -530,14 +553,14 @@ void TocabiController::SendCommand(Eigen::VectorQd torque_command)
     if (dc_.E2Status)
     {
 
-        memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
+        //memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
         for (int i = 0; i < MODEL_DOF; i++)
-            dc_.tc_shm_->torqueCommand[i] = -4.0 * dc_.Kvs[i] * dc_.rd_.q_dot_(i);
+            dc_.tc_shm_->torqueCommand[i] =  dc_.Kvs[i] * dc_.rd_.q_dot_(i);
     }
 
     if (dc_.emergencyStatus)
     {
-        memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
+        //memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
         for (int i = 0; i < MODEL_DOF; i++)
             dc_.tc_shm_->torqueCommand[i] = 0.0;
     }
@@ -581,6 +604,7 @@ void TocabiController::PositionCommandCallback(const tocabi_msgs::positionComman
     rd_.pc_pos_init = rd_.q_;
     rd_.pc_mode = true;
     rd_.pc_gravity = msg->gravity;
+    rd_.positionHoldSwitch = false;
 
     std::cout << "position command received" << std::endl;
 }

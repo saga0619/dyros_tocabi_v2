@@ -170,6 +170,7 @@ struct RobotData
     bool data_print_switch = false;
     bool data_print = false;
     bool zmp_feedback_control = false;
+    bool positionHoldSwitch = false;
     bool check = false;
     bool qp2nd = false;
     bool signal_yaw_init = false;
@@ -233,6 +234,8 @@ struct DataContainer
     bool imuResetSwtich = false;
     bool stateEstimateSwitch = false;
     bool safetyResetSwitch = false;
+
+    bool positionControlSwitch = false;
 
     bool useSimVirtual = false;
 

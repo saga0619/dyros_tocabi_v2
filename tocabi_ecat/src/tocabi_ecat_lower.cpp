@@ -48,13 +48,13 @@ void ethercatCheck()
                 ec_group[currentgroup].docheckstate = TRUE;
                 if (ec_slave[slave].state == (EC_STATE_SAFE_OP + EC_STATE_ERROR))
                 {
-                    printf("%sERROR : slave %d is in SAFE_OP + ERROR, attempting ack.%s\n", cred.c_str(), slave - 1, creset.c_str());
+                    printf("%sERROR 2: slave %d is in SAFE_OP + ERROR, attempting ack.%s\n", cred.c_str(), slave - 1, creset.c_str());
                     ec_slave[slave].state = (EC_STATE_SAFE_OP + EC_STATE_ACK);
                     ec_writestate(slave);
                 }
                 else if (ec_slave[slave].state == EC_STATE_SAFE_OP)
                 {
-                    printf("%sWARNING : slave %d is in SAFE_OP, change to OPERATIONAL.%s\n", cred.c_str(), slave - 1, creset.c_str());
+                    printf("%sWARNING 2: slave %d is in SAFE_OP, change to OPERATIONAL.%s\n", cred.c_str(), slave - 1, creset.c_str());
                     ec_slave[slave].state = EC_STATE_OPERATIONAL;
                     ec_writestate(slave);
                 }
@@ -63,7 +63,7 @@ void ethercatCheck()
                     if (ec_reconfig_slave(slave, EC_TIMEOUTMON))
                     {
                         ec_slave[slave].islost = FALSE;
-                        printf("%sMESSAGE : slave %d reconfigured%s\n", cgreen.c_str(), slave - 1, creset.c_str());
+                        printf("%sMESSAGE 2: slave %d reconfigured%s\n", cgreen.c_str(), slave - 1, creset.c_str());
                     }
                 }
                 else if (!ec_slave[slave].islost)
@@ -73,7 +73,7 @@ void ethercatCheck()
                     if (!ec_slave[slave].state)
                     {
                         ec_slave[slave].islost = TRUE;
-                        printf("%sERROR : slave %d lost %s\n", cred.c_str(), slave - 1, creset.c_str());
+                        printf("%sERROR 2: slave %d lost %s\n", cred.c_str(), slave - 1, creset.c_str());
                     }
                 }
             }
@@ -84,13 +84,13 @@ void ethercatCheck()
                     if (ec_recover_slave(slave, EC_TIMEOUTMON))
                     {
                         ec_slave[slave].islost = FALSE;
-                        printf("%sMESSAGE : slave %d recovered%s\n", cgreen.c_str(), slave - 1, creset.c_str());
+                        printf("%sMESSAGE 2: slave %d recovered%s\n", cgreen.c_str(), slave - 1, creset.c_str());
                     }
                 }
                 else
                 {
                     ec_slave[slave].islost = FALSE;
-                    printf("%sMESSAGE : slave %d found%s\n", cgreen.c_str(), slave - 1, creset.c_str());
+                    printf("%sMESSAGE 2: slave %d found%s\n", cgreen.c_str(), slave - 1, creset.c_str());
                 }
             }
         }
@@ -137,6 +137,7 @@ void *ethercatThread1(void *data)
 {
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
+    shm_msgs_->lowerReady = false;
 
     if (ec_init(ifname_lower))
     {
@@ -148,7 +149,7 @@ void *ethercatThread1(void *data)
         //ec_config_init()
         if (ec_config_init(FALSE) > 0) // TRUE when using configtable to init slaves, FALSE otherwise
         {
-            printf("ELMO 2 : %d slaves found and configured.\n", ec_slavecount); // ec_slavecount -> slave num
+            printf("ELMO 2 : %d slaves found and configured, desired : %d \n", ec_slavecount, PART_ELMO_DOF); // ec_slavecount -> slave num
             if (ec_slavecount == PART_ELMO_DOF)
             {
                 ecat_number_ok = true;
@@ -251,27 +252,9 @@ void *ethercatThread1(void *data)
 
                 struct timespec ts;
                 //clock_gettime(CLOCK_MONOTONIC, &ts);
-                shm_msgs_->lowerReady = true;
-                cout << "ELMO 2 : Ready to Sync " << endl;
 
-                //wait for upper timer set.
-                while (!shm_msgs_->ecatTimerSet)
-                {
-                    std::this_thread::sleep_for(std::chrono::microseconds(1));
-                }
+                clock_gettime(CLOCK_MONOTONIC, &ts);
 
-                ts.tv_sec = shm_msgs_->tv_sec;
-                ts.tv_nsec = shm_msgs_->tv_nsec;
-                struct timespec ts_check;
-                clock_gettime(CLOCK_MONOTONIC, &ts_check);
-
-                int sync_delay = ts_check.tv_nsec - ts.tv_nsec;
-                if (sync_delay < 0)
-                {
-                    sync_delay += SEC_IN_NSEC;
-                }
-
-                printf("ELMO 2 : Timer Synced! delay : %5.3f us", (double)sync_delay / 1000.0);
 
                 ts.tv_nsec += PERIOD_NS;
                 while (ts.tv_nsec >= SEC_IN_NSEC)
@@ -675,7 +658,32 @@ void *ethercatThread1(void *data)
                     ec_send_processdata();
                 }
 
-                cout << "ELMO : Control Mode Start ... " << endl;
+
+                cout << "ELMO 2 : Ready to Sync " << endl;
+                shm_msgs_->lowerReady = true;
+
+                //wait for upper timer set.
+                while (!shm_msgs_->ecatTimerSet)
+                {
+                    std::this_thread::sleep_for(std::chrono::microseconds(1));
+                }
+
+                ts.tv_sec = shm_msgs_->tv_sec;
+                ts.tv_nsec = shm_msgs_->tv_nsec;
+                struct timespec ts_check;
+
+                clock_gettime(CLOCK_MONOTONIC, &ts_check);
+                int sync_delay = ts_check.tv_nsec - ts.tv_nsec;
+                if (sync_delay < 0)
+                {
+                    sync_delay += SEC_IN_NSEC;
+                }
+                printf("ELMO 2 : Timer Synced! delay : %5.3f us", (double)sync_delay / 1000.0);
+
+
+
+
+                cout << "ELMO 2 : Control Mode Start ... " << endl;
 
                 memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ELMO_DOF);
                 st_start_time = std::chrono::steady_clock::now();
@@ -723,6 +731,13 @@ void *ethercatThread1(void *data)
 
                     //
 
+                    ts.tv_nsec += PERIOD_NS + toff;
+                    while (ts.tv_nsec >= SEC_IN_NSEC)
+                    {
+                        ts.tv_sec++;
+                        ts.tv_nsec -= SEC_IN_NSEC;
+                    }
+
                     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
                     clock_gettime(CLOCK_MONOTONIC, &ts1);
@@ -733,12 +748,6 @@ void *ethercatThread1(void *data)
                         lat += SEC_IN_NSEC;
                     }
 
-                    ts.tv_nsec += PERIOD_NS;
-                    while (ts.tv_nsec >= SEC_IN_NSEC)
-                    {
-                        ts.tv_sec++;
-                        ts.tv_nsec -= SEC_IN_NSEC;
-                    }
 
                     chrono::steady_clock::time_point rcv2_ = chrono::steady_clock::now();
                     //std::this_thread::sleep_for(std::chrono::microseconds(30));
@@ -818,7 +827,7 @@ void *ethercatThread1(void *data)
                         {
                             ElmoMode[i] = EM_TORQUE;
                         }
-                        else if (command_mode_elmo_[START_N + i] == 1)
+                        else if (command_mode_elmo_[START_N + i] == 2)
                         {
                             ElmoMode[i] = EM_POSITION;
                         }
@@ -846,7 +855,8 @@ void *ethercatThread1(void *data)
                         {
                             txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
                             txPDO[i]->targetTorque = (int)(torque_desired_elmo_[START_N + i] * NM2CNT[START_N + i] * elmo_axis_direction[START_N + i]);
-                            txPDO[i]->maxTorque = maxTorque;
+                            txPDO[i]->maxTorque = (uint16)maxTorque;
+
                             /*
                             if (dc.customGain)
                             {
@@ -1255,7 +1265,10 @@ void getJointCommand()
     if (commandCount <= commandCount_before)
     {
         if (errorCount != commandCount)
-            std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << " before t :" << ct_before << std::endl;
+        {
+            //std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << " before t :" << ct_before << std::endl;
+
+        }
         errorCount = commandCount;
     }
     ct_before = control_time_real_;
@@ -1266,6 +1279,8 @@ void getJointCommand()
 
 bool saveCommutationLog()
 {
+    std::cout<<"ELMO 2 : COMMUTATION SAVED!"<<std::endl;
+
     std::ofstream comfs(commutation_cache_file, std::ios::binary);
 
     if (!comfs.is_open())

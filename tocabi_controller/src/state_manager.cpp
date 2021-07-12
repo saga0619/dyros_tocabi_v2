@@ -120,7 +120,7 @@ void *StateManager::StateThread()
 
             GetJointData(); //0.246 us //w/o march native 0.226
             GetSensorData();
-            
+
             dc_.tc_shm_->triggerS1 = false;
 
             InitYaw();
@@ -1109,6 +1109,10 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
         {
             dc_.rd_.tc_run = false;
         }
+        else
+        {
+            dc_.positionControlSwitch = false;
+        }
     }
     else if (msg->data == "inityaw")
     {
@@ -1163,6 +1167,10 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
         {
             rd_gl_.semode = false;
         }
+    }
+    else if (msg->data == "positioncontrol")
+    {
+        dc_.positionControlSwitch = true;
     }
 
     //Controlling GUI

@@ -5,7 +5,7 @@
 SensorManager::SensorManager()
 {
     gui_command_sub_ = nh_.subscribe("/tocabi/command", 100, &SensorManager::GuiCommandCallback, this);
-    gui_state_pub_ = nh_.advertise<std_msgs::Int32MultiArray>("/tocabi/systemstate", 100);
+    gui_state_pub_ = nh_.advertise<std_msgs::Int8MultiArray>("/tocabi/systemstate", 100);
 }
 
 void SensorManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)

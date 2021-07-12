@@ -31,8 +31,8 @@
 
 #define FORCE_CONTROL_MODE false
 
-const char ifname_lower[] = "eno2";
-const char ifname_upper[] = "enp4s0";
+const char ifname_lower[] = "enp5s0";
+const char ifname_upper[] = "eno2";
 
 const int starting_point = ELMO_DOF_UPPER;
 

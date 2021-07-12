@@ -1,5 +1,5 @@
 #include <std_msgs/String.h>
-#include <std_msgs/Int32MultiArray.h>
+#include <std_msgs/Int8MultiArray.h>
 
 #include "tocabi_sensor/mx5_imu.h"
 #include "shm_msgs.h"
