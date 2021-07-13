@@ -24,8 +24,6 @@
 
 #define UPPERBODY_DOF 21
 
-#define CYCLETIME 500
-
 #define PERIOD_NS 500000
 #define SEC_IN_NSEC 1000000000
 
