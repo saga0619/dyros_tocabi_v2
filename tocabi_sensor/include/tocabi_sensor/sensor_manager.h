@@ -10,11 +10,11 @@ public:
     SensorManager();
     ~SensorManager() {}
 
-    void *IMUThread(void);
-    static void *IMUthread_starter(void *context) { return ((SensorManager *)context)->IMUThread(); }
+    void *SensorThread(void);
+    static void *SensorThread_starter(void *context) { return ((SensorManager *)context)->SensorThread(); }
 
-    void *FTThread(void);
-    static void *FTthread_starter(void *context) { return ((SensorManager *)context)->FTThread(); }
+    // void *FTThread(void);
+    // static void *FTthread_starter(void *context) { return ((SensorManager *)context)->FTThread(); }
 
     SHMmsgs *shm_;
     ros::NodeHandle nh_;
@@ -24,4 +24,5 @@ public:
     void GuiCommandCallback(const std_msgs::StringConstPtr &msg);
 
     bool imu_reset_signal_ = false;
+    bool ft_calib_signal_ = false;
 };

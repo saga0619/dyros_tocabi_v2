@@ -15,9 +15,13 @@ void SensorManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         imu_reset_signal_ = true;
     }
+    else if(msg->data == "ftcalib")
+    {
+        ft_calib_signal_ = true;
+    }
 }
 
-void *SensorManager::IMUThread(void)
+void *SensorManager::SensorThread(void)
 {
 
     mscl::Connection con_;
@@ -85,6 +89,12 @@ void *SensorManager::IMUThread(void)
 
 
             //FT sensor related functions ... 
+
+            if(ft_calib_signal_)
+            {
+                std::cout<<"FT : start calibration ..."<<std::endl;
+                ft_calib_signal_ = false;
+            }
 
             shm_->ftWriting = true;
 
@@ -159,7 +169,7 @@ int main(int argc, char **argv)
         printf("attr setinheritsched failed ");
     }
 
-    if (pthread_create(&thread, &attr, &SensorManager::IMUthread_starter, &sm_))
+    if (pthread_create(&thread, &attr, &SensorManager::SensorThread_starter, &sm_))
     {
         printf("threads[0] create failed\n");
     }
