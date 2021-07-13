@@ -1,6 +1,6 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Int8MultiArray.h>
-
+#include "sensoray826/sensoray826.h"
 #include "tocabi_sensor/mx5_imu.h"
 #include "shm_msgs.h"
 

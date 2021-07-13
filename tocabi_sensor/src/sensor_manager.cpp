@@ -26,6 +26,13 @@ void *SensorManager::SensorThread(void)
 
     mscl::Connection con_;
     bool imu_ok = true;
+    bool is_ft_board_ok = true;
+    bool ft_calib_init = false;
+    bool ft_calib_ui = false;
+    bool ft_calib_finish = false;
+    bool ft_init_write = false;
+    bool ft_init_load = false;
+    int ft_cycle_count;
 
     try
     {
@@ -36,6 +43,17 @@ void *SensorManager::SensorThread(void)
         std::cout << "imu connection errer " << err.what() << std::endl;
         imu_ok = false;
     }
+
+    sensoray826_dev ft = sensoray826_dev(1);
+    is_ft_board_ok = ft.open();
+
+    if(!is_ft_board_ok)
+    {
+         std::cout << "ft connection error, error code" << std::endl;
+    }
+
+    ft.analogSingleSamplePrepare(slotAttrs, 16);
+    ft.initCalibration();
 
     if (imu_ok)
     {
@@ -85,22 +103,116 @@ void *SensorManager::SensorThread(void)
             //std::cout<<shm_->pos_virtual[3]<<shm_->pos_virtual[4]<<shm_->pos_virtual[5]<<shm_->pos_virtual[6]<<std::endl;
             shm_->imuWriting = false;
 
-
-
-
             //FT sensor related functions ... 
 
-            if(ft_calib_signal_)
+            ft.analogOversample();
+            std::string tmp;
+            int i = 0;
+
+            if (ft_init_load == false)
             {
-                std::cout<<"FT : start calibration ..."<<std::endl;
-                ft_calib_signal_ = false;
+            //  ft_init_log.open(ft_init_path, ios_base::in);
+
+            /*  if (ft_init_log.is_open())
+                {
+                    while (getline(ft_init_log, tmp))
+                    {
+                        if (i < 6)
+                        {
+                            ft.leftFootBias[i] = atof(tmp.c_str());
+                        }
+                        else
+                        {
+                            ft.rightFootBias[i - 6] = atof(tmp.c_str());
+                        }
+                        i++;
+                    }
+                    ft_init_load = true;
+                    ft_init_log.close();
+                    pub_to_gui(dc, "ft bias loaded");
+                    dc.ft_state = 2;
+                }
+                else
+                {
+                    pub_to_gui(dc, "ft bias load failed");
+                }*/  
+                   
+                if(ft_calib_signal_) //enabled by gui
+                {
+                    //dc.ft_state = 1;
+                    if (ft_calib_init == false)
+                    {
+                        ft_cycle_count = cycle_count;
+                        ft_calib_init = true;
+
+                        for (int i = 0; i < 6; i++)
+                        {
+                            ft._calibLFTData[i] = 0.0;
+                            ft._calibRFTData[i] = 0.0;
+                        }
+
+                        //pub_to_gui(dc, "ft sensor : calibration ... ");
+                    }
+                    if (cycle_count/2 < 5 * SAMPLE_RATE + ft_cycle_count/2)
+                    {
+                        if (cycle_count/2 == 5 * SAMPLE_RATE + ft_cycle_count/2 - 1)
+                        {
+                            ft_calib_finish = true;
+                        //    dc.ftcalib = false;
+                        }
+
+                        std::cout<<"FT : start calibration ..."<<std::endl;
+                        ft.calibrationFTData(ft_calib_finish);      
+                        ft_calib_signal_ = false;
+                    }
+                }                    
             }
+            else
+            {
+                if (ft_calib_finish == false)
+                {
+                }
+                else
+                {
+                    ft_calib_init = false;
+                }
+            }
+
+            if (ft_calib_ui == false && ft_calib_finish == true)
+            {
+                /*    dc.print_ft_info_tofile = true;
+                pub_to_gui(dc, "ft sensor : calibration finish ");
+                pub_to_gui(dc, "ftgood");
+                ROS_INFO("calibration finish");
+
+                ft_init_log.open(ft_init_path, ios_base::out);
+                if (ft_init_log.is_open())
+                {
+                    for (int i = 0; i < 6; i++)
+                    {
+                    //    ft_init_log << ft.leftFootBias[i] << "\n";
+                    }
+
+                    for (int i = 0; i < 6; i++)
+                    {
+                    //    ft_init_log << ft.rightFootBias[i] << "\n";
+                    }
+                }
+                ft_init_log.close();
+                dc.ft_state = 2;
+                ft_calib_ui = true;*/
+            }
+
+            ft.computeFTData(ft_calib_finish);
 
             shm_->ftWriting = true;
 
             //Write FT data to shm here
-            //for (int i = 0; i < 12; i++)
-            //    shm_->ftSensor[i] = ftdata[i];
+            for(int i = 0; i < 6; i++)
+            {
+                shm_->ftSensor[i] = ft.leftFootBias[i];
+                shm_->ftSensor[i + 6] = ft.rightFootBias[i];
+            }
             
             shm_->ftWriting = false;
 
