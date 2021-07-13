@@ -42,7 +42,14 @@ void MX5IMU::resetEFIMU()
 
 sensor_msgs::Imu MX5IMU::getIMU(int &imu_state)
 {
-    mscl::MipDataPackets packets = node.getDataPackets();
+    mscl::MipDataPackets packets = node.getDataPackets(1, 1);
+
+    // if (packets.size() == 0)
+    // {
+    //     imu_state = -1;
+    // }
+    // else
+    // {
 
     //std::cout << "h0" << std::endl;
     for (mscl::MipDataPacket packet : packets)
@@ -53,6 +60,7 @@ sensor_msgs::Imu MX5IMU::getIMU(int &imu_state)
         //get the data in the packet
         mscl::MipDataPoints data = packet.data();
         mscl::MipDataPoint dataPoint;
+        packet_num++;
 
         //loop through all the data points in the packet
         for (unsigned int itr = 0; itr < data.size(); itr++)

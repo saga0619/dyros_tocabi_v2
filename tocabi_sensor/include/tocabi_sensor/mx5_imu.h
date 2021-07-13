@@ -29,6 +29,8 @@ public:
     bool rst_pub_once2 = true;
     //tf2_ros::TransformBroadcaster br;
 
+    int packet_num =0;
+
     //Eigen::Vector4d
 
     void initIMU();
