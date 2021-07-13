@@ -55,7 +55,7 @@ void *SensorManager::IMUThread(void)
         {
             ros::spinOnce();
 
-            //std::this_thread::sleep_until(t_begin + cycle_count * std::chrono::microseconds(500));
+            std::this_thread::sleep_until(t_begin + cycle_count * std::chrono::microseconds(1000));
             cycle_count++;
 
             //if signal_ imu reset
@@ -65,28 +65,35 @@ void *SensorManager::IMUThread(void)
                 mx5.resetEFIMU();
                 imu_reset_signal_ = false;
             }
-
             imu_msg = mx5.getIMU(shm_->imu_state);
-
             mx5.checkIMUData();
-
             shm_->imuWriting = true;
-
             shm_->pos_virtual[3] = imu_msg.orientation.x;
             shm_->pos_virtual[4] = imu_msg.orientation.y;
             shm_->pos_virtual[5] = imu_msg.orientation.z;
             shm_->pos_virtual[6] = imu_msg.orientation.w;
-
             shm_->vel_virtual[3] = imu_msg.angular_velocity.x;
             shm_->vel_virtual[4] = imu_msg.angular_velocity.y;
             shm_->vel_virtual[5] = imu_msg.angular_velocity.z;
-
             shm_->imu_acc[0] = imu_msg.linear_acceleration.x;
             shm_->imu_acc[1] = imu_msg.linear_acceleration.y;
             shm_->imu_acc[2] = imu_msg.linear_acceleration.z;
             //std::cout<<shm_->pos_virtual[3]<<shm_->pos_virtual[4]<<shm_->pos_virtual[5]<<shm_->pos_virtual[6]<<std::endl;
-
             shm_->imuWriting = false;
+
+
+
+
+            //FT sensor related functions ... 
+
+            shm_->ftWriting = true;
+
+            //Write FT data to shm here
+            //for (int i = 0; i < 12; i++)
+            //    shm_->ftSensor[i] = ftdata[i];
+            
+            shm_->ftWriting = false;
+
             //std::cout << "while end" << std::endl;
         }
 

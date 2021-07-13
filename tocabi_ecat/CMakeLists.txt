@@ -4,6 +4,13 @@ project(tocabi_ecat)
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11 -O3)
 
+if(${FORCE_REALROBOT} MATCHES ON)
+  message(" forces realrobot compile mode ")
+  ADD_DEFINITIONS(-DCOMPILE_REALROBOT)
+  set(COMPILE_REAL TRUE)
+else()
+
+
 execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RES OUTPUT_STRIP_TRAILING_WHITESPACE)
 message("-- kernel version : " ${UNAME_RES})
 
@@ -18,6 +25,8 @@ else()
   ADD_DEFINITIONS(-DCOMPILE_REALROBOT)
   set(COMPILE_REAL TRUE)
 endif() 
+
+endif()
 
 if(${COMPILE_REAL})
 

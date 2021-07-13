@@ -3,6 +3,30 @@ project(tocabi_sensor)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++17 -Ofast)
+if(${FORCE_REALROBOT} MATCHES ON)
+  message(" forces realrobot compile mode ")
+  ADD_DEFINITIONS(-DCOMPILE_REALROBOT)
+  set(COMPILE_REAL TRUE)
+else()
+
+execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RES OUTPUT_STRIP_TRAILING_WHITESPACE)
+message("-- kernel version : " ${UNAME_RES})
+
+string(FIND ${UNAME_RES} "xenomai" wsloc)
+
+if(${wsloc} EQUAL -1 )
+  message(" simulation only compile mode ")
+  ADD_DEFINITIONS(-DCOMPILE_SIMULATION)
+  set(COMPILE_SIM TRUE)
+else()
+  message(" xenomai detected realrobot compilt mode ")
+  ADD_DEFINITIONS(-DCOMPILE_REALROBOT)
+  set(COMPILE_REAL TRUE)
+endif() 
+
+endif()
+
+if(${COMPILE_REAL})
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -221,3 +245,5 @@ add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+endif()
