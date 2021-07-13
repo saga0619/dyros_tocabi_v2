@@ -494,7 +494,7 @@ void *ethercatThread1(void *data)
 
                             if (reachedInitial[slave - 1])
                             {
-                                q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_ + slave - 1] * elmo_axis_direction[START_N + slave - 1];
+                                q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
                                 hommingElmo[START_N + slave - 1] =
                                     (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
                                 q_dot_elmo_[START_N + slave - 1] =
@@ -519,7 +519,7 @@ void *ethercatThread1(void *data)
                                 txPDO[slave - 1]->maxTorque = (uint16)500; // originaly 1000
                             }
                         }
-                    }N
+                    }
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         q_[JointMap2[START_N + i]] = q_elmo_[START_N + i];
