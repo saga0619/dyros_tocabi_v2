@@ -1,0 +1,53 @@
+# Simulation settings for using moveit_sim_controllers
+moveit_sim_hw_interface:
+  joint_model_group: whole_body
+  joint_model_group_pose: init
+# Settings for ros_control_boilerplate control loop
+generic_hw_control_loop:
+  loop_hz: 300
+  cycle_time_error_threshold: 0.01
+# Settings for ros_control hardware interface
+hardware_interface:
+  joints:
+    - world_vjoint
+    - L_HipYaw_Joint
+    - L_HipRoll_Joint
+    - L_HipPitch_Joint
+    - L_Knee_Joint
+    - L_AnklePitch_Joint
+    - L_AnkleRoll_Joint
+    - R_HipYaw_Joint
+    - R_HipRoll_Joint
+    - R_HipPitch_Joint
+    - R_Knee_Joint
+    - R_AnklePitch_Joint
+    - R_AnkleRoll_Joint
+    - Waist1_Joint
+    - Waist2_Joint
+    - Upperbody_Joint
+    - L_Shoulder1_Joint
+    - L_Shoulder2_Joint
+    - L_Shoulder3_Joint
+    - L_Armlink_Joint
+    - L_Elbow_Joint
+    - L_Forearm_Joint
+    - L_Wrist1_Joint
+    - L_Wrist2_Joint
+    - Neck_Joint
+    - Head_Joint
+    - R_Shoulder1_Joint
+    - R_Shoulder2_Joint
+    - R_Shoulder3_Joint
+    - R_Armlink_Joint
+    - R_Elbow_Joint
+    - R_Forearm_Joint
+    - R_Wrist1_Joint
+    - R_Wrist2_Joint
+  sim_control_mode: 1  # 0: position, 1: velocity
+# Publish all joint states
+# Creates the /joint_states topic necessary in ROS
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 50
+controller_list:
+  []

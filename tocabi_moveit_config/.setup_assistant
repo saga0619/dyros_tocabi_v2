@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: tocabi_description
+    relative_path: robots/dyros_tocabi_with_allegro_qb.urdf
+    xacro_args: ""
+  SRDF:
+    relative_path: config/dyros_tocabi_description.srdf
+  CONFIG:
+    author_name: Suhan Park
+    author_email: psh117@snu.ac.kr
+    generated_timestamp: 1626159627
