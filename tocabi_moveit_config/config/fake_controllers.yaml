@@ -1,0 +1,40 @@
+controller_list:
+  - name: fake_whole_body_controller
+    joints:
+      - world_vjoint
+      - L_HipYaw_Joint
+      - L_HipRoll_Joint
+      - L_HipPitch_Joint
+      - L_Knee_Joint
+      - L_AnklePitch_Joint
+      - L_AnkleRoll_Joint
+      - R_HipYaw_Joint
+      - R_HipRoll_Joint
+      - R_HipPitch_Joint
+      - R_Knee_Joint
+      - R_AnklePitch_Joint
+      - R_AnkleRoll_Joint
+      - Waist1_Joint
+      - Waist2_Joint
+      - Upperbody_Joint
+      - L_Shoulder1_Joint
+      - L_Shoulder2_Joint
+      - L_Shoulder3_Joint
+      - L_Armlink_Joint
+      - L_Elbow_Joint
+      - L_Forearm_Joint
+      - L_Wrist1_Joint
+      - L_Wrist2_Joint
+      - Neck_Joint
+      - Head_Joint
+      - R_Shoulder1_Joint
+      - R_Shoulder2_Joint
+      - R_Shoulder3_Joint
+      - R_Armlink_Joint
+      - R_Elbow_Joint
+      - R_Forearm_Joint
+      - R_Wrist1_Joint
+      - R_Wrist2_Joint
+initial:  # Define initial robot poses.
+  - group: whole_body
+    pose: init
