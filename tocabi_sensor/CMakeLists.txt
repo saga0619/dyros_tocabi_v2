@@ -3,30 +3,30 @@ project(tocabi_sensor)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++17 -Ofast)
-if(${FORCE_REALROBOT} MATCHES ON)
-  message(" forces realrobot compile mode ")
-  ADD_DEFINITIONS(-DCOMPILE_REALROBOT)
-  set(COMPILE_REAL TRUE)
-else()
+# if(${FORCE_REALROBOT} MATCHES ON)
+#   message(" forces realrobot compile mode ")
+#   ADD_DEFINITIONS(-DCOMPILE_REALROBOT)
+#   set(COMPILE_REAL TRUE)
+# else()
 
-execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RES OUTPUT_STRIP_TRAILING_WHITESPACE)
-message("-- kernel version : " ${UNAME_RES})
+# execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RES OUTPUT_STRIP_TRAILING_WHITESPACE)
+# message("-- kernel version : " ${UNAME_RES})
 
-string(FIND ${UNAME_RES} "xenomai" wsloc)
+# string(FIND ${UNAME_RES} "xenomai" wsloc)
 
-if(${wsloc} EQUAL -1 )
-  message(" simulation only compile mode ")
-  ADD_DEFINITIONS(-DCOMPILE_SIMULATION)
-  set(COMPILE_SIM TRUE)
-else()
-  message(" xenomai detected realrobot compilt mode ")
-  ADD_DEFINITIONS(-DCOMPILE_REALROBOT)
-  set(COMPILE_REAL TRUE)
-endif() 
+# if(${wsloc} EQUAL -1 )
+#   message(" simulation only compile mode ")
+#   ADD_DEFINITIONS(-DCOMPILE_SIMULATION)
+#   set(COMPILE_SIM TRUE)
+# else()
+#   message(" xenomai detected realrobot compilt mode ")
+#   ADD_DEFINITIONS(-DCOMPILE_REALROBOT)
+#   set(COMPILE_REAL TRUE)
+# endif() 
 
-endif()
+# endif()
 
-if(${COMPILE_REAL})
+# if(${COMPILE_REAL})
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -148,6 +148,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   /usr/share/c++-mscl/source
   /usr/share/c++-mscl/Boost/include
+  include/sensoray826/
 )
 
 link_directories(
@@ -156,6 +157,7 @@ link_directories(
 add_library(mx5_lib
   src/mx5_imu.cpp  
 )
+
 ## Declare a C++ library
 
 ## Add cmake target dependencies of the library
@@ -187,6 +189,7 @@ target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   mx5_lib
   -lmscl  
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/sensoray826/lib/lib826_64.so
 )
 add_dependencies(mx5_lib ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
@@ -246,4 +249,4 @@ add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-endif()
+#endif()

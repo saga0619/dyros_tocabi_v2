@@ -1,0 +1,4 @@
+<launch>
+    <node name="tocabi_sensor" pkg="tocabi_sensor" type="tocabi_sensor" output="screen" respawn="true">    
+    </node>
+</launch>

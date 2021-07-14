@@ -1,5 +1,5 @@
-#include "826api.h"
-#include "tocabi_data/math_type_define.h"
+#include "lib/826api.h"
+#include "math_type_define.h"
 #include <ros/ros.h>
 #include <thread>
 
