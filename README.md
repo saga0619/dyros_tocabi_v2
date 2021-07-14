@@ -1,6 +1,9 @@
-# DYROS TOCABI V2
+DYROS TOCABI V2
+===============
+
 ----------------------------------------
-## Introduction to tocabi v2
+Introduction to tocabi v2
+-------------------------
 
 ![TOCABI_IMAGE](./TOCABI3.png)
 > This project is upgraded version of [TOCABI controller](https://github.com/saga0619/dyros_tocabi)
@@ -24,14 +27,18 @@
         + tocabi link and data container librariy
     + tocabi_sensor
         + tocabi sensor managament package. imu, ft
-    + tocabi_cc
+    + tocabi_moveit_config
+        + moveit_config of tocabi
+    + tocabi_cc (external)
         + custom controller for tocabi ! 
-    + tocabi_gui
-        + (Not yet ...)
+    + tocabi_avatar (external)
+        + avatar controller for tocabi ! 
+    + tocabi_gui (external)
+        + gui of tocabi
 
 -----------------------------------------
 
-## Installation
+# Installation
 ### 0. prerequisities
 > This project was developed in Ubuntu 18.04, with Ros Melodic.
 > Realrobot mode is developed on Xenomai 3.0.10, linux-4.14.134
@@ -55,7 +62,6 @@ cd catkin_ws/src
 git clone https://github.com/saga0619/tocabi_avatar
 ```
 
-
 ### 4. GUI
 ```sh
 sudo apt install qtbase5-private-dev libqt5x11extras5*
@@ -77,9 +83,9 @@ sudo ./install_prereq.sh
 + launch ./install_prereq.sh and select simulation installation or realrobot installation.
 
 ### 7. build catkin_ws
-build with catkin_make or catkin build
-to build real-robot packages at non-xenomai pc, add FORCE_REALROBOT = ON argument.
-ex)
+build with catkin_make or catkin build   
+to build real-robot packages at non-xenomai pc, add FORCE_REALROBOT = ON argument.   
+ex)   
 ```sh
 catkin_make -DFORCE_REALROBOT=ON
 ```
@@ -88,18 +94,15 @@ or
 catkin build --cmake-args -DFORCE_REALROBOT=ON
 ```
 
+### 8. Individual installation (**If All-in-One script is not working ...)
 
-
-
-#### Individual installation (**If All-in-One script is not working ...)
-
-#### 1. mscl installation
+#### mscl installation
  * download [MSCL](https://github.com/LORD-MicroStrain/MSCL/releases/download/v52.2.1/c++-mscl_52.2.1_amd64.deb) 
 ```sh
 wget https://github.com/LORD-MicroStrain/MSCL/releases/download/v52.2.1/c++-mscl_52.2.1_amd64.deb
 sudo dpkg -i c++-mscl_52.2.1_amd64.deb
 ```
-#### 2. SOEM installation
+#### SOEM installation
  ```sh
  git clone https://github.com/saga0619/SOEM
  cd SOEM
@@ -109,7 +112,7 @@ sudo dpkg -i c++-mscl_52.2.1_amd64.deb
  make all
  sudo make install
  ```
-#### 3. RBDL installation
+#### RBDL installation
 ```sh
 git clone https://github.com/saga0619/rbdl-orb
 cd rbdl-orb
@@ -125,7 +128,7 @@ sudo make install
 echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib'>>~/.bashrc
 sudo ldconfig
 ```
-#### 4. qpOASES installation
+#### qpOASES installation
 ```sh
 git clone https://github.com/saga0619/qpoases
 cd qpoases
@@ -135,7 +138,7 @@ cmake ..
 make all
 sudo make install
 ```
-#### 5. Kvaser installation
+#### Kvaser installation
 ```sh
 wget --content-disposition "https://www.kvaser.com/download/?utm_source=software&utm_ean=7330130980754&utm_status=latest"
 tar xvzf linuxcan.tar.gz
@@ -146,6 +149,4 @@ sudo make install
 
 -----------------------------------------
 ## Todo
-+ [ ] link realtime Robot Status indicator
 + [ ] link F/T sensor
-+ [ ] link Robot chest led 
