@@ -25,4 +25,6 @@ public:
 
     bool imu_reset_signal_ = false;
     bool ft_calib_signal_ = false;
+
+    int packet_num;
 };

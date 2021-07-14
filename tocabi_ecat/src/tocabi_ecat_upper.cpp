@@ -150,8 +150,7 @@ void *ethercatThread1(void *data)
         //ec_config_init()
         if (ec_config_init(FALSE) > 0) // TRUE when using configtable to init slaves, FALSE otherwise
         {
-            if (ecat_verbose)
-                printf("ELMO 1 : %d slaves found and configured. desired : %d \n", ec_slavecount, PART_ELMO_DOF); // ec_slavecount -> slave num
+            printf("ELMO 1 : %d slaves found and configured. desired : %d \n", ec_slavecount, PART_ELMO_DOF); // ec_slavecount -> slave num
             if (ec_slavecount == PART_ELMO_DOF)
             {
                 ecat_number_ok = true;
@@ -1330,7 +1329,7 @@ bool loadZeroPoint(bool force)
     }
 
     std::chrono::system_clock::rep file_time_rep;
-    std::cout<<"ELMO 1 : ";
+    std::cout << "ELMO 1 : ";
     ifs.read(reinterpret_cast<char *>(&file_time_rep), sizeof file_time_rep);
     double getzp[PART_ELMO_DOF];
     for (int i = 0; i < PART_ELMO_DOF; i++)
@@ -1367,7 +1366,6 @@ bool loadZeroPoint(bool force)
         state_zp_[JointMap2[i]] = ZSTATE::ZP_SUCCESS;
         q_zero_elmo_[i] = getzp[i];
         std::cout << q_zero_elmo_[i] << "  ";
-
     }
 
     return true;

@@ -15,7 +15,7 @@ void SensorManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         imu_reset_signal_ = true;
     }
-    else if(msg->data == "ftcalib")
+    else if (msg->data == "ftcalib")
     {
         ft_calib_signal_ = true;
     }
@@ -69,30 +69,54 @@ void *SensorManager::SensorThread(void)
                 mx5.resetEFIMU();
                 imu_reset_signal_ = false;
             }
-            imu_msg = mx5.getIMU(shm_->imu_state);
-            mx5.checkIMUData();
-            shm_->imuWriting = true;
-            shm_->pos_virtual[3] = imu_msg.orientation.x;
-            shm_->pos_virtual[4] = imu_msg.orientation.y;
-            shm_->pos_virtual[5] = imu_msg.orientation.z;
-            shm_->pos_virtual[6] = imu_msg.orientation.w;
-            shm_->vel_virtual[3] = imu_msg.angular_velocity.x;
-            shm_->vel_virtual[4] = imu_msg.angular_velocity.y;
-            shm_->vel_virtual[5] = imu_msg.angular_velocity.z;
-            shm_->imu_acc[0] = imu_msg.linear_acceleration.x;
-            shm_->imu_acc[1] = imu_msg.linear_acceleration.y;
-            shm_->imu_acc[2] = imu_msg.linear_acceleration.z;
-            //std::cout<<shm_->pos_virtual[3]<<shm_->pos_virtual[4]<<shm_->pos_virtual[5]<<shm_->pos_virtual[6]<<std::endl;
-            shm_->imuWriting = false;
+            int imu_state__;
+            imu_msg = mx5.getIMU(imu_state__);
 
-
-
-
-            //FT sensor related functions ... 
-
-            if(ft_calib_signal_)
+            static int no_imu_count = 0;
+            static int yes_imu_count = 0;
+            if (imu_state__ == -1)
             {
-                std::cout<<"FT : start calibration ..."<<std::endl;
+                no_imu_count++;
+            }
+            else
+            {
+                yes_imu_count++;
+                mx5.checkIMUData();
+                shm_->imuWriting = true;
+                shm_->imu_state = imu_state__;
+                shm_->pos_virtual[3] = imu_msg.orientation.x;
+                shm_->pos_virtual[4] = imu_msg.orientation.y;
+                shm_->pos_virtual[5] = imu_msg.orientation.z;
+                shm_->pos_virtual[6] = imu_msg.orientation.w;
+                shm_->vel_virtual[3] = imu_msg.angular_velocity.x;
+                shm_->vel_virtual[4] = imu_msg.angular_velocity.y;
+                shm_->vel_virtual[5] = imu_msg.angular_velocity.z;
+                shm_->imu_acc[0] = imu_msg.linear_acceleration.x;
+                shm_->imu_acc[1] = imu_msg.linear_acceleration.y;
+                shm_->imu_acc[2] = imu_msg.linear_acceleration.z;
+                //std::cout<<shm_->pos_virtual[3]<<shm_->pos_virtual[4]<<shm_->pos_virtual[5]<<shm_->pos_virtual[6]<<std::endl;
+                shm_->imuWriting = false;
+            }
+
+            if ((cycle_count % 1000) == 0)
+            {
+                static int tb_;
+                int ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t_begin).count();
+
+
+                if ((mx5.packet_num < 490) || (mx5.packet_num > 510))
+                {
+                    std::cout << (ts - tb_) << " : imu packet error, count : " << mx5.packet_num << std::endl;
+                }
+                tb_ = ts;
+                mx5.packet_num = 0;
+            }
+
+            //FT sensor related functions ...
+
+            if (ft_calib_signal_)
+            {
+                std::cout << "FT : start calibration ..." << std::endl;
                 ft_calib_signal_ = false;
             }
 
@@ -101,7 +125,7 @@ void *SensorManager::SensorThread(void)
             //Write FT data to shm here
             //for (int i = 0; i < 12; i++)
             //    shm_->ftSensor[i] = ftdata[i];
-            
+
             shm_->ftWriting = false;
 
             //std::cout << "while end" << std::endl;
