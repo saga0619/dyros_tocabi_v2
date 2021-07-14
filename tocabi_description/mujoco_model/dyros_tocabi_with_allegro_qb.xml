@@ -1,34 +1,5 @@
-<mujoco model="dyros_tocabi_description">
-    <compiler angle="radian" meshdir="../meshes/" balanceinertia="true"/>
-    <default>
-        <motor ctrllimited="true" ctrlrange="-300 300"/>
-        <default class="viz">
-            <geom contype="0" conaffinity="0" group="1" type="mesh" rgba=".6 .6 .7 1" />
-        </default>
-        <default class="cls">
-            <geom group="2" rgba="0.79216 0.81961 0.93333 0.5"/>
-        </default>
-        <default class="cls_f">
-            <geom group="2" rgba="0.79216 0.81961 0.93333 0.1" friction="1 0.005 0.0001"/>
-        </default>
-        <default class="FTsensor">
-            <site type="cylinder" size="0.005 0.005" group="4" rgba=".1 .1 .9 1"/>
-        </default>
-        <default class="Leg">
-            <joint damping="1" frictionloss="4"/>
-        </default>
-        <default class="Waist">
-            <joint damping="1" frictionloss="1"/>
-        </default>
-        <default class="Upper">
-            <joint damping="1" frictionloss="1"/>
-        </default>
-    </default>
-
-    <visual>
-        <quality shadowsize="2048" offsamples="16"/>
-        <map stiffness="10" znear="0.05"/>
-    </visual>
+<mujoco model="dyros_tocabi">
+    <include file="simulation_scene.xml"/>
 
     <asset>
         <mesh name="Pelvis_link" file="Pelvis_link2.STL" scale="0.001 0.001 0.001"/>

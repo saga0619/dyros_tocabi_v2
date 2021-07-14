@@ -50,8 +50,9 @@ int main(int argc, char *argv[])
     else
     {
         soem_port = argv[1];
-        period_ns = atoi(argv[2]);
+        int period_us = atoi(argv[2]);
         expected_counter = atoi(argv[3]);
+        period_ns = period_us * 1000;
 
         std::cout << " ecat port : " << soem_port << std::endl;
         std::cout << " period_us  : " << period_ns << std::endl;

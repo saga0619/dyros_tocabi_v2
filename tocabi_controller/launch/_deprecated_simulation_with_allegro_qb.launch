@@ -10,7 +10,7 @@
 
     <node name="mujoco_ros" pkg="mujoco_ros" type="mujoco_ros" output="screen" required="true">
         <param name="license" type="string" value="$(env HOME)/mjkey.txt"/>
-        <param name="model_file" type="string" value="$(find tocabi_description)/mujoco_model/simulation_scene_with_allegro_qb.xml"/>
+        <param name="model_file" type="string" value="$(find tocabi_description)/mujoco_model/dyros_tocabi_with_allegro_qb.xml"/>
         <param name="use_shm" value="true"/>
     </node>
 

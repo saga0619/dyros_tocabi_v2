@@ -1,21 +1,34 @@
-<mujoco model="scene_test">
+<mujoco model="scene">
     <option timestep='0.0005' iterations="50" tolerance="1e-5" solver="Newton" jacobian="dense" cone="elliptic" noslip_iterations="30" noslip_tolerance="1e-5"/>
     <size njmax="8000" nconmax="4000"/>
-    <include file="dyros_tocabi.xml"/>
-    
-    <worldbody>
-        <!--body mocap="true" pos="0.5 1.0 0.8" zaxis="0 0 1">
-            <geom size="0.2 0.5 0.1" type="box" />
-        </body-->
-    </worldbody>
+    <compiler angle="radian" meshdir="../meshes/" balanceinertia="true"/>
+    <default>
+        <motor ctrllimited="true" ctrlrange="-300 300"/>
+        <default class="viz">
+            <geom contype="0" conaffinity="0" group="1" type="mesh" rgba=".6 .6 .7 1" />
+        </default>
+        <default class="cls">
+            <geom group="2" rgba="0.79216 0.81961 0.93333 0.5"/>
+        </default>
+        <default class="cls_f">
+            <geom group="2" rgba="0.79216 0.81961 0.93333 0.1" friction="1 0.005 0.0001"/>
+        </default>
+        <default class="FTsensor">
+            <site type="cylinder" size="0.005 0.005" group="4" rgba=".1 .1 .9 1"/>
+        </default>
+        <default class="Leg">
+            <joint damping="1" frictionloss="4"/>
+        </default>
+        <default class="Waist">
+            <joint damping="1" frictionloss="1"/>
+        </default>
+        <default class="Upper">
+            <joint damping="1" frictionloss="1"/>
+        </default>
+    </default>
 
-    <keyframe>
-        <!-- Initial Position Setting 0.94783-->
-        <key name="4con" time="0" qpos ="0 0 0.82783 1 0 0 0 
-								0.0 0.0 -0.595 1.24 -0.65 0.0 
-								0.0 0.0 -0.595 1.24 -0.65 0.0
-								0 0.5 0 0 0
-								0 -1.2 1 -0.42 -1.57 2.19 -1.47 0
-								0 1.2 -1 0.42 1.57 -2.19 1.47 0"/>
-    </keyframe>
+    <visual>
+        <quality shadowsize="2048" offsamples="16"/>
+        <map stiffness="10" znear="0.05"/>
+    </visual>
 </mujoco>

@@ -40,9 +40,12 @@ Introduction to tocabi v2
 
 # Installation
 ### 0. prerequisities
-> This project was developed in Ubuntu 18.04, with Ros Melodic.
-> Realrobot mode is developed on Xenomai 3.0.10, linux-4.14.134
-> Simulation mode is available with mujoco. For simulation, mujoco license is required. 
+  * This project was developed with Ubuntu 18.04, ROS Melodic
+  * ⚠️Other ubuntu version might cause error!⚠️
+  * Realrobot mode is developed and works stable at Xenomai.
+  * Developed xenomai Version is Xenomai 3.1, linux kernel version is linux-5.0.77
+  * Simulation requires mujoco license. 
+  * visit <https://www.roboti.us/license.html> for license information
 
 ### 1. clone repository
 ```sh
@@ -70,6 +73,9 @@ git clone https://github.com/saga0619/tocabi_gui
 ```
 
 ### 5. Simulator
+  * You need mujoco license!   
+  * Visit <https://www.roboti.us/license.html> for license information
+  * place license file at ~/mjkey.txt
 ```sh
 cd catkin_ws/src
 git clone https://github.com/saga0619/mujoco_ros_sim
@@ -83,16 +89,10 @@ sudo ./install_prereq.sh
 + launch ./install_prereq.sh and select simulation installation or realrobot installation.
 
 ### 7. build catkin_ws
-build with catkin_make or catkin build   
-to build real-robot packages at non-xenomai pc, add FORCE_REALROBOT = ON argument.   
-ex)   
-```sh
-catkin_make -DFORCE_REALROBOT=ON
-```
-or
-```sh
-catkin build --cmake-args -DFORCE_REALROBOT=ON
-```
+  * build with `catkin_make` or `catkin build`   
+  * to build real-robot packages at non-xenomai pc, add `FORCE_REALROBOT = ON` argument.      
+    - `catkin_make -DFORCE_REALROBOT=ON`
+    - `catkin build --cmake-args -DFORCE_REALROBOT=ON`
 
 ### 8. Individual installation (**If All-in-One script is not working ...)
 
@@ -146,6 +146,38 @@ cd linuxcan
 make all
 sudo make install
 ```
+
+# How to Launch
+## Simulation
+  * To launch simulation with mujoco simulator and gui : 
+  * `roslaunch tocabi_controller simulation.launch` 
+  * To launch simulation without gui :
+  * `roslaunch tocabi_controller simulation.launch gui:=false` 
+
+## Realrobot
+  * requires sudo authority
+```sh
+sudo -s
+roslaunch tocabi_controller realrobot.launch
+```
+
+## launch sim or realrobot with hand
+  * to launch simulation or realrobot with hands, launch with hand:=true
+  * `roslaunch tocabi_controller simulation.launch hand:=true`
+  * `roslaunch tocabi_controller realrobot.launch hand:=true`
+
+## launch gui
+  * gui only version : `rosrun tocabi_gui tocabi_gui`
+  * gui with rviz of tocabi model : `roslaunch tocabi_gui gui.launch`
+
+## ethercat test
+  * requires sudo authority : `sudo -s`
+  * run with `rosrun tocabi_ecat tocabi_ecat {ethernet_port} {period_us} {driver_num}`
+  * ex) eth0 port with 500 us, 33 motors..
+  ```sh
+  sudo -s
+  rosrun tocabi_ecat tocabi_ecat eth0 500 33
+  ```
 
 -----------------------------------------
 ## Todo
