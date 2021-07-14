@@ -29,11 +29,11 @@ Introduction to tocabi v2
         + tocabi sensor managament package. imu, ft
     + tocabi_moveit_config
         + moveit_config of tocabi
-    + tocabi_cc (external)
+    + tocabi_cc [external](https://github.com/saga0619/tocabi_cc)   
         + custom controller for tocabi ! 
-    + tocabi_avatar (external)
+    + tocabi_avatar [external](https://github.com/saga0619/tocabi_avatar)   
         + avatar controller for tocabi ! 
-    + tocabi_gui (external)
+    + tocabi_gui [external](https://github.com/saga0619/tocabi_gui)   
         + gui of tocabi
 
 -----------------------------------------
