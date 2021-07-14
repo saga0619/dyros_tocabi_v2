@@ -31,53 +31,67 @@
 
 -----------------------------------------
 
-## Prerequisities
+## Installation
+### 0. prerequisities
 > This project was developed in Ubuntu 18.04, with Ros Melodic.
 > Realrobot mode is developed on Xenomai 3.0.10, linux-4.14.134
 > Simulation mode is available with mujoco. For simulation, mujoco license is required. 
 
-## Installation
+### 1. clone repository
 ```sh
 cd catkin_ws/src
 git clone --recurse-submodules https://github.com/saga0619/dyros_tocabi_v2
 ```
 
-## CustomController (optional)
+### 2. CustomController (optional)
 ```sh
 cd catkin_ws/src
 git clone https://github.com/saga0619/tocabi_cc
 ```
 
-## AvatarController (optional)
+### 3. AvatarController (optional)
 ```sh
 cd catkin_ws/src
 git clone https://github.com/saga0619/tocabi_avatar
 ```
 
 
-## GUI
+### 4. GUI
 ```sh
 sudo apt install qtbase5-private-dev libqt5x11extras5*
 cd catkin_ws/src
 git clone https://github.com/saga0619/tocabi_gui
 ```
 
-## Simulator
+### 5. Simulator
 ```sh
 cd catkin_ws/src
 git clone https://github.com/saga0619/mujoco_ros_sim
 ```
 
-## All-in-One Requirements installation
+### 6. All-in-One Requirements installation
 ```sh
 cd catkin_ws/src/dyros_tocabi_v2
 sudo ./install_prereq.sh
 ```
-
 + launch ./install_prereq.sh and select simulation installation or realrobot installation.
 
+### 7. build catkin_ws
+build with catkin_make or catkin build
+to build real-robot packages at non-xenomai pc, add FORCE_REALROBOT = ON argument.
+ex)
+```sh
+catkin_make -DFORCE_REALROBOT=ON
+```
+or
+```sh
+catkin build --cmake-args -DFORCE_REALROBOT=ON
+```
 
-### Individual installation (**If All-in-One script is not working ...)
+
+
+
+#### Individual installation (**If All-in-One script is not working ...)
 
 #### 1. mscl installation
  * download [MSCL](https://github.com/LORD-MicroStrain/MSCL/releases/download/v52.2.1/c++-mscl_52.2.1_amd64.deb) 
