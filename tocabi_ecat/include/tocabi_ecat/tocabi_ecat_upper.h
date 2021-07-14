@@ -263,7 +263,7 @@ int commutation_joint = 0;
 
 chrono::steady_clock::time_point st_start_time;
 std::chrono::duration<double> time_from_begin;
-std::chrono::microseconds cycletime(CYCLETIME);
+std::chrono::nanoseconds cycletime(PERIOD_NS);
 int cycle_count = 0;
 
 atomic<bool> de_operation_ready{false};

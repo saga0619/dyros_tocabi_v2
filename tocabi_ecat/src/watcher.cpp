@@ -59,7 +59,7 @@ int main()
     printf("\x1b[A\33[2K\r");
     printf("\x1b[A\33[2K\r");
 
-    printf("\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r time : %d h %d m %7.4f %d, %d %d\n", hour,min,sec, shm_msgs_->maxTorque, shm_msgs_->t_cnt - shm_msgs_->t_cnt2, (int)shm_msgs_->process_num);
+    printf("\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r time : %d h %d m %7.4f %d, %d %d\n", hour,min,sec, shm_msgs_->maxTorque, (int)shm_msgs_->statusCount , (int)shm_msgs_->process_num);
 
     printf(" cnt1 %10d lat avg %6.3f max %6.3f min %6.3f dev %6.4f, send avg %6.3f max %6.3f min %6.3f dev %6.4f\n", (int)shm_msgs_->t_cnt,
            shm_msgs_->lat_avg / 1000.0, shm_msgs_->lat_max / 1000.0, shm_msgs_->lat_min / 1000.0, shm_msgs_->lat_dev / 1000.0,
