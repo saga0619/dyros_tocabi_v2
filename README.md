@@ -149,10 +149,8 @@ sudo make install
 
 # How to Launch
 ## Simulation
-  * To launch simulation with mujoco simulator and gui : 
-  * `roslaunch tocabi_controller simulation.launch` 
-  * To launch simulation without gui :
-  * `roslaunch tocabi_controller simulation.launch gui:=false` 
+  * simulation with gui : `roslaunch tocabi_controller simulation.launch` 
+  * simulation without gui : `roslaunch tocabi_controller simulation.launch gui:=false` 
 
 ## Realrobot
   * requires sudo authority
@@ -178,6 +176,7 @@ roslaunch tocabi_controller realrobot.launch
   sudo -s
   rosrun tocabi_ecat tocabi_ecat eth0 500 33
   ```
+  * you can check ethernet port name with `ifconfig` command at terminal
 
 -----------------------------------------
 ## Todo
