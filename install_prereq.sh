@@ -15,9 +15,6 @@ while true; do
     echo "3 : Install SOEM";
     echo "4 : Install RBDL";
     echo "5 : Install qpOASES";
-    echo "6 : Install linuxCAN";
-    echo "7 : Install GLS";
-    echo "8 : Install osqp";
     read -p "Select Number : " yn
     case $yn in
         [0]* ) echo "Starting Install ... all prerequistes";
@@ -77,15 +74,6 @@ while true; do
               sudo make install
               cd ../..
 
-              wget --content-disposition "https://www.kvaser.com/download/?utm_source=software&utm_ean=7330130980754&utm_status=latest"
-              tar xvzf linuxcan.tar.gz
-              cd linuxcan
-              make all
-              sudo make install
-              cd ..
-
-              rm -rf Temp
-              exit;;
         [2]* ) echo "Starting Install ... MSCL";
         
               mkdir Temp
@@ -134,42 +122,7 @@ while true; do
               cd ../../..
               rm -rf Temp
               exit;;
-        [6]* ) echo "Starting Install ... linuxCAN";
-              mkdir Temp
-              cd Temp
-              wget --content-disposition "https://www.kvaser.com/download/?utm_source=software&utm_ean=7330130980754&utm_status=latest"
-              tar xvzf linuxcan.tar.gz
-              cd linuxcan
-              make all
-              sudo make install
-              cd ../..
-              rm -rf Temp
-              exit;;
-        [7]* ) echo "Starting Install ... GLS";
-              mkdir Temp
-              cd Temp
-              wget http://mirror.yongbok.net/gnu/gsl/gsl-2.6.tar.gz
-              tar xvzf gsl-2.6.tar.gz
-              cd gsl-2.6
-              ./configure
-              make
-              sudo make install              
-              cd ../..
-              rm -rf Temp
-              exit;;
-        [8]* ) echo "Starting Install ... osqp";
-              mkdir Temp
-              cd Temp
-              git clone https://github.com/saga0619/osqp
-              cd osqp
-              mkdir build
-              cd build
-              cmake ..
-              make all
-              sudo make install
-              cd ../../..
-              rm -rf Temp
-              exit;;
+
         [Nn]* ) echo "Aborting ...";
                 exit;;
         * ) echo "Please select proper number.";;
