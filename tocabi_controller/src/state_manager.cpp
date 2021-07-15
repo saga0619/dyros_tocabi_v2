@@ -111,6 +111,7 @@ void *StateManager::StateThread()
         ros::spinOnce();
         if (dc_.tc_shm_->triggerS1)
         {
+            SendCommand();
             cycle_count_++;
             stm_count_++;
 
@@ -172,6 +173,156 @@ void *StateManager::StateThread()
         }
     }
     cout << "StateManager Thread END" << endl;
+}
+void StateManager::SendCommand()
+{
+    static double torque_command[MODEL_DOF];
+    while (dc_.t_c_)
+    {
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+    }
+    dc_.t_c_ = true;
+    std::copy(dc_.torque_command, dc_.torque_command + MODEL_DOF, torque_command);
+    dc_.t_c_ = false;
+
+    const double maxTorque = 1000.0;
+    const double rTime = 5.0;
+
+    int maxTorqueCommand;
+
+    if (dc_.torqueOnSwitch)
+    {
+        dc_.torqueOnSwitch = false;
+
+        if (dc_.torqueOn)
+        {
+            std::cout << "torque is already on " << std::endl;
+        }
+        else
+        {
+            std::cout << "turning on ... " << std::endl;
+            dc_.torqueOnTime = dc_.rd_.control_time_;
+            dc_.torqueOn = true;
+            dc_.torqueRisingSeq = true;
+        }
+    }
+    if (dc_.torqueOffSwitch)
+    {
+        dc_.torqueOffSwitch = false;
+
+        if (dc_.torqueOn)
+        {
+            std::cout << "turning off ... " << std::endl;
+            dc_.torqueOffTime = dc_.rd_.control_time_;
+            dc_.toruqeDecreaseSeq = true;
+        }
+        else
+        {
+            std::cout << "torque is already off" << std::endl;
+        }
+    }
+
+    if (dc_.torqueOn)
+    {
+        if (dc_.torqueRisingSeq)
+        {
+            maxTorqueCommand = (int)(maxTorque * DyrosMath::minmax_cut((dc_.rd_.control_time_ - dc_.torqueOnTime) / rTime, 0, 1));
+
+            if (dc_.rd_.control_time_ > dc_.torqueOnTime + rTime)
+            {
+                std::cout << "torque 100% ! " << std::endl;
+
+                dc_.torqueRisingSeq = false;
+            }
+        }
+        else if (dc_.toruqeDecreaseSeq)
+        {
+
+            maxTorqueCommand = (int)(maxTorque * (1 - DyrosMath::minmax_cut((dc_.rd_.control_time_ - dc_.torqueOffTime) / rTime, 0, 1)));
+
+            if (dc_.rd_.control_time_ > dc_.torqueOffTime + rTime)
+            {
+                dc_.toruqeDecreaseSeq = false;
+
+                std::cout << "torque 0% .. torque Off " << std::endl;
+
+                dc_.torqueOn = false;
+            }
+        }
+        else
+        {
+            maxTorqueCommand = (int)maxTorque;
+        }
+    }
+    else
+    {
+        maxTorqueCommand = 0;
+    }
+
+    if (dc_.E1Switch) //Emergency stop
+    {
+        if (dc_.E1Status)
+        {
+            dc_.E1Status = false;
+        }
+        else
+        {
+            rd_.q_desired = rd_.q_;
+            rd_.q_dot_desired.setZero();
+            dc_.E1Status = true;
+            dc_.rd_.tc_run = false;
+        }
+
+        dc_.E1Switch = false;
+    }
+    if (dc_.E2Switch) //Emergency damping
+    {
+        if (dc_.E2Status)
+        {
+            dc_.E2Status = false;
+        }
+        else
+        {
+            dc_.E2Status = true;
+            dc_.rd_.tc_run = false;
+
+            //Damping mode = true!
+        }
+
+        dc_.E2Switch = false;
+    }
+    if (dc_.emergencySwitch)
+    {
+        dc_.emergencyStatus = true; //
+        dc_.rd_.tc_run = false;
+    }
+
+    if (dc_.E1Status)
+    {
+        for (int i = 0; i < MODEL_DOF; i++)
+        {
+            torque_command[i] = dc_.Kps[i] * (dc_.rd_.q_desired(i) - dc_.rd_.q_(i)) + dc_.Kvs[i] * (dc_.rd_.q_dot_desired(i) - dc_.rd_.q_dot_(i));
+        }
+    }
+
+    if (dc_.E2Status)
+    {
+        for (int i = 0; i < MODEL_DOF; i++)
+            torque_command[i] = dc_.Kvs[i] * dc_.rd_.q_dot_(i);
+    }
+
+    if (dc_.emergencyStatus)
+    {
+        for (int i = 0; i < MODEL_DOF; i++)
+            torque_command[i] = 0.0;
+    }
+
+    dc_.tc_shm_->commanding = true;
+    std::fill(dc_.tc_shm_->commandMode, dc_.tc_shm_->commandMode + MODEL_DOF, 1);
+    std::copy(torque_command, torque_command + MODEL_DOF, dc_.tc_shm_->torqueCommand);
+    dc_.tc_shm_->maxTorque = maxTorqueCommand;
+    dc_.tc_shm_->commandCount++;
+    dc_.tc_shm_->commanding = false;
 }
 
 void StateManager::InitYaw()
@@ -1172,7 +1323,7 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         dc_.positionControlSwitch = true;
     }
-    else if(msg->data == "forceload")
+    else if (msg->data == "forceload")
     {
         dc_.tc_shm_->force_load_saved_signal = true;
     }

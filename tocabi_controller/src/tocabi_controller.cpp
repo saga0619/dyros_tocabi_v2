@@ -418,161 +418,20 @@ void TocabiController::MeasureTime(int currentCount, int nanoseconds1, int nanos
 
 void TocabiController::SendCommand(Eigen::VectorQd torque_command)
 {
-    const double maxTorque = 1000.0;
-    const double rTime = 5.0;
-
-    if (dc_.torqueOnSwitch)
+    while (dc_.t_c_)
     {
-        dc_.torqueOnSwitch = false;
-
-        if (dc_.torqueOn)
-        {
-            std::cout << "torque is already on " << std::endl;
-        }
-        else
-        {
-            std::cout << "turning on ... " << std::endl;
-            dc_.torqueOnTime = dc_.rd_.control_time_;
-            dc_.torqueOn = true;
-            dc_.torqueRisingSeq = true;
-        }
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
-    if (dc_.torqueOffSwitch)
-    {
-        dc_.torqueOffSwitch = false;
-
-        if (dc_.torqueOn)
-        {
-            std::cout << "turning off ... " << std::endl;
-            dc_.torqueOffTime = dc_.rd_.control_time_;
-            dc_.toruqeDecreaseSeq = true;
-        }
-        else
-        {
-            std::cout << "torque is already off" << std::endl;
-        }
-    }
-
-    dc_.tc_shm_->commanding = true;
-
-    if (dc_.torqueOn)
-    {
-        if (dc_.torqueRisingSeq)
-        {
-            dc_.tc_shm_->maxTorque = (int)(maxTorque * DyrosMath::minmax_cut((dc_.rd_.control_time_ - dc_.torqueOnTime) / rTime, 0, 1));
-
-            if (dc_.rd_.control_time_ > dc_.torqueOnTime + rTime)
-            {
-                std::cout << "torque 100% ! " << std::endl;
-
-                dc_.torqueRisingSeq = false;
-            }
-        }
-        else if (dc_.toruqeDecreaseSeq)
-        {
-
-            dc_.tc_shm_->maxTorque = (int)(maxTorque * (1 - DyrosMath::minmax_cut((dc_.rd_.control_time_ - dc_.torqueOffTime) / rTime, 0, 1)));
-
-            if (dc_.rd_.control_time_ > dc_.torqueOffTime + rTime)
-            {
-                dc_.toruqeDecreaseSeq = false;
-
-                std::cout << "torque 0% .. torque Off " << std::endl;
-
-                dc_.torqueOn = false;
-            }
-        }
-        else
-        {
-            dc_.tc_shm_->maxTorque = (int)maxTorque;
-        }
-    }
-    else
-    {
-        dc_.tc_shm_->maxTorque = 0;
-    }
-
-    //std::cout<<torque_command.transpose()<<std::endl;
-    //memcpy(dc_.tc_shm_->torqueCommand, torque_command.data(), torque_command.size() * sizeof(float));
-
-    if (dc_.E1Switch) //Emergency stop
-    {
-        if (dc_.E1Status)
-        {
-            dc_.E1Status = false;
-        }
-        else
-        {
-            rd_.q_desired = rd_.q_;
-            rd_.q_dot_desired.setZero();
-            dc_.E1Status = true;
-            dc_.rd_.tc_run = false;
-        }
-
-        dc_.E1Switch = false;
-    }
-    if (dc_.E2Switch) //Emergency damping
-    {
-        if (dc_.E2Status)
-        {
-            dc_.E2Status = false;
-        }
-        else
-        {
-            dc_.E2Status = true;
-            dc_.rd_.tc_run = false;
-
-            //Damping mode = true!
-        }
-
-        dc_.E2Switch = false;
-    }
-    if (dc_.emergencySwitch)
-    {
-        dc_.emergencyStatus = true; //
-        dc_.rd_.tc_run = false;
-    }
-
-    //memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
-    
-    for (int i = 0; i < MODEL_DOF; i++)
-    {
-        dc_.tc_shm_->commandMode[i] = 1;
-        dc_.tc_shm_->torqueCommand[i] = torque_command[i];
-    }
-
-    if (dc_.E1Status)
-    {
-        //memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
-        for (int i = 0; i < MODEL_DOF; i++)
-        {
-            dc_.tc_shm_->torqueCommand[i] = dc_.Kps[i] * (dc_.rd_.q_desired(i) - dc_.rd_.q_(i)) + dc_.Kvs[i] * (dc_.rd_.q_dot_desired(i) - dc_.rd_.q_dot_(i));
-        }
-    }
-
-    if (dc_.E2Status)
-    {
-
-        //memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
-        for (int i = 0; i < MODEL_DOF; i++)
-            dc_.tc_shm_->torqueCommand[i] =  dc_.Kvs[i] * dc_.rd_.q_dot_(i);
-    }
-
-    if (dc_.emergencyStatus)
-    {
-        //memset(dc_.tc_shm_->commandMode, 1, sizeof(dc_.tc_shm_->commandMode));
-        for (int i = 0; i < MODEL_DOF; i++)
-            dc_.tc_shm_->torqueCommand[i] = 0.0;
-    }
-    //std::cout<<dc_.tc_shm_->torqueCommand[0]<<"\t"<<dc_.tc_shm_->torqueCommand[1]<<"\t"<<dc_.tc_shm_->torqueCommand[2]<<"\t"<<dc_.tc_shm_->torqueCommand[3]<<"\t"<<dc_.tc_shm_->torqueCommand[4]<<"\t"<<dc_.tc_shm_->torqueCommand[5]<<"\t"<<std::endl;
-
-    dc_.tc_shm_->commandCount++;
-    dc_.tc_shm_->commanding = false;
+    dc_.t_c_ = true;
+    std::copy(torque_command.data(), torque_command.data() + MODEL_DOF, dc_.torque_command);
+    dc_.t_c_ = false;
 }
+
 void TocabiController::EnableThread2(bool enable)
 {
     enableThread2 = enable;
 }
+
 void TocabiController::EnableThread3(bool enable)
 {
     enableThread3 = enable;
@@ -658,6 +517,13 @@ void TocabiController::TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueC
     std::cout << "task que received ... but doing nothing .." << std::endl;
 }
 
+void TocabiController::QueCustomController()
+{
+}
+
+void TocabiController::WaitCustomControllerCommand()
+{
+}
 /*
 void TocabiController::SetCommand()
 {

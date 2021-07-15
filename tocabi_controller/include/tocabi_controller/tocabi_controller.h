@@ -72,6 +72,11 @@ public:
     void PositionCommandCallback(const tocabi_msgs::positionCommandConstPtr &msg);
     void TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg);
     void TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueConstPtr &msg);
+
+
+    //CustomController Linker
+    void QueCustomController();
+    void WaitCustomControllerCommand();
 };
 
 #endif

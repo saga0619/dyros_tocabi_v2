@@ -9,6 +9,7 @@
 #include <ros/ros.h>
 #include <ros/package.h>
 
+#include <algorithm>
 #include <thread>
 #include <future>
 
@@ -33,6 +34,8 @@ public:
 
     void *StateThread();
     static void *ThreadStarter(void *context) { return ((StateManager *)context)->StateThread(); }
+    void SendCommand();
+
     void GetJointData();
     void InitYaw();
     void GetSensorData();

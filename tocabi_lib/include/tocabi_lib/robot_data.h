@@ -7,6 +7,7 @@
 #include <vector>
 #include <ros/ros.h>
 #include <ros/callback_queue.h>
+#include <atomic>
 
 #include "tocabi_lib/link.h"
 #include "shm_msgs.h"
@@ -79,9 +80,9 @@ struct RobotData
     Eigen::VectorQd q_dot_est_;
     Eigen::VectorQd q_dot_est_1;
     Eigen::VectorQd q_hold_lower_;
-    
-    Eigen::Vector6d LF_FT, RF_FT;           //f/t data with local sensor frame
-    Eigen::Vector6d LF_CF_FT, RF_CF_FT;     //f/t data with global rotation frame
+
+    Eigen::Vector6d LF_FT, RF_FT;       //f/t data with local sensor frame
+    Eigen::Vector6d LF_CF_FT, RF_CF_FT; //f/t data with global rotation frame
 
     ///////////////////////////////////////////////
     ///////////REFRESHING VARIABLES END////////////
@@ -160,7 +161,6 @@ struct RobotData
     VectorQd pc_pos_init;
     double pc_traj_time_;
     double pc_time_;
-    
 
     //Bools...... might be moved to other..
     bool qp_error = false;
@@ -211,6 +211,9 @@ struct DataContainer
 
     std::vector<float> Kps;
     std::vector<float> Kvs;
+
+    std::atomic<bool> t_c_;
+    double torque_command[MODEL_DOF];
 
     double total_mass_ = 0;
 
