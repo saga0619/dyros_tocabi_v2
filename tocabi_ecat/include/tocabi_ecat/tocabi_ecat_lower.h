@@ -334,14 +334,15 @@ void elmoInit();
 void checkJointSafety();
 void checkJointStatus();
 
-void initSharedMemory();
+//void initSharedMemory();
 void sendJointStatus();
 void getJointCommand();
-void deleteSharedMemory();
 
 bool saveCommutationLog();
 bool loadCommutationLog();
 
+int shm_id_;
+SHMmsgs* shm_msgs_;
 //bool commutation_time_loaded = false;
 
 chrono::system_clock::time_point commutation_save_time_;

@@ -312,10 +312,12 @@ void elmoInit();
 void checkJointSafety();
 void checkJointStatus();
 
-void initSharedMemory();
+//void initSharedMemory();
 void sendJointStatus();
 void getJointCommand();
-void deleteSharedMemory();
+
+int shm_id_;
+SHMmsgs* shm_msgs_;
 
 bool saveCommutationLog();
 bool loadCommutationLog();

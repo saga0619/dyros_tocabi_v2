@@ -103,7 +103,6 @@ void *SensorManager::SensorThread(void)
                 static int tb_;
                 int ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t_begin).count();
 
-
                 if ((mx5.packet_num < 490) || (mx5.packet_num > 510))
                 {
                     std::cout << (ts - tb_) << " : imu packet error, count : " << mx5.packet_num << std::endl;
@@ -141,18 +140,10 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "sensor_manager");
     SensorManager sm_;
+    int shm_id_;
 
-    if ((shm_msg_id = shmget(shm_msg_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
-    {
-        std::cout << "shm mtx failed " << std::endl;
-        exit(0);
-    }
+    init_shm(shm_msg_key, shm_id_, &sm_.shm_);
 
-    if ((sm_.shm_ = (SHMmsgs *)shmat(shm_msg_id, NULL, 0)) == (SHMmsgs *)-1)
-    {
-        std::cout << "shmat failed " << std::endl;
-        exit(0);
-    }
     sm_.shm_->shutdown = false;
     sm_.shm_->process_num++;
 
@@ -200,9 +191,7 @@ int main(int argc, char **argv)
 
     pthread_join(thread, NULL);
 
-    sm_.shm_->process_num--;
-    if (sm_.shm_->process_num == 0)
-        deleteSharedMemory();
+    deleteSharedMemory(shm_id_, sm_.shm_);
 
     return 0;
 }

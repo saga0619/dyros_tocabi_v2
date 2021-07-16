@@ -35,102 +35,98 @@ int main(int argc, char **argv)
 
     TocabiController tc_(stm);
 
-    if ((shm_msg_id = shmget(shm_msg_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
-    {
-        std::cout << "shm mtx failed " << std::endl;
-        exit(0);
-    }
+    int shm_id_;
 
-    if ((dc_.tc_shm_ = (SHMmsgs *)shmat(shm_msg_id, NULL, 0)) == (SHMmsgs *)-1)
-    {
-        std::cout << "shmat failed " << std::endl;
-        exit(0);
-    }
-
-    dc_.tc_shm_->process_num++;
+    init_shm(shm_msg_key, shm_id_, &dc_.tc_shm_);
 
     prog_shutdown = &dc_.tc_shm_->shutdown;
 
+    std::cout << "process num : " << (int)dc_.tc_shm_->process_num << std::endl;
+
     std::cout << "shm initialized" << std::endl;
 
-    //stm.stateThread();
-
-    const int thread_number = 3;
-
-    struct sched_param param;
-    pthread_attr_t attrs[thread_number];
-    pthread_t threads[thread_number];
-    param.sched_priority = 80;
-    cpu_set_t cpusets[thread_number];
-
-    if (dc_.simMode)
-        cout << "Simulation Mode" << endl;
-
-    //set_latency_target();
-
-    /* Initialize pthread attributes (default values) */
-
-    for (int i = 0; i < thread_number; i++)
+    if (dc_.tc_shm_->shutdown)
     {
-        if (pthread_attr_init(&attrs[i]))
+        std::cout << cred << "Shared memory was not successfully removed from the previous run. " << std::endl;
+        std::cout << "Please Execute shm_reset : rosrun tocabi_controller shm_reset " << std::endl;
+        std::cout << "Or you can remove reset shared memory with 'sudo ipcrm -m " << shm_id_ << "'" << creset << std::endl;
+    }
+    else
+    {
+        const int thread_number = 3;
+
+        struct sched_param param;
+        pthread_attr_t attrs[thread_number];
+        pthread_t threads[thread_number];
+        param.sched_priority = 80;
+        cpu_set_t cpusets[thread_number];
+
+        if (dc_.simMode)
+            cout << "Simulation Mode" << endl;
+
+        //set_latency_target();
+
+        /* Initialize pthread attributes (default values) */
+
+        for (int i = 0; i < thread_number; i++)
         {
-            printf("attr %d init failed ", i);
+            if (pthread_attr_init(&attrs[i]))
+            {
+                printf("attr %d init failed ", i);
+            }
+
+            if (!dc_.simMode)
+            {
+                if (pthread_attr_setschedpolicy(&attrs[i], SCHED_FIFO))
+                {
+                    printf("attr %d setschedpolicy failed ", i);
+                }
+                if (pthread_attr_setschedparam(&attrs[i], &param))
+                {
+                    printf("attr %d setschedparam failed ", i);
+                }
+                CPU_ZERO(&cpusets[i]);
+                CPU_SET(5 - i, &cpusets[i]);
+                if (pthread_attr_setaffinity_np(&attrs[i], sizeof(cpu_set_t), &cpusets[i]))
+                {
+                    printf("attr %d setaffinity failed ", i);
+                }
+                if (pthread_attr_setinheritsched(&attrs[i], PTHREAD_EXPLICIT_SCHED))
+                {
+                    printf("attr %d setinheritsched failed ", i);
+                }
+            }
         }
 
-        if (!dc_.simMode)
+        if (pthread_create(&threads[0], &attrs[0], &StateManager::ThreadStarter, &stm))
         {
-            if (pthread_attr_setschedpolicy(&attrs[i], SCHED_FIFO))
-            {
-                printf("attr %d setschedpolicy failed ", i);
-            }
-            if (pthread_attr_setschedparam(&attrs[i], &param))
-            {
-                printf("attr %d setschedparam failed ", i);
-            }
-            CPU_ZERO(&cpusets[i]);
-            CPU_SET(5 - i, &cpusets[i]);
-            if (pthread_attr_setaffinity_np(&attrs[i], sizeof(cpu_set_t), &cpusets[i]))
-            {
-                printf("attr %d setaffinity failed ", i);
-            }
-            if (pthread_attr_setinheritsched(&attrs[i], PTHREAD_EXPLICIT_SCHED))
-            {
-                printf("attr %d setinheritsched failed ", i);
-            }
+            printf("threads[0] create failed\n");
         }
-    }
+        if (pthread_create(&threads[1], &attrs[1], &TocabiController::Thread1Starter, &tc_))
+        {
+            printf("threads[1] create failed\n");
+        }
+        if (pthread_create(&threads[2], &attrs[2], &TocabiController::Thread2Starter, &tc_))
+        {
+            printf("threads[2] create failed\n");
+        }
 
-    if (pthread_create(&threads[0], &attrs[0], &StateManager::ThreadStarter, &stm))
-    {
-        printf("threads[0] create failed\n");
-    }
-    if (pthread_create(&threads[1], &attrs[1], &TocabiController::Thread1Starter, &tc_))
-    {
-        printf("threads[1] create failed\n");
-    }
-    if (pthread_create(&threads[2], &attrs[2], &TocabiController::Thread2Starter, &tc_))
-    {
-        printf("threads[2] create failed\n");
-    }
+        for (int i = 0; i < thread_number; i++)
+        {
+            pthread_attr_destroy(&attrs[i]);
+        }
 
-    for (int i = 0; i < thread_number; i++)
-    {
-        pthread_attr_destroy(&attrs[i]);
+        cout << "waiting cont..." << endl;
+        /* Join the thread and wait until it is done */
+        for (int i = 0; i < thread_number; i++)
+        {
+            pthread_join(threads[i], NULL);
+        }
+
+        cout << "waiting cont..." << endl;
+
+        deleteSharedMemory(shm_id_, dc_.tc_shm_);
     }
-
-    cout << "waiting cont..." << endl;
-    /* Join the thread and wait until it is done */
-    for (int i = 0; i < thread_number; i++)
-    {
-        pthread_join(threads[i], NULL);
-    }
-    dc_.tc_shm_->process_num--;
-
-    if (dc_.tc_shm_->process_num == 0)
-        deleteSharedMemory();
-
-    //Checking if shared memory exist
-
     std::cout << cgreen << "//////////////////////////" << creset << std::endl;
     std::cout << cgreen << "tocabi controller Shutdown" << creset << std::endl;
     std::cout << cgreen << "//////////////////////////" << creset << std::endl;

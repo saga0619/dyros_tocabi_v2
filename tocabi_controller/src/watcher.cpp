@@ -21,7 +21,10 @@
 
 int main()
 {
-  init_shm();
+  int shm_id;
+  SHMmsgs *shm_msgs_;
+
+  init_shm(shm_msg_key, shm_id, shm_msgs_);
 
   printf("\n\n\n\n\n");
 
@@ -40,16 +43,15 @@ int main()
     printf("MT : %d :: %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->maxTorque, shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
     printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
     i = 15;
-    printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f ", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]); 
+    printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f ", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
     std::fflush(stdout);
 
     if (shm_msgs_->t_cnt > 100000000 || shm_msgs_->shutdown)
     {
       break;
     }
-
   }
-    deleteSharedMemory();
+  deleteSharedMemory(shm_id);
 
   return 0;
 }

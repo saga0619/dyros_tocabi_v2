@@ -89,9 +89,9 @@ typedef struct SHMmsgs
 
 } SHMmsgs;
 
-static SHMmsgs *shm_msgs_;
-static int shm_msg_id;
-static key_t shm_msg_key = 10561;
+//static SHMmsgs *shm_msgs_;
+
+static const key_t shm_msg_key = 10561;
 
 enum ECOMMAND
 {
@@ -146,35 +146,40 @@ enum ESTATE
 
 // static void init_var(SHMmsgs *shm_p_)
 // {
-    
+
 // }
 
-static void init_shm()
+static void init_shm(int shm_key, int &shm_id_, SHMmsgs **shm_ref)
 {
-
-    if ((shm_msg_id = shmget(shm_msg_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
+    if ((shm_id_ = shmget(shm_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
     {
         std::cout << "shm mtx failed " << std::endl;
         exit(0);
     }
-
-    if ((shm_msgs_ = (SHMmsgs *)shmat(shm_msg_id, NULL, 0)) == (SHMmsgs *)-1)
+    if ((*shm_ref = (SHMmsgs *)shmat(shm_id_, NULL, 0)) == (SHMmsgs *)-1)
     {
         std::cout << "shmat failed " << std::endl;
         exit(0);
     }
-    shm_msgs_->shutdown = false;
+
+    (*shm_ref)->process_num++;
 }
 
-static void deleteSharedMemory()
+static void deleteSharedMemory(int shm_id__, SHMmsgs *shm_ref)
 {
-    if (shmctl(shm_msg_id, IPC_RMID, NULL) == -1)
+    shm_ref->process_num--;
+    if (shm_ref->process_num == 0)
     {
-        printf("shmctl failed\n");
-    }
-    else
-    {
-        printf("shm cleared succesfully\n");
+        printf("process num 0. removing shared memory\n");
+
+        if (shmctl(shm_id__, IPC_RMID, NULL) == -1)
+        {
+            printf("shared memoty failed to remove. \n");
+        }
+        else
+        {
+            printf("Shared memory succesfully removed\n");
+        }
     }
 }
 
