@@ -1126,7 +1126,7 @@ void StateManager::PublishData()
 
     point_pub_.publish(point_pub_msg_);
 
-    Eigen::Quaterniond q_head_(link_[Pelvis].rotm.transpose() * link_[Head].rotm);
+    Eigen::Quaterniond q_head_(DyrosMath::rotateWithZ(-rd_.yaw) * link_[Head].rotm);
 
     head_pose_msg_.orientation.w = q_head_.w();
     head_pose_msg_.orientation.x = q_head_.x();
