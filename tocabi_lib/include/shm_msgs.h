@@ -92,6 +92,7 @@ typedef struct SHMmsgs
 //static SHMmsgs *shm_msgs_;
 
 static const key_t shm_msg_key = 10561;
+static const key_t shm_rd_key = 10334;
 
 enum ECOMMAND
 {
@@ -143,11 +144,6 @@ enum ESTATE
     COMMUTATION_INITIALIZE,
     COMMUTATION_DONE,
 };
-
-// static void init_var(SHMmsgs *shm_p_)
-// {
-
-// }
 
 static void init_shm(int shm_key, int &shm_id_, SHMmsgs **shm_ref)
 {

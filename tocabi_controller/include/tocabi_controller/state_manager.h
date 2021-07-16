@@ -17,6 +17,7 @@
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Int32MultiArray.h>
 #include <geometry_msgs/PolygonStamped.h>
+#include <geometry_msgs/Pose.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int8MultiArray.h>
 #include <sensor_msgs/JointState.h>
@@ -135,6 +136,9 @@ public:
     geometry_msgs::PolygonStamped point_pub_msg_;
 
     ros::Publisher status_pub_;
+    
+    ros::Publisher head_pose_pub_;
+    geometry_msgs::Pose head_pose_msg_;
        
     ros::Publisher elmo_status_pub_;
     std_msgs::Int8MultiArray elmo_status_msg_;

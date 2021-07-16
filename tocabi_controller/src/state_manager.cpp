@@ -71,6 +71,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     point_pub_ = dc_.nh.advertise<geometry_msgs::PolygonStamped>("/tocabi/point", 100);
     status_pub_ = dc_.nh.advertise<std_msgs::String>("/tocabi/guilog", 100);
     timer_pub_ = dc_.nh.advertise<std_msgs::Float32>("/tocabi/time", 100);
+    head_pose_pub_ = dc_.nh.advertise<geometry_msgs::Pose>("/tocabi/headpose", 100);
 
     elmo_status_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/ecatstates", 100);
 
@@ -1124,6 +1125,17 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[12].z = dc_.tc_shm_->vel_virtual[2];
 
     point_pub_.publish(point_pub_msg_);
+
+    Eigen::Quaterniond q_head_(link_[Pelvis].rotm.transpose() * link_[Head].rotm);
+
+    head_pose_msg_.orientation.w = q_head_.w();
+    head_pose_msg_.orientation.x = q_head_.x();
+    head_pose_msg_.orientation.y = q_head_.y();
+    head_pose_msg_.orientation.z = q_head_.z();
+
+    head_pose_pub_.publish(head_pose_msg_);
+
+    //head_pose_msg_.orientation.
 
     //
 
