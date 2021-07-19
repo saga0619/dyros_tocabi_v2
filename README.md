@@ -43,7 +43,7 @@ Introduction to tocabi v2
   * This project was developed with Ubuntu 18.04, ROS Melodic
   * ⚠️Other ubuntu version might cause error!⚠️
   * Realrobot mode is developed and works stable at Xenomai.
-  * Developed xenomai Version is Xenomai 3.1, linux kernel version is linux-5.0.77
+  * Developed xenomai Version is Xenomai 3.1.1, linux kernel version is linux-5.4.124
   * Simulation requires mujoco license. 
   * visit <https://www.roboti.us/license.html> for license information
 
