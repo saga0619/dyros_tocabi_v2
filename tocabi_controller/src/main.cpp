@@ -1,4 +1,12 @@
-//#include "tocabi_controller/state_manager.h"
+/*
+* Dyros Tocabi Controller
+* (C) 2021 JuneWhee Ahn <june992@snu.ac.kr>
+*
+* This program is 
+*/
+
+
+
 #include "tocabi_controller/tocabi_controller.h"
 #include <signal.h>
 
