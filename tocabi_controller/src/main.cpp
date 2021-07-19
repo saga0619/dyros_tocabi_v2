@@ -2,7 +2,7 @@
 * Dyros Tocabi Controller
 * (C) 2021 JuneWhee Ahn <june992@snu.ac.kr>
 *
-* This program is 
+*  ** CC Divided Version **
 */
 
 
