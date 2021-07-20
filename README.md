@@ -178,6 +178,11 @@ roslaunch tocabi_controller realrobot.launch
   ```
   * you can check ethernet port name with `ifconfig` command at terminal
 
+## reset Shared Memory
+  * if something goes wrong ... (ethercat commanding ... +@)
+  * reset shared memory with `rosrun tocabi_controller shm_reset`
+  * may need `sudo -s`
+
 -----------------------------------------
 ## Todo
 + [ ] link F/T sensor

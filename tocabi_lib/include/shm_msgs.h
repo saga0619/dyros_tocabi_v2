@@ -94,6 +94,12 @@ typedef struct SHMmsgs
 static const key_t shm_msg_key = 10561;
 static const key_t shm_rd_key = 10334;
 
+// const std::string cred("\033[0;31m");
+// const std::string creset("\033[0m");
+// const std::string cblue("\033[0;34m");
+// const std::string cgreen("\033[0;32m");
+// const std::string cyellow("\033[0;33m");
+
 enum ECOMMAND
 {
     POSITION = 11,
@@ -156,6 +162,11 @@ static void init_shm(int shm_key, int &shm_id_, SHMmsgs **shm_ref)
     {
         std::cout << "shmat failed " << std::endl;
         exit(0);
+    }
+
+    if ((*shm_ref)->process_num == 0)
+    {
+        std::cout << "\033[0;32m" << "Process num 0 ! Clean Start!" << "\033[0m" << std::endl;
     }
 
     (*shm_ref)->process_num++;
