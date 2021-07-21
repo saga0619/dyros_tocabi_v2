@@ -35,9 +35,8 @@ int main()
   init_shm(shm_msg_key, shm_id_, &shm_msgs_);
   prog_shutdown = &shm_msgs_->shutdown;
   signal(SIGINT, SIGINT_handler);
-  //printf("\n\n\n\n\n");
-  shm_msgs_->process_num++;
-  std::cout << shm_msgs_->process_num << std::endl;
+
+
   printf("\n\n\n\n\n\n\n\n");
   while (true)
   {
