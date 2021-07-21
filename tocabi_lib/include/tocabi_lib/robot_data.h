@@ -207,7 +207,8 @@ struct DataContainer
 {
     ~DataContainer() { std::cout << "DC terminate" << std::endl; }
     ros::NodeHandle nh;
-    RobotData rd_;
+    //RobotData rd_;
+    RobotData *rd_;
 
     std::vector<float> Kps;
     std::vector<float> Kvs;

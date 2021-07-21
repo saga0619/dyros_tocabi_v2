@@ -5,8 +5,6 @@
 *  ** CC Divided Version **
 */
 
-
-
 #include "tocabi_controller/tocabi_controller.h"
 #include <signal.h>
 
@@ -24,7 +22,32 @@ int main(int argc, char **argv)
 
     ros::init(argc, argv, "tocabi_controller", ros::init_options::NoSigintHandler);
 
+    std::cout << "Starting tocabi controller ..." << std::endl;
+
     DataContainer dc_;
+    
+    int shm_id_;
+
+    init_shm(shm_msg_key, shm_id_, &dc_.tc_shm_);
+
+    prog_shutdown = &dc_.tc_shm_->shutdown;
+
+
+    int shm_rd_id_;
+    if ((shm_rd_id_ = shmget(shm_rd_key, sizeof(RobotData), IPC_CREAT | 0666)) == -1)
+    {
+        std::cout << "RobotData shmget failed..." << std::endl;
+        dc_.tc_shm_->shutdown = true;
+    }
+    if ((dc_.rd_ = (RobotData *)shmat(shm_rd_id_, NULL, 0)) == (RobotData *)-1)
+    {
+        std::cout << "RobotData shmat failed..." << std::endl;
+        dc_.tc_shm_->shutdown = true;
+    }
+
+    std::cout << "process num : " << (int)dc_.tc_shm_->process_num << std::endl;
+
+    std::cout << "shm initialized" << std::endl;
 
     dc_.nh.param("/tocabi_controller/sim_mode", dc_.simMode, false);
     dc_.nh.getParam("/tocabi_controller/Kp", dc_.Kps);
@@ -42,16 +65,6 @@ int main(int argc, char **argv)
     StateManager stm(dc_);
 
     TocabiController tc_(stm);
-
-    int shm_id_;
-
-    init_shm(shm_msg_key, shm_id_, &dc_.tc_shm_);
-
-    prog_shutdown = &dc_.tc_shm_->shutdown;
-
-    std::cout << "process num : " << (int)dc_.tc_shm_->process_num << std::endl;
-
-    std::cout << "shm initialized" << std::endl;
 
     if (dc_.tc_shm_->shutdown)
     {
@@ -132,9 +145,19 @@ int main(int argc, char **argv)
         }
 
         cout << "waiting cont..." << endl;
-
-        deleteSharedMemory(shm_id_, dc_.tc_shm_);
     }
+
+    deleteSharedMemory(shm_id_, dc_.tc_shm_);
+
+    if (shmctl(shm_rd_id_, IPC_RMID, NULL) == -1)
+    {
+        printf("shared memoty failed to remove. \n");
+    }
+    else
+    {
+        printf("Shared memory succesfully removed\n");
+    }
+
     std::cout << cgreen << "//////////////////////////" << creset << std::endl;
     std::cout << cgreen << "tocabi controller Shutdown" << creset << std::endl;
     std::cout << cgreen << "//////////////////////////" << creset << std::endl;

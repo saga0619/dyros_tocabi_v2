@@ -3,7 +3,7 @@
 using namespace std;
 using namespace TOCABI;
 
-StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc_global.rd_)
+StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(*dc_global.rd_)
 {
     string urdf_path;
 
@@ -202,7 +202,7 @@ void StateManager::SendCommand()
         else
         {
             std::cout << "turning on ... " << std::endl;
-            dc_.torqueOnTime = dc_.rd_.control_time_;
+            dc_.torqueOnTime = rd_gl_.control_time_;
             dc_.torqueOn = true;
             dc_.torqueRisingSeq = true;
         }
@@ -214,7 +214,7 @@ void StateManager::SendCommand()
         if (dc_.torqueOn)
         {
             std::cout << "turning off ... " << std::endl;
-            dc_.torqueOffTime = dc_.rd_.control_time_;
+            dc_.torqueOffTime = rd_gl_.control_time_;
             dc_.toruqeDecreaseSeq = true;
         }
         else
@@ -227,9 +227,9 @@ void StateManager::SendCommand()
     {
         if (dc_.torqueRisingSeq)
         {
-            maxTorqueCommand = (int)(maxTorque * DyrosMath::minmax_cut((dc_.rd_.control_time_ - dc_.torqueOnTime) / rTime, 0, 1));
+            maxTorqueCommand = (int)(maxTorque * DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOnTime) / rTime, 0, 1));
 
-            if (dc_.rd_.control_time_ > dc_.torqueOnTime + rTime)
+            if (rd_gl_.control_time_ > dc_.torqueOnTime + rTime)
             {
                 std::cout << "torque 100% ! " << std::endl;
 
@@ -239,9 +239,9 @@ void StateManager::SendCommand()
         else if (dc_.toruqeDecreaseSeq)
         {
 
-            maxTorqueCommand = (int)(maxTorque * (1 - DyrosMath::minmax_cut((dc_.rd_.control_time_ - dc_.torqueOffTime) / rTime, 0, 1)));
+            maxTorqueCommand = (int)(maxTorque * (1 - DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOffTime) / rTime, 0, 1)));
 
-            if (dc_.rd_.control_time_ > dc_.torqueOffTime + rTime)
+            if (rd_gl_.control_time_ > dc_.torqueOffTime + rTime)
             {
                 dc_.toruqeDecreaseSeq = false;
 
@@ -271,7 +271,7 @@ void StateManager::SendCommand()
             rd_.q_desired = rd_.q_;
             rd_.q_dot_desired.setZero();
             dc_.E1Status = true;
-            dc_.rd_.tc_run = false;
+            rd_gl_.tc_run = false;
         }
 
         dc_.E1Switch = false;
@@ -285,7 +285,7 @@ void StateManager::SendCommand()
         else
         {
             dc_.E2Status = true;
-            dc_.rd_.tc_run = false;
+            rd_gl_.tc_run = false;
 
             //Damping mode = true!
         }
@@ -295,21 +295,21 @@ void StateManager::SendCommand()
     if (dc_.emergencySwitch)
     {
         dc_.emergencyStatus = true; //
-        dc_.rd_.tc_run = false;
+        rd_gl_.tc_run = false;
     }
 
     if (dc_.E1Status)
     {
         for (int i = 0; i < MODEL_DOF; i++)
         {
-            torque_command[i] = dc_.Kps[i] * (dc_.rd_.q_desired(i) - dc_.rd_.q_(i)) + dc_.Kvs[i] * (dc_.rd_.q_dot_desired(i) - dc_.rd_.q_dot_(i));
+            torque_command[i] = dc_.Kps[i] * (rd_gl_.q_desired(i) - rd_gl_.q_(i)) + dc_.Kvs[i] * (rd_gl_.q_dot_desired(i) - rd_gl_.q_dot_(i));
         }
     }
 
     if (dc_.E2Status)
     {
         for (int i = 0; i < MODEL_DOF; i++)
-            torque_command[i] = dc_.Kvs[i] * dc_.rd_.q_dot_(i);
+            torque_command[i] = dc_.Kvs[i] * rd_gl_.q_dot_(i);
     }
 
     if (dc_.emergencyStatus)
@@ -1268,9 +1268,9 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     }
     else if (msg->data == "gravity")
     {
-        if (dc_.rd_.tc_run)
+        if (rd_gl_.tc_run)
         {
-            dc_.rd_.tc_run = false;
+            rd_gl_.tc_run = false;
         }
         else
         {

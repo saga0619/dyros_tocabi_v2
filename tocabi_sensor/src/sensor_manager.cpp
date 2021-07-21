@@ -144,9 +144,6 @@ int main(int argc, char **argv)
 
     init_shm(shm_msg_key, shm_id_, &sm_.shm_);
 
-    sm_.shm_->shutdown = false;
-    sm_.shm_->process_num++;
-
     struct sched_param param;
     pthread_attr_t attr;
     pthread_t thread;

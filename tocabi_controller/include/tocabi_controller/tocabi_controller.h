@@ -4,13 +4,6 @@
 #include "tocabi_controller/state_manager.h"
 #include "wholebody_functions.h"
 
-#ifdef COMPILE_TOCABI_CC
-#include "cc.h"
-#endif
-#ifdef COMPILE_TOCABI_AVATAR
-#include "avatar.h"
-#endif
-
 class TocabiController
 {
 public:
@@ -24,14 +17,6 @@ public:
     DataContainer &dc_;
     StateManager &stm_;
     RobotData &rd_;
-
-#ifdef COMPILE_TOCABI_CC
-    CustomController &my_cc;
-#endif
-
-#ifdef COMPILE_TOCABI_AVATAR
-    AvatarController &ac_;
-#endif
 
     static void *Thread1Starter(void *context)
     {
