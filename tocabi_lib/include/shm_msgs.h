@@ -72,6 +72,10 @@ typedef struct SHMmsgs
     std::atomic<int> process_num;
     std::atomic<bool> shutdown; //true for exit
     std::atomic<bool> emergencyOff;
+    std::atomic<bool> ControlModeLower;
+    std::atomic<bool> ControlModeUpper;
+
+    std::atomic_int16_t elmo_torque[MODEL_DOF];
 
     float lat_avg, lat_min, lat_max, lat_dev;
     float send_avg, send_min, send_max, send_dev;

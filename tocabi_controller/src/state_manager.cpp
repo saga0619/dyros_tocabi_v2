@@ -1,4 +1,6 @@
 #include "tocabi_controller/state_manager.h"
+#include "fstream"
+#include "algorithm"
 
 using namespace std;
 using namespace TOCABI;
@@ -159,6 +161,15 @@ void *StateManager::StateThread()
             if (dc_.inityawSwitch)
                 dc_.inityawSwitch = false;
 
+            bool log_changed = false;
+
+            if (log_changed)
+            {
+                //log output.
+                //elmo status change and
+                //command torque recording.
+            }
+
             //printf("%d\n", rcv_tcnt);
             //printf("\x1b[A\x1b[A\33[2K\r");
             // if (rcv_tcnt % 33 == 0)
@@ -175,6 +186,74 @@ void *StateManager::StateThread()
     }
     cout << "StateManager Thread END" << endl;
 }
+
+void *StateManager::LoggerThread()
+{
+
+    //wait for both ecat are in control mode !
+    while (!dc_.tc_shm_->shutdown)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        if (dc_.tc_shm_->ControlModeLower && dc_.tc_shm_->ControlModeUpper)
+        {
+            std::cout << "Logger : Both ECAT is now on CONTROL MODE! Logging start..." << std::endl;
+        }
+    }
+
+    char torqueLogFile[] = "/home/dyros/tocabi_log/torque_log";
+    char ecatStatusFile[] = "/home/dyros/tocabi_log/ecat_status_log";
+
+    ofstream torqueLog;
+    torqueLog.open(torqueLogFile);
+    torqueLog.width(6);
+    torqueLog.fill(' ');
+
+    ofstream ecatStatusLog;
+    ecatStatusLog.open(ecatStatusFile);
+
+    while (!dc_.tc_shm_->shutdown)
+    {
+        std::this_thread::sleep_for(std::chrono::microseconds(500));
+
+        torqueLog << control_time_ << "  ";
+        for (int i = 0; i < MODEL_DOF; i++)
+        {
+            torqueLog << (int16_t)dc_.tc_shm_->elmo_torque[i];
+        }
+        torqueLog << std::endl;
+
+        bool change = true;
+
+        static int elmoStatus_before[MODEL_DOF];
+        int elmoStatus_now[MODEL_DOF];
+
+        std::copy(dc_.tc_shm_->ecat_status, dc_.tc_shm_->ecat_status + MODEL_DOF, elmoStatus_now);
+
+        for (int i = 0; i < MODEL_DOF; i++)
+        {
+            if (elmoStatus_now[i] != elmoStatus_before[i])
+                change = true;
+        }
+
+        if (change)
+        {
+            ecatStatusLog << control_time_ << "  ";
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                ecatStatusLog << elmoStatus_now[i] << "  ";
+            }
+            ecatStatusLog << std::endl;
+        }
+
+        std::copy(elmoStatus_now, elmoStatus_now + MODEL_DOF, elmoStatus_before);
+    }
+
+    ecatStatusLog.close();
+    torqueLog.close();
+
+    std::cout << "Logger : END!" << std::endl;
+}
+
 void StateManager::SendCommand()
 {
     static double torque_command[MODEL_DOF];
@@ -227,7 +306,7 @@ void StateManager::SendCommand()
     {
         if (dc_.torqueRisingSeq)
         {
-            maxTorqueCommand = (int)(maxTorque * DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOnTime) / rTime, 0, 1));
+            maxTorqueCommand = (int)(maxTorque * DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOnTime) / rTime, 0.0, 1.0));
 
             if (rd_gl_.control_time_ > dc_.torqueOnTime + rTime)
             {
@@ -239,7 +318,7 @@ void StateManager::SendCommand()
         else if (dc_.toruqeDecreaseSeq)
         {
 
-            maxTorqueCommand = (int)(maxTorque * (1 - DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOffTime) / rTime, 0, 1)));
+            maxTorqueCommand = (int)(maxTorque * (1 - DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOffTime) / rTime, 0.0, 1.0)));
 
             if (rd_gl_.control_time_ > dc_.torqueOffTime + rTime)
             {
@@ -826,8 +905,8 @@ void StateManager::StateEstimate()
         double dr, dl;
         //dr =
 
-        dr = DyrosMath::minmax_cut(RF_CF_FT(2) / (-total_mass_ * GRAVITY), 0, 1); // * dc.tocabi_.ee_[1].contact_accuracy;
-        dl = DyrosMath::minmax_cut(LF_CF_FT(2) / (-total_mass_ * GRAVITY), 0, 1); // * dc.tocabi_.ee_[0].contact_accuracy;
+        dr = DyrosMath::minmax_cut(RF_CF_FT(2) / (-total_mass_ * GRAVITY), 0.0, 1.0); // * dc.tocabi_.ee_[1].contact_accuracy;
+        dl = DyrosMath::minmax_cut(LF_CF_FT(2) / (-total_mass_ * GRAVITY), 0.0, 1.0); // * dc.tocabi_.ee_[0].contact_accuracy;
 
         if (dr == 1)
         {
@@ -855,7 +934,7 @@ void StateManager::StateEstimate()
         rf_s_ratio = dr_static / (dr_static + dl_static);
         lf_s_ratio = dl_static / (dl_static + dr_static);
 
-        lf_s_ratio = DyrosMath::minmax_cut(lf_s_ratio, 0, 1);
+        lf_s_ratio = DyrosMath::minmax_cut(lf_s_ratio, 0.0, 1.0);
 
         if (lf_s_ratio == 0)
         {
@@ -867,7 +946,7 @@ void StateManager::StateEstimate()
         }
         else
         {
-            rf_s_ratio = DyrosMath::minmax_cut(rf_s_ratio, 0, 1);
+            rf_s_ratio = DyrosMath::minmax_cut(rf_s_ratio, 0.0, 1.0);
 
             if (rf_s_ratio == 0)
             {
@@ -1268,14 +1347,8 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     }
     else if (msg->data == "gravity")
     {
-        if (rd_gl_.tc_run)
-        {
-            rd_gl_.tc_run = false;
-        }
-        else
-        {
-            dc_.positionControlSwitch = false;
-        }
+        rd_gl_.tc_run = false;
+        rd_gl_.pc_mode = false;
     }
     else if (msg->data == "inityaw")
     {

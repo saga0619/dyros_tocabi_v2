@@ -687,6 +687,7 @@ void *ethercatThread1(void *data)
                 // printf("ELMO 2 : Timer Synced! delay : %5.3f us", (double)sync_delay / 1000.0);
 
                 cout << cgreen << "ELMO 2 : Control Mode Start ... " << creset << endl;
+                shm_msgs_->ControlModeLower = true;
 
                 //memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ELMO_DOF);
                 st_start_time = std::chrono::steady_clock::now();
@@ -889,6 +890,11 @@ void *ethercatThread1(void *data)
                     ec_send_processdata();
 
                     sat = chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - rcv2_).count();
+
+                    for (int i = 0; i < ec_slavecount; i++)
+                    {
+                        shm_msgs_->elmo_torque[JointMap2[START_N + i]] = txPDO[i]->targetTorque;
+                    }
 
                     //lat = latency1.count();
                     total1 += lat;
@@ -1300,7 +1306,6 @@ bool loadZeroPoint(bool force)
     {
         ifs.read(reinterpret_cast<char *>(&getzp[i]), sizeof(double));
     }
-
 
     ifs.close();
 

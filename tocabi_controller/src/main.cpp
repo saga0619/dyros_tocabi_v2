@@ -25,13 +25,12 @@ int main(int argc, char **argv)
     std::cout << "Starting tocabi controller ..." << std::endl;
 
     DataContainer dc_;
-    
+
     int shm_id_;
 
     init_shm(shm_msg_key, shm_id_, &dc_.tc_shm_);
 
     prog_shutdown = &dc_.tc_shm_->shutdown;
-
 
     int shm_rd_id_;
     if ((shm_rd_id_ = shmget(shm_rd_key, sizeof(RobotData), IPC_CREAT | 0666)) == -1)
@@ -48,8 +47,9 @@ int main(int argc, char **argv)
     std::cout << "process num : " << (int)dc_.tc_shm_->process_num << std::endl;
 
     std::cout << "shm initialized" << std::endl;
-
+    bool activateLogger;
     dc_.nh.param("/tocabi_controller/sim_mode", dc_.simMode, false);
+    dc_.nh.param("/tocabi_controller/log", activateLogger, false);
     dc_.nh.getParam("/tocabi_controller/Kp", dc_.Kps);
     dc_.nh.getParam("/tocabi_controller/Kv", dc_.Kvs);
 
@@ -132,12 +132,29 @@ int main(int argc, char **argv)
             printf("threads[2] create failed\n");
         }
 
+        pthread_t loggerThread;
+        pthread_attr_t loggerattrs;
+        if (activateLogger)
+        {
+            pthread_attr_init(&loggerattrs);
+
+            if (pthread_create(&loggerThread, &loggerattrs, &StateManager::LoggerStarter, &stm))
+            {
+                printf("threads[0] create failed\n");
+            }
+        }
+
         for (int i = 0; i < thread_number; i++)
         {
             pthread_attr_destroy(&attrs[i]);
         }
 
         cout << "waiting cont..." << endl;
+
+        if (activateLogger)
+        {
+            pthread_join(loggerThread, NULL);
+        }
         /* Join the thread and wait until it is done */
         for (int i = 0; i < thread_number; i++)
         {
