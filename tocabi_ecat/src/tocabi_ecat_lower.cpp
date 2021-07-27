@@ -687,6 +687,7 @@ void *ethercatThread1(void *data)
                 // printf("ELMO 2 : Timer Synced! delay : %5.3f us", (double)sync_delay / 1000.0);
 
                 cout << cgreen << "ELMO 2 : Control Mode Start ... " << creset << endl;
+                shm_msgs_->ControlModeLower = true;
 
                 //memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ELMO_DOF);
                 st_start_time = std::chrono::steady_clock::now();
@@ -889,6 +890,11 @@ void *ethercatThread1(void *data)
                     ec_send_processdata();
 
                     sat = chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - rcv2_).count();
+
+                    for (int i = 0; i < ec_slavecount; i++)
+                    {
+                        shm_msgs_->elmo_torque[JointMap2[START_N + i]] = txPDO[i]->targetTorque;
+                    }
 
                     //lat = latency1.count();
                     total1 += lat;
@@ -1144,68 +1150,6 @@ void checkJointSafety()
 void checkJointStatus()
 {
 }
-
-// void initSharedMemory()
-// {
-
-//     if ((shm_msg_id = shmget(shm_msg_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
-//     {
-//         std::cout << "shm mtx failed " << std::endl;
-//         exit(0);
-//     }
-
-//     if ((shm_msgs_ = (SHMmsgs *)shmat(shm_msg_id, NULL, 0)) == (SHMmsgs *)-1)
-//     {
-//         std::cout << "shmat failed " << std::endl;
-//         exit(0);
-//     }
-
-//     /*
-//     if (pthread_mutexattr_init(&shm_msgs_->mutexAttr) == 0)
-//     {
-//         std::cout << "shared mutex attr init" << std::endl;
-//     }
-
-//     if (pthread_mutexattr_setpshared(&shm_msgs_->mutexAttr, PTHREAD_PROCESS_SHARED) == 0)
-//     {
-//         std::cout << "shared mutexattr set" << std::endl;
-//     }
-
-//     if (pthread_mutex_init(&shm_msgs_->mutex, &shm_msgs_->mutexAttr) == 0)
-//     {
-//         std::cout << "shared mutex init" << std::endl;
-//     }*/
-
-//     if (shmctl(shm_msg_id, SHM_LOCK, NULL) == 0)
-//     {
-//         //std::cout << "SHM_LOCK enabled" << std::endl;
-//     }
-//     else
-//     {
-//         std::cout << "SHM lock failed" << std::endl;
-//     }
-
-//     shm_msgs_->t_cnt2 = 0;
-//     shm_msgs_->controllerReady = false;
-//     shm_msgs_->statusWriting = 0;
-//     shm_msgs_->commanding = false;
-//     shm_msgs_->reading = false;
-//     shm_msgs_->shutdown = false;
-
-//     //
-//     //float lat_avg, lat_min, lat_max, lat_dev;
-//     //float send_avg, send_min, send_max, send_dev;
-
-//     shm_msgs_->lat_avg2 = 0;
-//     shm_msgs_->lat_min2 = 0;
-//     shm_msgs_->lat_max2 = 100000;
-//     shm_msgs_->lat_dev2 = 0;
-
-//     shm_msgs_->send_avg2 = 0;
-//     shm_msgs_->send_min2 = 0;
-//     shm_msgs_->send_max2 = 100000;
-//     shm_msgs_->send_dev2 = 0;
-// }
 void sendJointStatus()
 {
 
@@ -1362,7 +1306,6 @@ bool loadZeroPoint(bool force)
     {
         ifs.read(reinterpret_cast<char *>(&getzp[i]), sizeof(double));
     }
-
 
     ifs.close();
 

@@ -2,15 +2,7 @@
 
 using namespace std;
 
-TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc_), stm_(stm_global), rd_(stm_global.dc_.rd_)
-#ifdef COMPILE_TOCABI_CC
-                                                               ,
-                                                               my_cc(*(new CustomController(rd_)))
-#endif
-#ifdef COMPILE_TOCABI_AVATAR
-                                                               ,
-                                                               ac_(*(new AvatarController(rd_)))
-#endif
+TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc_), stm_(stm_global), rd_(*stm_global.dc_.rd_)
 {
     //Tocabi Controller Initialize Component
 
@@ -188,25 +180,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
                     }*/
                 }
 
-#ifdef COMPILE_TOCABI_AVATAR
-                if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
-                {
-                    RequestThread2();
-                    ac_.computeSlow();
 
-                    //If necessary, use
-                    //To Enable Thread2, you need to fix the 50th line. Change EnableThread2(false) to EnableThread2(true).
-                    //If not, thread2 is disabled, so that you cannot use thread2
-                    //RequestThread2() : call this function to trigger Thread2 at each tick.
-                }
-#endif
-#ifdef COMPILE_TOCABI_CC
-                if (rd_.tc_.mode == 15)
-                {
-                    RequestThread2();
-                    my_cc.computeSlow();
-                }
-#endif
             }
             else
             {
@@ -304,18 +278,8 @@ void *TocabiController::Thread2()
 
                 if (rd_.tc_run)
                 {
-#ifdef COMPILE_TOCABI_AVATAR
-                    if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
-                    {
-                        ac_.computeFast();
-                    }
-#endif
-#ifdef COMPILE_TOCABI_CC
-                    if (rd_.tc_.mode == 15)
-                    {
-                        my_cc.computeFast();
-                    }
-#endif
+
+
                 }
                 /////////////////////////////////////////////
             }

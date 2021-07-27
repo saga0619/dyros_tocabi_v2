@@ -1342,7 +1342,15 @@ namespace DyrosMath
     else
       return val;
   }
-
+  static int minmax_cut(int val, int min_, int max_)
+  {
+    if (val < min_)
+      return min_;
+    else if (val > max_)
+      return max_;
+    else
+      return val;
+  }
   static double check_border(double x, double y, double x0, double x1, double y0, double y1, double sign)
   {
     return -sign * ((y1 - y0) * (x - x0) + (x1 - x0) * (y0 - y));

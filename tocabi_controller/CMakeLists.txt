@@ -73,16 +73,6 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
-IF(tocabi_cc_FOUND)
- message(" -- tocabi_cc found" )
-   ADD_DEFINITIONS(-DCOMPILE_TOCABI_CC)
-ENDIF()
-
-IF(tocabi_avatar_FOUND)
- message(" -- tocabi_avatar found" )
-   ADD_DEFINITIONS(-DCOMPILE_TOCABI_AVATAR)
-ENDIF()
-
 ###########
 ## Build ##
 ###########
@@ -92,6 +82,7 @@ ENDIF()
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${tocabi_lib_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -142,29 +133,11 @@ target_link_libraries(${PROJECT_NAME}_lib
   -lrbdl_urdfreader
 )
 
-IF(tocabi_cc_FOUND)
-target_link_libraries(${PROJECT_NAME}_lib
-  ${tocabi_cc_LIBRARIES}
-)
-include_directories(
-  ${tocabi_cc_INCLUDE_DIRS}
-)
-ENDIF()
-IF(tocabi_avatar_FOUND)
-target_link_libraries(${PROJECT_NAME}_lib
-  ${tocabi_avatar_LIBRARIES}
-)
-include_directories(
-  ${tocabi_avatar_INCLUDE_DIRS}
-)
-ENDIF()
-
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${PROJECT_NAME}_lib
 )
-
 
 add_dependencies(${PROJECT_NAME}_lib ${catkin_EXPORTED_TARGETS})
 add_dependencies(shm_reset ${catkin_EXPORTED_TARGETS})

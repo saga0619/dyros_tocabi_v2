@@ -1112,66 +1112,6 @@ void checkJointStatus()
 {
 }
 
-// void initSharedMemory()
-// {
-
-//     if ((shm_id_ = shmget(shm_msg_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
-//     {
-//         std::cout << "shm mtx failed " << std::endl;
-//         exit(0);
-//     }
-
-//     if ((shm_msgs_ = (SHMmsgs *)shmat(shm_id_, NULL, 0)) == (SHMmsgs *)-1)
-//     {
-//         std::cout << "shmat failed " << std::endl;
-//         exit(0);
-//     }
-//     /*
-//     if (pthread_mutexattr_init(&shm_msgs_->mutexAttr) == 0)
-//     {
-//         std::cout << "shared mutex attr init" << std::endl;
-//     }
-
-//     if (pthread_mutexattr_setpshared(&shm_msgs_->mutexAttr, PTHREAD_PROCESS_SHARED) == 0)
-//     {
-//         std::cout << "shared mutexattr set" << std::endl;
-//     }
-
-//     if (pthread_mutex_init(&shm_msgs_->mutex, &shm_msgs_->mutexAttr) == 0)
-//     {
-//         std::cout << "shared mutex init" << std::endl;
-//     }*/
-
-//     if (shmctl(shm_id_, SHM_LOCK, NULL) == 0)
-//     {
-//         //std::cout << "SHM_LOCK enabled" << std::endl;
-//     }
-//     else
-//     {
-//         std::cout << "SHM lock failed" << std::endl;
-//     }
-
-//     shm_msgs_->t_cnt = 0;
-//     shm_msgs_->controllerReady = false;
-//     shm_msgs_->statusWriting = 0;
-//     shm_msgs_->commanding = false;
-//     shm_msgs_->reading = false;
-//     shm_msgs_->shutdown = false;
-
-//     //
-//     //float lat_avg, lat_min, lat_max, lat_dev;
-//     //float send_avg, send_min, send_max, send_dev;
-
-//     shm_msgs_->lat_avg = 0;
-//     shm_msgs_->lat_min = 0;
-//     shm_msgs_->lat_max = 100000;
-//     shm_msgs_->lat_dev = 0;
-
-//     shm_msgs_->send_avg = 0;
-//     shm_msgs_->send_min = 0;
-//     shm_msgs_->send_max = 100000;
-//     shm_msgs_->send_dev = 0;
-// }
 void sendJointStatus()
 {
     shm_msgs_->t_cnt = cycle_count;
