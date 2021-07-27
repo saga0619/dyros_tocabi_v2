@@ -1268,14 +1268,8 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     }
     else if (msg->data == "gravity")
     {
-        if (dc_.rd_.tc_run)
-        {
-            dc_.rd_.tc_run = false;
-        }
-        else
-        {
-            dc_.positionControlSwitch = false;
-        }
+        dc_.rd_.tc_run = false;
+        dc_.rd_.pc_mode = false;
     }
     else if (msg->data == "inityaw")
     {
