@@ -29,8 +29,8 @@
 
 #define FORCE_CONTROL_MODE false
 
-const char ifname_lower[] = "eth1";
-const char ifname_upper[] = "eth0";
+const char ifname_lower[] = "eth0";
+const char ifname_upper[] = "eth1";
 
 const int starting_point = ELMO_DOF_UPPER;
 
@@ -305,7 +305,7 @@ const double joint_lower_limit[ELMO_DOF] =
      -0.6, -3, -1.5, -0.5, -1.0, -0.664};
 
 const double elmo_axis_direction[ELMO_DOF] =
-    {1, -1, 1, -1, 1, 1,
+    {1, -1, 1, 1, -1, 1,
      1, 1, 1, -1, -1, 1,
      1, -1, 1, 1, 1, 1,
      1, 1, -1, -1, -1, -1,
@@ -313,7 +313,7 @@ const double elmo_axis_direction[ELMO_DOF] =
      1, -1, 1};
 
 const double elmo_ext_axis_direction[ELMO_DOF] =
-    {1, -1, 1, 1, 1, 1,
+    {1, -1, 1, -1, -1, 1,
      1, 1, 1, -1, -1, 1,
      1, -1, 1, 1, 1, 1,
      1, 1, 1, 1, 1, 1,
