@@ -35,6 +35,10 @@ public:
 
     void *StateThread();
     static void *ThreadStarter(void *context) { return ((StateManager *)context)->StateThread(); }
+
+    void *LoggerThread();
+    static void *LoggerStarter(void *context) { return ((StateManager *)context)->LoggerThread(); }
+
     void SendCommand();
 
     void GetJointData();
@@ -131,32 +135,24 @@ public:
     ros::Publisher joint_state_pub_;
     sensor_msgs::JointState joint_state_msg_;
 
-
     ros::Publisher point_pub_;
     geometry_msgs::PolygonStamped point_pub_msg_;
 
     ros::Publisher status_pub_;
-    
+
     ros::Publisher head_pose_pub_;
     geometry_msgs::Pose head_pose_msg_;
-       
+
     ros::Publisher elmo_status_pub_;
     std_msgs::Int8MultiArray elmo_status_msg_;
-
-
-
 
     void SimCommandCallback(const std_msgs::StringConstPtr &msg);
     //void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);
 
-
-
-
-    
     ros::Subscriber gui_command_sub_;
     ros::Publisher gui_state_pub_;
     std_msgs::Int8MultiArray syspub_msg;
-    
+
     void GuiCommandCallback(const std_msgs::StringConstPtr &msg);
 
     void StatusPub(const char *str, ...);
