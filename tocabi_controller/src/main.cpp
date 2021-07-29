@@ -5,8 +5,6 @@
 *  ** CC Divided Version **
 */
 
-
-
 #include "tocabi_controller/tocabi_controller.h"
 #include <signal.h>
 
@@ -26,9 +24,12 @@ int main(int argc, char **argv)
 
     DataContainer dc_;
 
+    bool activateLogger;
+
     dc_.nh.param("/tocabi_controller/sim_mode", dc_.simMode, false);
     dc_.nh.getParam("/tocabi_controller/Kp", dc_.Kps);
     dc_.nh.getParam("/tocabi_controller/Kv", dc_.Kvs);
+    dc_.nh.param("/tocabi_controller/log", activateLogger, false);
 
     if (dc_.Kps.size() != MODEL_DOF)
     {
@@ -118,7 +119,17 @@ int main(int argc, char **argv)
         {
             printf("threads[2] create failed\n");
         }
+        pthread_t loggerThread;
+        pthread_attr_t loggerattrs;
+        if (activateLogger)
+        {
+            pthread_attr_init(&loggerattrs);
 
+            if (pthread_create(&loggerThread, &loggerattrs, &StateManager::LoggerStarter, &stm))
+            {
+                printf("threads[0] create failed\n");
+            }
+        }
         for (int i = 0; i < thread_number; i++)
         {
             pthread_attr_destroy(&attrs[i]);
@@ -126,6 +137,10 @@ int main(int argc, char **argv)
 
         cout << "waiting cont..." << endl;
         /* Join the thread and wait until it is done */
+        if (activateLogger)
+        {
+            pthread_join(loggerThread, NULL);
+        }
         for (int i = 0; i < thread_number; i++)
         {
             pthread_join(threads[i], NULL);
