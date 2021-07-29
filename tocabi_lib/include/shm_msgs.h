@@ -36,7 +36,7 @@ typedef struct SHMmsgs
     float vel[MODEL_DOF];
     float pos[MODEL_DOF];
     float posExt[MODEL_DOF];
-    std::atomic_int16_t elmo_torque[MODEL_DOF];
+    std::atomic<int16_t> elmo_torque[MODEL_DOF];
 
     float sim_time_;
 
