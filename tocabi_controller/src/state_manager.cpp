@@ -188,6 +188,7 @@ void *StateManager::LoggerThread()
         if (dc_.tc_shm_->controlModeLower && dc_.tc_shm_->controlModeUpper)
         {
             std::cout << "Logger : Both ECAT is now on CONTROL MODE! Logging start..." << std::endl;
+            break;
         }
     }
 
@@ -206,14 +207,14 @@ void *StateManager::LoggerThread()
     {
         std::this_thread::sleep_for(std::chrono::microseconds(500));
 
-        torqueLog << control_time_ << "  ";
+        torqueLog << control_time_ << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
             torqueLog << (int16_t)dc_.tc_shm_->elmo_torque[i];
         }
         torqueLog << std::endl;
 
-        bool change = true;
+        bool change = false;
 
         static int elmoStatus_before[MODEL_DOF];
         int elmoStatus_now[MODEL_DOF];
@@ -228,7 +229,7 @@ void *StateManager::LoggerThread()
 
         if (change)
         {
-            ecatStatusLog << control_time_ << "  ";
+            ecatStatusLog << control_time_ << "\t ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
                 ecatStatusLog << elmoStatus_now[i] << "  ";
