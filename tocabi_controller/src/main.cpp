@@ -8,6 +8,8 @@
 #include "tocabi_controller/tocabi_controller.h"
 #include <signal.h>
 
+#include <sys/mman.h>
+
 std::atomic<bool> *prog_shutdown;
 
 void SIGINT_handler(int sig)
@@ -19,6 +21,7 @@ void SIGINT_handler(int sig)
 int main(int argc, char **argv)
 {
     signal(SIGINT, SIGINT_handler);
+    mlockall(MCL_CURRENT | MCL_FUTURE);
 
     ros::init(argc, argv, "tocabi_controller", ros::init_options::NoSigintHandler);
 

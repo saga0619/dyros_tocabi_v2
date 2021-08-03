@@ -1,6 +1,6 @@
 #include "tocabi_ecat/tocabi_ecat_lower.h"
 #include <chrono>
-
+#include <sys/mman.h>
 const int PART_ELMO_DOF = ELMO_DOF_LOWER;
 const int START_N = ELMO_DOF_UPPER;
 const int Q_LOWER_START = 0;
@@ -135,6 +135,8 @@ void elmoInit()
 
 void *ethercatThread1(void *data)
 {
+
+    mlockall(MCL_CURRENT | MCL_FUTURE);
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
     shm_msgs_->lowerReady = false;
@@ -746,6 +748,9 @@ void *ethercatThread1(void *data)
 
                     clock_gettime(CLOCK_MONOTONIC, &ts1);
 
+                    control_time_us_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count();
+                    control_time_real_ = control_time_us_ / 1000000.0;
+
                     lat = ts1.tv_nsec - ts.tv_nsec;
                     if (lat < 0)
                     {
@@ -852,7 +857,8 @@ void *ethercatThread1(void *data)
                         if (ElmoMode[i] == EM_POSITION)
                         {
                             txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousPositionmode;
-                            txPDO[i]->targetPosition = (int)(elmo_axis_direction[START_N + i] * RAD2CNT[START_N + i] * q_desired_elmo_[START_N + i]);
+                            txPDO[i]->targetPosition = (int)(elmo_axis_direction[START_N + i] * RAD2CNT[START_N + i] * (q_desired_elmo_[START_N + i] + q_zero_elmo_[START_N + i]));
+                            txPDO[i]->maxTorque = (uint16)500;
                         }
                         else if (ElmoMode[i] == EM_TORQUE)
                         {
@@ -1136,13 +1142,13 @@ void checkJointSafety()
         if (ElmoSafteyMode[i] == 1)
         {
             q_desired_elmo_[START_N + i] = q_elmo_[START_N + i];
-            ElmoMode[i] == EM_POSITION;
+            ElmoMode[i] = EM_POSITION;
             ElmoSafteyMode[i] = 2;
         }
 
         if (ElmoSafteyMode[i] == 2)
         {
-            ElmoMode[i] == EM_POSITION;
+            ElmoMode[i] = EM_POSITION;
         }
     }
 }
@@ -1261,14 +1267,23 @@ void getJointCommand()
     for (int i = 0; i < ec_slavecount; i++)
     {
         command_mode_elmo_[JointMap[Q_LOWER_START + i]] = command_mode_[Q_LOWER_START + i];
-        q_desired_elmo_[JointMap[Q_LOWER_START + i]] = q_desired_[Q_LOWER_START + i];
-        torque_desired_elmo_[JointMap[Q_LOWER_START + i]] = torque_desired_[Q_LOWER_START + i];
+
+        if (command_mode_[Q_LOWER_START + i] == 1)
+        {
+            torque_desired_elmo_[JointMap[Q_LOWER_START + i]] = torque_desired_[Q_LOWER_START + i];
+        }
+        else if (command_mode_[Q_LOWER_START + i] == 2)
+        {
+            q_desired_elmo_[JointMap[Q_LOWER_START + i]] = q_desired_[Q_LOWER_START + i];
+        }
     }
 
     static int commandCount_before = -1;
+    static int commandCount_before2 = -1;
     static int errorCount = -2;
     int commandCount = shm_msgs_->commandCount;
     static double ct_before = 0;
+
     //control_time_real_
     if (commandCount <= commandCount_before)
     {
@@ -1276,9 +1291,29 @@ void getJointCommand()
         {
             //std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << " before t :" << ct_before << std::endl;
         }
-        errorCount = commandCount;
+
+        if (shm_msgs_->controlModeUpper)
+        {
+            if (commandCount_before2 == commandCount_before)
+            {
+                if (commandCount_before == commandCount)
+                {
+                    if (errorCount != commandCount)
+                    {
+                        std::cout << cred << control_time_us_ << "ELMO_LOW : commandCount Warn! SAFETY LOCK" << creset << std::endl;
+
+                        std::fill(ElmoSafteyMode, ElmoSafteyMode + MODEL_DOF, 1);
+
+                        errorCount = commandCount;
+                    }
+                }
+            }
+        }
+        //errorCount = commandCount;
     }
-    ct_before = control_time_real_;
+    ct_before = control_time_us_;
+
+    commandCount_before2 = commandCount_before;
     commandCount_before = commandCount;
 
     maxTorque = shm_msgs_->maxTorque;
@@ -1399,10 +1434,10 @@ bool loadZeroPoint(bool force)
         state_zp_[JointMap2[START_N + i]] = ZSTATE::ZP_SUCCESS;
         q_zero_elmo_[START_N + i] = getzp[START_N + i];
     }
-    for (int i = 0; i < PART_ELMO_DOF; i++)
-    {
-        std::cout << q_zero_elmo_[START_N + i] << "  ";
-    }
+    // for (int i = 0; i < PART_ELMO_DOF; i++)
+    // {
+    //     std::cout << q_zero_elmo_[START_N + i] << "  ";
+    // }
     return true;
 }
 
