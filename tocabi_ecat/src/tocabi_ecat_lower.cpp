@@ -204,7 +204,7 @@ void *ethercatThread1(void *data)
                 printf("ELMO 2 : EC WAITING STATE TO SAFE_OP\n");
             ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4);
 
-            ec_configdc();
+            //ec_configdc();
 
             expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
             printf("ELMO 2 : Request operational state for all slaves. Calculated workcounter : %d\n", expectedWKC);
@@ -257,6 +257,16 @@ void *ethercatThread1(void *data)
                 //clock_gettime(CLOCK_MONOTONIC, &ts);
 
                 clock_gettime(CLOCK_MONOTONIC, &ts);
+                if (shm_msgs_->upperTimerSet)
+                {
+                    std::cout << "ELMO 2 Sync : " << shm_msgs_->std_timer_ns % 500 - ts.tv_nsec % 500 << std::endl;
+                }
+                else
+                {
+                    std::cout << "ELMO 2 first " << std::endl;
+                    shm_msgs_->lowerTimerSet = true;
+                    shm_msgs_->std_timer_ns = ts.tv_nsec;
+                }
 
                 ts.tv_nsec += PERIOD_NS;
                 while (ts.tv_nsec >= SEC_IN_NSEC)
@@ -742,7 +752,7 @@ void *ethercatThread1(void *data)
 
                     //
 
-                    ts.tv_nsec += PERIOD_NS + toff;
+                    ts.tv_nsec += PERIOD_NS; // + toff;
                     while (ts.tv_nsec >= SEC_IN_NSEC)
                     {
                         ts.tv_sec++;
@@ -890,11 +900,11 @@ void *ethercatThread1(void *data)
                         }
                     }
 
-                    if (ec_slave[0].hasdc)
-                    {
-                        static int cycletime = PERIOD_NS;
-                        ec_sync(ec_DCtime, cycletime, &toff);
-                    }
+                    // if (ec_slave[0].hasdc)
+                    // {
+                    //     static int cycletime = PERIOD_NS;
+                    //     ec_sync(ec_DCtime, cycletime, &toff);
+                    // }
 
                     //Torque off if emergency off received
                     if (de_emergency_off)

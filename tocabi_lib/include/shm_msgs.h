@@ -75,6 +75,11 @@ typedef struct SHMmsgs
     std::atomic<bool> emergencyOff;
     std::atomic<bool> controlModeLower;
     std::atomic<bool> controlModeUpper;
+
+    long std_timer_ns;
+
+    std::atomic<bool> upperTimerSet;
+    std::atomic<bool> lowerTimerSet;
     
 
     float lat_avg, lat_min, lat_max, lat_dev;
