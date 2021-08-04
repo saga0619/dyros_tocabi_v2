@@ -197,7 +197,6 @@ void *StateManager::LoggerThread()
 
     ofstream torqueLog;
     torqueLog.open(torqueLogFile);
-    torqueLog.width(6);
     torqueLog.fill(' ');
 
     ofstream ecatStatusLog;
@@ -207,10 +206,11 @@ void *StateManager::LoggerThread()
     {
         std::this_thread::sleep_for(std::chrono::microseconds(500));
 
+        torqueLog.width(6);
         torqueLog << control_time_ << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
-            torqueLog << (int16_t)dc_.tc_shm_->elmo_torque[i];
+            torqueLog << (int)dc_.tc_shm_->elmo_torque[i];
         }
         torqueLog << std::endl;
 
