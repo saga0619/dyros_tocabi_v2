@@ -731,6 +731,11 @@ void *ethercatThread1(void *data)
 
                 struct timespec ts1, ts2;
 
+                struct timespec us_50;
+
+                us_50.tv_sec = 0;
+                us_50.tv_nsec = 50 * 1000;
+
                 while (!shm_msgs_->shutdown)
                 {
                     chrono::steady_clock::time_point rcv_ = chrono::steady_clock::now();
@@ -821,6 +826,8 @@ void *ethercatThread1(void *data)
                     }
 
                     sendJointStatus();
+
+                    //clock_nanosleep(CLOCK_MONOTONIC, 0, &us_50, NULL);
 
                     getJointCommand();
 

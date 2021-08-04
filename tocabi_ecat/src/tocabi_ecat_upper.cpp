@@ -723,6 +723,11 @@ void *ethercatThread1(void *data)
                 //     ts.tv_nsec -= SEC_IN_NSEC;
                 // }
 
+                struct timespec us_50;
+
+                us_50.tv_sec = 0;
+                us_50.tv_nsec = 50 * 1000;
+
                 struct timespec ts1, ts2;
 
                 while (!shm_msgs_->shutdown)
@@ -815,6 +820,8 @@ void *ethercatThread1(void *data)
                     }
 
                     sendJointStatus();
+
+                    //clock_nanosleep(CLOCK_MONOTONIC, 0, &us_50, NULL);
 
                     getJointCommand();
 

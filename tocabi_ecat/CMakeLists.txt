@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tocabi_ecat)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11 -O3)
+add_compile_options(-std=c++11 -Ofast)
 
 if(${FORCE_REALROBOT} MATCHES ON)
   message(" forces realrobot compile mode ")
