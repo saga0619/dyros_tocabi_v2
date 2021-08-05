@@ -1260,9 +1260,14 @@ void sendJointStatus()
     memcpy(&shm_msgs_->ecat_status[Q_UPPER_START], &state_elmo_[Q_UPPER_START], sizeof(int8_t) * PART_ELMO_DOF);
 
     shm_msgs_->statusWriting--;
-    shm_msgs_->statusCount = cycle_count;
 
-    shm_msgs_->triggerS1 = true;
+    shm_msgs_->statusCount.store(cycle_count,std::memory_order_release);
+
+    //shm_msgs_->statusCount = cycle_count;
+
+    shm_msgs_->triggerS1.store(true, std::memory_order_release);
+
+    //shm_msgs_->triggerS1 = true;
 }
 
 void getJointCommand()

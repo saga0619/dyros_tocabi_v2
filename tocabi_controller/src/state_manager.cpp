@@ -118,7 +118,7 @@ void *StateManager::StateThread()
 
         ros::spinOnce();
 
-        while (!dc_.tc_shm_->triggerS1)
+        while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
         {
             clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
             if (dc_.tc_shm_->shutdown)
@@ -508,7 +508,7 @@ void StateManager::InitYaw()
 
 void StateManager::GetJointData()
 {
-    while (dc_.tc_shm_->statusWriting)
+    while (dc_.tc_shm_->statusWriting.load(std::memory_order_acquire))
     {
         if (dc_.tc_shm_->shutdown)
             break;
