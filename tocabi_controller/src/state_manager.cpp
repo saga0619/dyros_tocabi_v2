@@ -248,6 +248,7 @@ void *StateManager::LoggerThread()
 
 void StateManager::SendCommand()
 {
+
     static double torque_command[MODEL_DOF];
     while (dc_.t_c_)
     {
@@ -390,11 +391,16 @@ void StateManager::SendCommand()
     }
 
     dc_.tc_shm_->commanding = true;
+    dc_.tc_shm_->commanding.store(true, std::memory_order_acquire);
+
     std::fill(dc_.tc_shm_->commandMode, dc_.tc_shm_->commandMode + MODEL_DOF, 1);
     std::copy(torque_command, torque_command + MODEL_DOF, dc_.tc_shm_->torqueCommand);
     dc_.tc_shm_->maxTorque = maxTorqueCommand;
-    dc_.tc_shm_->commandCount++;
-    dc_.tc_shm_->commanding = false;
+    static int cCount = 0;
+    cCount++;
+    dc_.tc_shm_->commandCount.store(cCount, std::memory_order_release);
+    dc_.tc_shm_->commanding.store(false, std::memory_order_release);
+
 }
 
 void StateManager::InitYaw()

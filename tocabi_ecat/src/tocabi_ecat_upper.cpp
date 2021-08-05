@@ -1254,7 +1254,7 @@ void sendJointStatus()
 
 void getJointCommand()
 {
-    while (shm_msgs_->commanding)
+    while (!shm_msgs_->commanding.load(std::memory_order_acquire))
     {
         usleep(1);
     }
