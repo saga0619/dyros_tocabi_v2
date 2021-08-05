@@ -6,6 +6,7 @@ const int PART_ELMO_DOF = ELMO_DOF_UPPER;
 const int START_N = 0;
 const int Q_UPPER_START = ELMO_DOF_LOWER;
 int64 gl_delta, toff;
+struct timespec ts_us1;
 
 void ec_sync(int64 reftime, int64 cycletime, int64 *offsettime)
 {
@@ -143,6 +144,8 @@ void *ethercatThread1(void *data)
     shm_msgs_->force_load_saved_signal = false;
 
     shm_msgs_->ecatTimerSet = false;
+
+    ts_us1.tv_nsec = 1000;
     if (ec_init(ifname_upper))
     {
         if (ecat_verbose)
@@ -260,6 +263,8 @@ void *ethercatThread1(void *data)
 
                 if (shm_msgs_->lowerTimerSet)
                 {
+                    int t_mod = shm_msgs_->std_timer_ns % 500 - ts.tv_nsec % 500;
+                    ts.tv_nsec += t_mod;
                     std::cout << "ELMO 1 Sync : " << shm_msgs_->std_timer_ns % 500 - ts.tv_nsec % 500 << std::endl;
                 }
                 else
@@ -694,7 +699,7 @@ void *ethercatThread1(void *data)
 
                 // cout << "ELMO 1 : Timer Set " << endl;
 
-                cout << cgreen << "ELMO 1 : Control Mode Start ... " << creset << endl;
+                cout << cgreen << "ELMO 1 : Control Mode Start ... " << ts.tv_nsec << creset << endl;
 
                 shm_msgs_->controlModeUpper = true;
                 //memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ELMO_DOF);
@@ -1130,9 +1135,17 @@ void checkJointSafety()
         {
             state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_OK;
 
-            if ((joint_lower_limit[START_N + i] > q_elmo_[START_N + i]) || (joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
+            if ((joint_lower_limit[START_N + i] > q_elmo_[START_N + i]))
             {
-                std::cout << "E1 safety lock : joint limit " << i << "  " << ELMO_NAME[i] << " q : " << q_elmo_[START_N + i] << std::endl;
+                std::cout << "E1 safety lock : joint limit " << i << "  " << ELMO_NAME[i] << " q : " << q_elmo_[START_N + i] << " lim : " << joint_lower_limit[START_N + i] << std::endl;
+                //joint limit reached
+                state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
+                ElmoSafteyMode[i] = 1;
+            }
+
+            if ((joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
+            {
+                std::cout << "E1 safety lock : joint limit " << i << "  " << ELMO_NAME[i] << " q : " << q_elmo_[START_N + i] << " lim : " << joint_upper_limit[START_N + i] << std::endl;
                 //joint limit reached
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
                 ElmoSafteyMode[i] = 1;
@@ -1256,9 +1269,10 @@ void getJointCommand()
 {
     while (!shm_msgs_->commanding.load(std::memory_order_acquire))
     {
-        usleep(1);
+        clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
     }
 
+    int commandCount = shm_msgs_->commandCount;
     memcpy(&command_mode_[Q_UPPER_START], &shm_msgs_->commandMode[Q_UPPER_START], sizeof(int) * PART_ELMO_DOF);
     memcpy(&q_desired_[Q_UPPER_START], &shm_msgs_->positionCommand[Q_UPPER_START], sizeof(float) * PART_ELMO_DOF);
     memcpy(&torque_desired_[Q_UPPER_START], &shm_msgs_->torqueCommand[Q_UPPER_START], sizeof(float) * PART_ELMO_DOF);
@@ -1278,34 +1292,76 @@ void getJointCommand()
 
     static int commandCount_before = -1;
     static int commandCount_before2 = -1;
+    static int errorTimes = 0;
     static int errorCount = -2;
 
-    int commandCount = shm_msgs_->commandCount;
-    if (commandCount <= commandCount_before)
+    if (shm_msgs_->controlModeLower)
     {
-        if (errorCount != commandCount)
+
+        if (errorTimes == 0)
         {
-            //std::cout << control_time_us_ << "ELMO_UPP : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
-        }
-        if (shm_msgs_->controlModeLower)
-        {
-            if (commandCount_before2 == commandCount_before)
+            if (commandCount <= commandCount_before) //shit
             {
-                if (commandCount_before == commandCount)
+                errorTimes++;
+                //std::cout << control_time_us_ << "ELMO_UPP : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+            }
+        }
+        else if (errorTimes > 0)
+        {
+            if (commandCount_before < commandCount) // no problem
+            {
+                errorTimes = 0;
+                errorCount = 0;
+            }
+            else //shit
+            {
+                errorTimes++;
+
+                if (errorTimes > 3)
                 {
                     if (errorCount != commandCount)
                     {
-                        std::cout << cred << control_time_us_ << "ELMO_UP : commandCount Warn! SAFETY LOCK" << creset << std::endl;
+                        std::cout << cred << control_time_us_ << "ELMO_UPP : commandCount Warn! SAFETY LOCK" << creset << std::endl;
 
                         std::fill(ElmoSafteyMode, ElmoSafteyMode + MODEL_DOF, 1);
 
                         errorCount = commandCount;
                     }
+                    else
+                    {
+                        //std::cout << errorTimes << "ELMO_UPP : commandCount error duplicated" << std::endl;
+                    }
                 }
             }
         }
-        //errorCount = commandCount;
     }
+
+
+    // if (commandCount <= commandCount_before)
+    // {
+    //     if (errorCount != commandCount)
+    //     {
+    //         std::cout << control_time_us_ << "ELMO_UPP : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+    //     }
+    //     if (shm_msgs_->controlModeLower)
+    //     {
+    //         if (commandCount_before2 == commandCount_before)
+    //         {
+    //             if (commandCount_before == commandCount)
+    //             {
+    //                 if (errorCount != commandCount)
+    //                 {
+    //                     std::cout << cred << control_time_us_ << "ELMO_UP : commandCount Warn! SAFETY LOCK" << creset << std::endl;
+
+    //                     std::fill(ElmoSafteyMode, ElmoSafteyMode + MODEL_DOF, 1);
+
+    //                     errorCount = commandCount;
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     //errorCount = commandCount;
+    // }
 
     commandCount_before2 = commandCount_before;
     commandCount_before = commandCount;

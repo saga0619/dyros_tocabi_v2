@@ -75,7 +75,7 @@ int main(int argc, char **argv)
         printf("pthread setschedpolicy failed\n");
         goto out;
     }
-    param.sched_priority = 80;
+    param.sched_priority = 95;
     ret = pthread_attr_setschedparam(&attr, &param);
     if (ret)
     {

@@ -105,6 +105,11 @@ void *StateManager::StateThread()
     int cnt2 = 0;
     int cnt3 = 0;
     auto time_start = std::chrono::steady_clock::now();
+
+    timespec tv_us1;
+    tv_us1.tv_sec = 0;
+    tv_us1.tv_nsec = 1000;
+
     while (!dc_.tc_shm_->shutdown)
     {
         //////////////////////////////
@@ -112,68 +117,69 @@ void *StateManager::StateThread()
         //////////////////////////////
 
         ros::spinOnce();
-        if (dc_.tc_shm_->triggerS1)
+
+        while (!dc_.tc_shm_->triggerS1)
         {
-            SendCommand();
-            cycle_count_++;
-            stm_count_++;
-
-            rcv_tcnt = dc_.tc_shm_->statusCount;
-            rd_.tp_state_ = std::chrono::steady_clock::now();
-            auto t1 = rd_.tp_state_;
-
-            GetJointData(); //0.246 us //w/o march native 0.226
-            GetSensorData();
-
-            dc_.tc_shm_->triggerS1 = false;
-
-            InitYaw();
-
-            auto dur_start_ = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - time_start).count();
-            control_time_ = rcv_tcnt / 2000.0;
-            //local kinematics update : 33.7 us // w/o march native 20 us
-            UpdateKinematics_local(model_local_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
-
-            auto d1 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t1).count();
-            auto t2 = chrono::steady_clock::now();
-            StateEstimate();
-
-            //global kinematics update : 127 us //w/o march native 125 us
-            UpdateKinematics(model_global_, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
-
-            StoreState(rd_gl_); //6.2 us //w/o march native 8us
-
-            auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
-            //MeasureTime(stm_count_, d1, d2);
-
-            rd_gl_.state_ctime_total_ += (d1 + d2);
-            rd_gl_.state_ctime_avg_ = rd_gl_.state_ctime_total_ / stm_count_;
-            rd_gl_.us_from_start_ = dur_start_;
-
-            if (stm_count_ % 33 == 0)
-            {
-                cnt3++;
-                PublishData();
-            }
-            //dc_.tc_shm_->t_cnt2 = stm_count_;
-            dc_.tc_shm_->t_cnt2 = cnt3;
-
-            if (dc_.inityawSwitch)
-                dc_.inityawSwitch = false;
-
-            //printf("%d\n", rcv_tcnt);
-            //printf("\x1b[A\x1b[A\33[2K\r");
-            // if (rcv_tcnt % 33 == 0)
-            // {
-            //     printf("\33[2K\r");
-            //     printf("%8d %8d avg : %7.3f max : %4d min : %4d, cnt : %4d, cnt2 : %4d, cnt3 : %4d ", rcv_tcnt, cycle_count_, avg, max, min, cnt, cnt2, cnt3);
-            //     fflush(stdout);
-            // }
+            clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
+            if (dc_.tc_shm_->shutdown)
+                break;
         }
-        else
+        SendCommand();
+
+        cycle_count_++;
+        stm_count_++;
+
+        rcv_tcnt = dc_.tc_shm_->statusCount;
+        rd_.tp_state_ = std::chrono::steady_clock::now();
+        auto t1 = rd_.tp_state_;
+
+        GetJointData(); //0.246 us //w/o march native 0.226
+        GetSensorData();
+
+        dc_.tc_shm_->triggerS1 = false;
+
+        InitYaw();
+
+        auto dur_start_ = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - time_start).count();
+        control_time_ = rcv_tcnt / 2000.0;
+        //local kinematics update : 33.7 us // w/o march native 20 us
+        UpdateKinematics_local(model_local_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
+
+        auto d1 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t1).count();
+        auto t2 = chrono::steady_clock::now();
+        StateEstimate();
+
+        //global kinematics update : 127 us //w/o march native 125 us
+        UpdateKinematics(model_global_, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
+
+        StoreState(rd_gl_); //6.2 us //w/o march native 8us
+
+        auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
+        //MeasureTime(stm_count_, d1, d2);
+
+        rd_gl_.state_ctime_total_ += (d1 + d2);
+        rd_gl_.state_ctime_avg_ = rd_gl_.state_ctime_total_ / stm_count_;
+        rd_gl_.us_from_start_ = dur_start_;
+
+        if (stm_count_ % 33 == 0)
         {
-            std::this_thread::sleep_for(std::chrono::microseconds(1));
+            cnt3++;
+            PublishData();
         }
+        //dc_.tc_shm_->t_cnt2 = stm_count_;
+        dc_.tc_shm_->t_cnt2 = cnt3;
+
+        if (dc_.inityawSwitch)
+            dc_.inityawSwitch = false;
+
+        //printf("%d\n", rcv_tcnt);
+        //printf("\x1b[A\x1b[A\33[2K\r");
+        // if (rcv_tcnt % 33 == 0)
+        // {
+        //     printf("\33[2K\r");
+        //     printf("%8d %8d avg : %7.3f max : %4d min : %4d, cnt : %4d, cnt2 : %4d, cnt3 : %4d ", rcv_tcnt, cycle_count_, avg, max, min, cnt, cnt2, cnt3);
+        //     fflush(stdout);
+        // }
     }
     cout << "StateManager Thread END" << endl;
 }
@@ -192,12 +198,20 @@ void *StateManager::LoggerThread()
         }
     }
 
-    char torqueLogFile[] = "/home/dyros/tocabi_log/torque_log";
+    char torqueLogFile[] = "/home/dyros/tocabi_log/torque_elmo_log";
     char ecatStatusFile[] = "/home/dyros/tocabi_log/ecat_status_log";
+    char torqueclogFile[] = "/home/dyros/tocabi_log/torque_command_log";
+    char torqueActualLogFile[] = "/home/dyros/tocabi_log/torque_actual_log";
 
     ofstream torqueLog;
     torqueLog.open(torqueLogFile);
     torqueLog.fill(' ');
+
+    ofstream torqueCommandLog;
+    torqueCommandLog.open(torqueclogFile);
+
+    ofstream torqueActualLog;
+    torqueActualLog.open(torqueActualLogFile);
 
     ofstream ecatStatusLog;
     ecatStatusLog.open(ecatStatusFile);
@@ -207,12 +221,31 @@ void *StateManager::LoggerThread()
         std::this_thread::sleep_for(std::chrono::microseconds(500));
 
         torqueLog.width(6);
+        torqueLog.fill(' ');
         torqueLog << control_time_ << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
             torqueLog << (int)dc_.tc_shm_->elmo_torque[i];
         }
         torqueLog << std::endl;
+
+        torqueCommandLog.precision(7);
+        torqueCommandLog.fill(' ');
+        torqueCommandLog << control_time_ << "\t ";
+        for (int i = 0; i < MODEL_DOF; i++)
+        {
+            torqueCommandLog << dc_.torque_command[i] << " ";
+        }
+        torqueCommandLog << std::endl;
+
+        torqueActualLog.width(6);
+        torqueActualLog.fill(' ');
+        torqueActualLog << control_time_ << "\t ";
+        for (int i = 0; i < MODEL_DOF; i++)
+        {
+            torqueActualLog << (int)dc_.tc_shm_->torqueActual[i] << " ";
+        }
+        torqueActualLog << std::endl;
 
         bool change = false;
 
@@ -401,6 +434,44 @@ void StateManager::SendCommand()
     dc_.tc_shm_->commandCount.store(cCount, std::memory_order_release);
     dc_.tc_shm_->commanding.store(false, std::memory_order_release);
 
+    // dc_.tc_shm_->commandCount++;
+    // dc_.tc_shm_->commanding = false;
+
+    // static timespec ts_before;
+    // timespec ts_now;
+    // clock_gettime(CLOCK_MONOTONIC, &ts_now);
+
+    // int _latency = ts_now.tv_nsec - ts_before.tv_nsec;
+
+    // if (_latency < 0)
+    //     _latency += 1000000000;
+
+    // static int tick = 0;
+    // tick++;
+
+    // static int lat_all = 0;
+    // static int lat_max = 0;
+    // static int lat_min = 100000000;
+
+    // lat_all += _latency;
+
+    // if (lat_max < _latency)
+    //     lat_max = _latency;
+
+    // if (lat_min > _latency)
+    //     lat_min = _latency;
+
+    // if (tick == 2000)
+    // {
+
+    //     std::cout << control_time_ << "    " << lat_all / tick << " lat min : " << lat_min << " lat max : " << lat_max << std::endl;
+    //     tick = 0;
+    //     lat_all = 0;
+    //     lat_max = 0;
+    //     lat_min = 1000000000;
+    // }
+
+    // ts_before = ts_now;
 }
 
 void StateManager::InitYaw()
