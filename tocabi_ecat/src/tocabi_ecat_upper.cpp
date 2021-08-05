@@ -783,10 +783,7 @@ void *ethercatThread1(void *data)
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         elmost[i].state = getElmoState(rxPDO[i]->statusWord);
-                        if (elmost[i].state != elmost[i].state_before)
-                        {
-                            state_elmo_[JointMap2[i]] = elmost[i].state;
-                        }
+                        state_elmo_[JointMap2[i]] = elmost[i].state;
                         elmost[i].state_before = elmost[i].state;
                     }
 
@@ -863,11 +860,17 @@ void *ethercatThread1(void *data)
                     if (shm_msgs_->safety_reset_upper_signal)
                     {
                         memset(ElmoSafteyMode, 0, sizeof(int) * ELMO_DOF);
-                        shm_msgs_->safety_reset_lower_signal = false;
+                        shm_msgs_->safety_reset_upper_signal = false;
                     }
 
                     //Joint safety checking ..
-                    checkJointSafety();
+                    static int safe_count = 10;
+
+                    if (safe_count-- < 0)
+                    {
+                        if (!shm_msgs_->safety_disable)
+                            checkJointSafety();
+                    }
 
                     //ECAT JOINT COMMAND
                     for (int i = 0; i < ec_slavecount; i++)
@@ -1128,6 +1131,8 @@ bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord)
 }
 void checkJointSafety()
 {
+    //std::cout << q_elmo_[START_N + 12] << "  " << q_zero_elmo_[START_N + 12] << std::endl;
+
     for (int i = 0; i < ELMO_DOF_UPPER; i++)
     {
 
@@ -1142,8 +1147,7 @@ void checkJointSafety()
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
                 ElmoSafteyMode[i] = 1;
             }
-
-            if ((joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
+            else if ((joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
             {
                 std::cout << "E1 safety lock : joint limit " << i << "  " << ELMO_NAME[i] << " q : " << q_elmo_[START_N + i] << " lim : " << joint_upper_limit[START_N + i] << std::endl;
                 //joint limit reached

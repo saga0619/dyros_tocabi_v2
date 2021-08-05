@@ -76,6 +76,7 @@ typedef struct SHMmsgs
     std::atomic<bool> emergencyOff;
     std::atomic<bool> controlModeLower;
     std::atomic<bool> controlModeUpper;
+    std::atomic<bool> safety_disable;
 
     long std_timer_ns;
 
@@ -93,8 +94,8 @@ typedef struct SHMmsgs
     bool waist_init_signal = false;
     bool upper_init_signal = false;
 
-    bool safety_reset_lower_signal = false;
-    bool safety_reset_upper_signal = false;
+    std::atomic<bool> safety_reset_lower_signal;
+    std::atomic<bool> safety_reset_upper_signal;
     bool force_load_saved_signal = false;
 
 } SHMmsgs;

@@ -786,10 +786,7 @@ void *ethercatThread1(void *data)
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         elmost[i].state = getElmoState(rxPDO[i]->statusWord);
-                        if (elmost[i].state != elmost[i].state_before)
-                        {
-                            state_elmo_[JointMap2[START_N + i]] = elmost[i].state;
-                        }
+                        state_elmo_[JointMap2[START_N + i]] = elmost[i].state;
                         elmost[i].state_before = elmost[i].state;
                     }
 
@@ -870,7 +867,13 @@ void *ethercatThread1(void *data)
                     }
 
                     //Joint safety checking ..
-                    checkJointSafety();
+                    static int safe_count = 10;
+
+                    if (safe_count-- < 0)
+                    {
+                        if (!shm_msgs_->safety_disable)
+                            checkJointSafety();
+                    }
 
                     //Ecat joint command
                     for (int i = 0; i < ec_slavecount; i++)
@@ -1176,7 +1179,6 @@ void checkJointSafety()
                 ElmoSafteyMode[i] = 1;
             }
         }
-
         if (ElmoSafteyMode[i] == 1)
         {
             q_desired_elmo_[START_N + i] = q_elmo_[START_N + i];

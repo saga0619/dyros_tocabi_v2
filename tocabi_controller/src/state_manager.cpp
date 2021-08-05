@@ -1452,6 +1452,24 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "safetyreset")
     {
         dc_.safetyResetSwitch = true;
+        dc_.tc_shm_->safety_reset_lower_signal = true;
+        dc_.tc_shm_->safety_reset_upper_signal = true;
+    }
+    else if (msg->data == "safetydisable")
+    {
+        dc_.tc_shm_->safety_disable = !dc_.tc_shm_->safety_disable;
+
+        if (dc_.tc_shm_->safety_disable)
+        {
+            std::cout << "safety checking disabled!" << std::endl;
+            dc_.tc_shm_->safety_reset_lower_signal = true;
+            dc_.tc_shm_->safety_reset_upper_signal = true;
+        }
+        else
+        {
+
+            std::cout << "safety checking enabled!" << std::endl;
+        }
     }
     else if (msg->data == "ecatinit")
     {
