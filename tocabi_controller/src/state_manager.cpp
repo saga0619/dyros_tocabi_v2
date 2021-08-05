@@ -118,7 +118,7 @@ void *StateManager::StateThread()
 
         ros::spinOnce();
 
-        while (!dc_.tc_shm_->triggerS1)
+        while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
         {
             clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
             if (dc_.tc_shm_->shutdown)
@@ -281,6 +281,7 @@ void *StateManager::LoggerThread()
 
 void StateManager::SendCommand()
 {
+
     static double torque_command[MODEL_DOF];
     while (dc_.t_c_)
     {
@@ -423,11 +424,18 @@ void StateManager::SendCommand()
     }
 
     dc_.tc_shm_->commanding = true;
+    dc_.tc_shm_->commanding.store(true, std::memory_order_acquire);
+
     std::fill(dc_.tc_shm_->commandMode, dc_.tc_shm_->commandMode + MODEL_DOF, 1);
     std::copy(torque_command, torque_command + MODEL_DOF, dc_.tc_shm_->torqueCommand);
     dc_.tc_shm_->maxTorque = maxTorqueCommand;
-    dc_.tc_shm_->commandCount++;
-    dc_.tc_shm_->commanding = false;
+    static int cCount = 0;
+    cCount++;
+    dc_.tc_shm_->commandCount.store(cCount, std::memory_order_release);
+    dc_.tc_shm_->commanding.store(false, std::memory_order_release);
+
+    // dc_.tc_shm_->commandCount++;
+    // dc_.tc_shm_->commanding = false;
 
     // static timespec ts_before;
     // timespec ts_now;
@@ -500,7 +508,7 @@ void StateManager::InitYaw()
 
 void StateManager::GetJointData()
 {
-    while (dc_.tc_shm_->statusWriting)
+    while (dc_.tc_shm_->statusWriting.load(std::memory_order_acquire))
     {
         if (dc_.tc_shm_->shutdown)
             break;

@@ -1285,7 +1285,10 @@ void sendJointStatus()
     memcpy(&shm_msgs_->ecat_status[Q_LOWER_START], &state_elmo_[Q_LOWER_START], sizeof(int8_t) * PART_ELMO_DOF);
 
     shm_msgs_->statusWriting--;
-    shm_msgs_->statusCount2 = cycle_count;
+    //shm_msgs_->statusCount2 = cycle_count;
+    shm_msgs_->statusCount2.store(cycle_count, std::memory_order_release);
+    
+
 }
 
 void getJointCommand()
@@ -1293,7 +1296,7 @@ void getJointCommand()
     // memcpy(command_mode_, &shm_msgs_->commandMode, sizeof(int) * PART_ELMO_DOF);
     // memcpy(q_desired_, &shm_msgs_->positionCommand, sizeof(float) * PART_ELMO_DOF);
     // memcpy(torque_desired_, &shm_msgs_->torqueCommand, sizeof(float) * PART_ELMO_DOF);
-    while (shm_msgs_->commanding)
+    while (!shm_msgs_->commanding.load(std::memory_order_acquire))
     {
         clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
     }
