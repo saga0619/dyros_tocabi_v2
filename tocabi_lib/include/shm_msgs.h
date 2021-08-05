@@ -57,6 +57,7 @@ typedef struct SHMmsgs
 
     std::atomic<bool> commanding;
     std::atomic<int> commandCount;
+    std::atomic<int> stloopCount;
     int commandMode[MODEL_DOF]; //command mode 0 -> off 1 -> torque 2 -> position
     float torqueCommand[MODEL_DOF];
     float positionCommand[MODEL_DOF];

@@ -118,12 +118,15 @@ void *StateManager::StateThread()
 
         ros::spinOnce();
 
+        dc_.tc_shm_->stloopCount.store(stm_count_);
+
         while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
         {
             clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
             if (dc_.tc_shm_->shutdown)
                 break;
         }
+        dc_.tc_shm_->triggerS1 = false;
         SendCommand();
 
         cycle_count_++;
@@ -135,8 +138,6 @@ void *StateManager::StateThread()
 
         GetJointData(); //0.246 us //w/o march native 0.226
         GetSensorData();
-
-        dc_.tc_shm_->triggerS1 = false;
 
         InitYaw();
 

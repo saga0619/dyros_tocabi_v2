@@ -1287,8 +1287,6 @@ void sendJointStatus()
     shm_msgs_->statusWriting--;
     //shm_msgs_->statusCount2 = cycle_count;
     shm_msgs_->statusCount2.store(cycle_count, std::memory_order_release);
-    
-
 }
 
 void getJointCommand()
@@ -1296,16 +1294,40 @@ void getJointCommand()
     // memcpy(command_mode_, &shm_msgs_->commandMode, sizeof(int) * PART_ELMO_DOF);
     // memcpy(q_desired_, &shm_msgs_->positionCommand, sizeof(float) * PART_ELMO_DOF);
     // memcpy(torque_desired_, &shm_msgs_->torqueCommand, sizeof(float) * PART_ELMO_DOF);
-    while (!shm_msgs_->commanding.load(std::memory_order_acquire))
+    while (shm_msgs_->commanding.load(std::memory_order_acquire))
     {
         clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
     }
 
-    int commandCount = shm_msgs_->commandCount;
+    static int stloop;
+    static bool stloop_check;
+    stloop_check = false;
+    if (stloop == shm_msgs_->stloopCount)
+    {
+        stloop_check = true;
+    }
+    stloop = shm_msgs_->stloopCount;
+
+    static int commandCount;
+    int wait_tick;
+
+    if (!stloop_check)
+    {
+        while (shm_msgs_->commandCount == commandCount)
+        {
+            clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
+            if (++wait_tick > 3)
+            {
+                break;
+            }
+        }
+    }
 
     memcpy(&command_mode_[Q_LOWER_START], &shm_msgs_->commandMode[Q_LOWER_START], sizeof(int) * PART_ELMO_DOF);
     memcpy(&q_desired_[Q_LOWER_START], &shm_msgs_->positionCommand[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
     memcpy(&torque_desired_[Q_LOWER_START], &shm_msgs_->torqueCommand[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
+
+    commandCount = shm_msgs_->commandCount;
 
     for (int i = 0; i < ec_slavecount; i++)
     {
@@ -1334,7 +1356,9 @@ void getJointCommand()
             if (commandCount <= commandCount_before) //shit
             {
                 errorTimes++;
-                //std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+                std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+                if (stloop_check)
+                    std::cout << "stloop same cnt" << std::endl;
             }
         }
         else if (errorTimes > 0)
