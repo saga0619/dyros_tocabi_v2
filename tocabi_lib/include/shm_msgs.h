@@ -57,6 +57,7 @@ typedef struct SHMmsgs
 
     std::atomic<bool> commanding;
     std::atomic<int> commandCount;
+    std::atomic<int> stloopCount;
     int commandMode[MODEL_DOF]; //command mode 0 -> off 1 -> torque 2 -> position
     float torqueCommand[MODEL_DOF];
     float positionCommand[MODEL_DOF];
@@ -66,6 +67,7 @@ typedef struct SHMmsgs
     float timeCommand;
 
     std::atomic<int> control_time_us_;
+    
     std::atomic<int> t_cnt;
     std::atomic<int> t_cnt2;
     std::atomic<bool> controllerReady;
@@ -75,6 +77,12 @@ typedef struct SHMmsgs
     std::atomic<bool> emergencyOff;
     std::atomic<bool> controlModeLower;
     std::atomic<bool> controlModeUpper;
+    std::atomic<bool> safety_disable;
+
+    long std_timer_ns;
+
+    std::atomic<bool> upperTimerSet;
+    std::atomic<bool> lowerTimerSet;
     
 
     float lat_avg, lat_min, lat_max, lat_dev;
@@ -87,8 +95,8 @@ typedef struct SHMmsgs
     bool waist_init_signal = false;
     bool upper_init_signal = false;
 
-    bool safety_reset_lower_signal = false;
-    bool safety_reset_upper_signal = false;
+    std::atomic<bool> safety_reset_lower_signal;
+    std::atomic<bool> safety_reset_upper_signal;
     bool force_load_saved_signal = false;
 
 } SHMmsgs;
@@ -135,6 +143,7 @@ enum SSTATE
     SAFETY_JOINT_LIMIT,
     SAFETY_VELOCITY_LIMIT,
     SAFETY_TORQUE_LIMIT,
+    SAFETY_COMMAND_LOCK,
 };
 
 enum ZSTATE

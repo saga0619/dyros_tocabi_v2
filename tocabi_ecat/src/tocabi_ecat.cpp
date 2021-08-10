@@ -1,4 +1,5 @@
 #include "tocabi_ecat/tocabi_ecat.h"
+#include "bitset"
 
 int64 toff, gl_delta;
 
@@ -744,10 +745,7 @@ void *ethercatThread1(void *data)
                             {
                                 q_elmo_[slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1];
                                 hommingElmo[slave - 1] =
-                                    (((uint32_t)ec_slave[slave].inputs[4]) +
-                                     ((uint32_t)ec_slave[slave].inputs[5] << 8) +
-                                     ((uint32_t)ec_slave[slave].inputs[6] << 16) +
-                                     ((uint32_t)ec_slave[slave].inputs[7] << 24));
+                                    (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
                                 q_dot_elmo_[slave - 1] =
                                     (((int32_t)ec_slave[slave].inputs[10]) +
                                      ((int32_t)ec_slave[slave].inputs[11] << 8) +
@@ -1000,6 +998,14 @@ void *ethercatThread2(void *data)
                 std::cout << "ELMO : start searching zero point upper" << std::endl;
                 de_zp_upper_switch = true;
             }
+            else if ((ch % 256 == 's'))
+            {
+                std::cout << "------------------------------------------------------" << std::endl;
+                for (int i = 0; i < ec_slavecount; i++)
+                { //std::cout << i << ELMO_NAME[i] <<
+                    printf("%4d   %20s  %16d\n", i, ELMO_NAME[i].c_str(), std::bitset<16>(rxPDO[i]->statusWord));
+                }
+            }
             else if ((ch % 256 == 'd'))
             {
                 de_debug_level++;
@@ -1011,6 +1017,7 @@ void *ethercatThread2(void *data)
             else if ((ch % 256 == 'p'))
             {
                 std::cout << "------------------------------------------------------" << std::endl;
+                std::cout << control_time_real_ << std::endl;
                 for (int i = 0; i < ec_slavecount; i++)
                 { //std::cout << i << ELMO_NAME[i] <<
                     printf("%4d   %20s  %12f  ext : %12f\n", i, ELMO_NAME[i].c_str(), (double)q_elmo_[i], (double)q_ext_elmo_[i]);
@@ -1018,8 +1025,10 @@ void *ethercatThread2(void *data)
             }
             else if ((ch % 256 == 'h'))
             {
+                std::cout << "------------------------------------------------------" << std::endl;
+                std::cout << control_time_real_ << std::endl;
                 for (int i = 0; i < ec_slavecount; i++)
-                    std::cout << i << ELMO_NAME[i] << "\t" << hommingElmo[i] << std::endl;
+                    std::cout << i << ELMO_NAME[i] << "\t" << (uint32_t)ec_slave[i + 1].inputs[4] << " " << (uint32_t)ec_slave[i + 1].inputs[5] << " " << (uint32_t)ec_slave[i + 1].inputs[6] << " " << (uint32_t)ec_slave[i + 1].inputs[7] << " " << std::endl;
             }
             else if ((ch % 256 == 'c'))
             {
