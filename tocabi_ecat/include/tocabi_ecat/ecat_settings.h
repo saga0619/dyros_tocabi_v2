@@ -306,7 +306,7 @@ const double joint_lower_limit[ELMO_DOF] =
 
 const double elmo_axis_direction[ELMO_DOF] =
     {1, -1, 1, 1, -1, 1,
-     1, 1, 1, -1, -1, 1,
+     1, 1, 1, 1, -1, 1,
      1, -1, 1, 1, 1, 1,
      1, 1, -1, -1, -1, -1,
      1, 1, 1, 1, -1, 1,
