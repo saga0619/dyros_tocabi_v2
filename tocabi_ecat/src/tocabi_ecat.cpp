@@ -1001,6 +1001,7 @@ void *ethercatThread2(void *data)
             else if ((ch % 256 == 's'))
             {
                 std::cout << "------------------------------------------------------" << std::endl;
+                std::cout << control_time_real_ << std::endl;
                 for (int i = 0; i < ec_slavecount; i++)
                 { //std::cout << i << ELMO_NAME[i] <<
                     printf("%4d   %20s  %16d\n", i, ELMO_NAME[i].c_str(), std::bitset<16>(rxPDO[i]->statusWord));

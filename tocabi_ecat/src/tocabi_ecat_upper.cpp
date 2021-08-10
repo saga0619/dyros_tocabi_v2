@@ -303,10 +303,10 @@ void *ethercatThread1(void *data)
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         elmost[i].state = getElmoState(rxPDO[i]->statusWord);
+                        state_elmo_[JointMap2[i]] = elmost[i].state;
 
                         if (elmost[i].state != elmost[i].state_before)
                         {
-                            state_elmo_[JointMap2[i]] = elmost[i].state;
 
                             if (elmost[i].first_check)
                             {
@@ -338,7 +338,7 @@ void *ethercatThread1(void *data)
                             {
                                 if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
-                                    state_elmo_[JointMap2[i]] = ESTATE::COMMUTATION_DONE;
+                                    //state_elmo_[JointMap2[i]] = ESTATE::COMMUTATION_DONE;
                                     //cout << "slave : " << i << " commutation check complete with operation enable 2" << endl;
                                     elmost[i].commutation_ok = true;
                                     elmost[i].commutation_required = false;
@@ -1366,7 +1366,7 @@ void getJointCommand()
                         std::cout << cred << control_time_us_ << "ELMO_UPP : commandCount Warn! SAFETY LOCK" << creset << std::endl;
 
                         std::fill(ElmoSafteyMode, ElmoSafteyMode + MODEL_DOF, 1);
-                        
+
                         for (int i = 0; i < ELMO_DOF_UPPER; i++)
                         {
                             state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_COMMAND_LOCK;
