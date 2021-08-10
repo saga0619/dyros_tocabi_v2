@@ -118,12 +118,15 @@ void *StateManager::StateThread()
 
         ros::spinOnce();
 
+        dc_.tc_shm_->stloopCount.store(stm_count_);
+
         while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
         {
             clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
             if (dc_.tc_shm_->shutdown)
                 break;
         }
+        dc_.tc_shm_->triggerS1 = false;
         SendCommand();
 
         cycle_count_++;
@@ -136,12 +139,11 @@ void *StateManager::StateThread()
         GetJointData(); //0.246 us //w/o march native 0.226
         GetSensorData();
 
-        dc_.tc_shm_->triggerS1 = false;
-
         InitYaw();
 
         auto dur_start_ = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - time_start).count();
         control_time_ = rcv_tcnt / 2000.0;
+
         //local kinematics update : 33.7 us // w/o march native 20 us
         UpdateKinematics_local(model_local_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
 
@@ -160,6 +162,7 @@ void *StateManager::StateThread()
         rd_gl_.state_ctime_total_ += (d1 + d2);
         rd_gl_.state_ctime_avg_ = rd_gl_.state_ctime_total_ / stm_count_;
         rd_gl_.us_from_start_ = dur_start_;
+        dc_.tc_shm_->control_time_us_ = dur_start_;
 
         if (stm_count_ % 33 == 0)
         {
@@ -202,6 +205,7 @@ void *StateManager::LoggerThread()
     char ecatStatusFile[] = "/home/dyros/tocabi_log/ecat_status_log";
     char torqueclogFile[] = "/home/dyros/tocabi_log/torque_command_log";
     char torqueActualLogFile[] = "/home/dyros/tocabi_log/torque_actual_log";
+    char posLogFile[] = "/home/dyros/tocabi_log/pos_log";
 
     ofstream torqueLog;
     torqueLog.open(torqueLogFile);
@@ -216,34 +220,40 @@ void *StateManager::LoggerThread()
     ofstream ecatStatusLog;
     ecatStatusLog.open(ecatStatusFile);
 
+    ofstream posLog;
+    posLog.open(posLogFile);
+
     while (!dc_.tc_shm_->shutdown)
     {
         std::this_thread::sleep_for(std::chrono::microseconds(500));
 
-        torqueLog.width(6);
-        torqueLog.fill(' ');
-        torqueLog << control_time_ << "\t ";
+        
+
+        torqueLog << (float)rd_gl_.us_from_start_/1000000.0 << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
-            torqueLog << (int)dc_.tc_shm_->elmo_torque[i];
+            torqueLog << std::setfill(' ') << std::setw(5) << (int)dc_.tc_shm_->elmo_torque[i] << " ";
         }
         torqueLog << std::endl;
 
-        torqueCommandLog.precision(7);
-        torqueCommandLog.fill(' ');
-        torqueCommandLog << control_time_ << "\t ";
+        torqueCommandLog << (float)rd_gl_.us_from_start_/1000000.0 << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
-            torqueCommandLog << dc_.torque_command[i] << " ";
+            torqueCommandLog << fixed << setprecision(4) << setw(8) << dc_.torque_command[i] << " ";
         }
         torqueCommandLog << std::endl;
 
-        torqueActualLog.width(6);
-        torqueActualLog.fill(' ');
-        torqueActualLog << control_time_ << "\t ";
+        posLog << (float)rd_gl_.us_from_start_/1000000.0 << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
-            torqueActualLog << (int)dc_.tc_shm_->torqueActual[i] << " ";
+            posLog << fixed << setprecision(4) << setw(8) << dc_.torque_command[i] << " ";
+        }
+        posLog << std::endl;
+
+        torqueActualLog << (float)rd_gl_.us_from_start_/1000000.0 << "\t ";
+        for (int i = 0; i < MODEL_DOF; i++)
+        {
+            torqueActualLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->torqueActual[i] << " ";
         }
         torqueActualLog << std::endl;
 
@@ -262,7 +272,7 @@ void *StateManager::LoggerThread()
 
         if (change)
         {
-            ecatStatusLog << control_time_ << "\t ";
+            ecatStatusLog << (float)rd_gl_.us_from_start_/1000000.0 << "\t ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
                 ecatStatusLog << elmoStatus_now[i] << "  ";
@@ -1451,6 +1461,24 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "safetyreset")
     {
         dc_.safetyResetSwitch = true;
+        dc_.tc_shm_->safety_reset_lower_signal = true;
+        dc_.tc_shm_->safety_reset_upper_signal = true;
+    }
+    else if (msg->data == "safetydisable")
+    {
+        dc_.tc_shm_->safety_disable = !dc_.tc_shm_->safety_disable;
+
+        if (dc_.tc_shm_->safety_disable)
+        {
+            std::cout << "safety checking disabled!" << std::endl;
+            dc_.tc_shm_->safety_reset_lower_signal = true;
+            dc_.tc_shm_->safety_reset_upper_signal = true;
+        }
+        else
+        {
+
+            std::cout << "safety checking enabled!" << std::endl;
+        }
     }
     else if (msg->data == "ecatinit")
     {

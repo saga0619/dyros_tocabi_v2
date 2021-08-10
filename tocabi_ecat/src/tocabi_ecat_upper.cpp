@@ -50,13 +50,13 @@ void ethercatCheck()
                 ec_group[currentgroup].docheckstate = TRUE;
                 if (ec_slave[slave].state == (EC_STATE_SAFE_OP + EC_STATE_ERROR))
                 {
-                    printf("%s%9.5f ERROR 1: slave %d is in SAFE_OP + ERROR, attempting ack.%s\n", cred.c_str(), control_time_real_, slave - 1, creset.c_str());
+                    printf("%s%9.5f ERROR 1: slave %d is in SAFE_OP + ERROR, attempting ack.%s\n", cred.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     ec_slave[slave].state = (EC_STATE_SAFE_OP + EC_STATE_ACK);
                     ec_writestate(slave);
                 }
                 else if (ec_slave[slave].state == EC_STATE_SAFE_OP)
                 {
-                    printf("%s%9.5f WARNING 1: slave %d is in SAFE_OP, change to OPERATIONAL.%s\n", cred.c_str(), control_time_real_, slave - 1, creset.c_str());
+                    printf("%s%9.5f WARNING 1: slave %d is in SAFE_OP, change to OPERATIONAL.%s\n", cred.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     ec_slave[slave].state = EC_STATE_OPERATIONAL;
                     ec_writestate(slave);
                 }
@@ -65,7 +65,7 @@ void ethercatCheck()
                     if (ec_reconfig_slave(slave, EC_TIMEOUTMON))
                     {
                         ec_slave[slave].islost = FALSE;
-                        printf("%s%9.5f MESSAGE 1: slave %d reconfigured%s\n", cgreen.c_str(), control_time_real_, slave - 1, creset.c_str());
+                        printf("%s%9.5f MESSAGE 1: slave %d reconfigured%s\n", cgreen.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     }
                 }
                 else if (!ec_slave[slave].islost)
@@ -75,7 +75,7 @@ void ethercatCheck()
                     if (!ec_slave[slave].state)
                     {
                         ec_slave[slave].islost = TRUE;
-                        printf("%s%9.5f ERROR 1: slave %d lost %s\n", cred.c_str(), control_time_real_, slave - 1, creset.c_str());
+                        printf("%s%9.5f ERROR 1: slave %d lost %s\n", cred.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     }
                 }
             }
@@ -86,13 +86,13 @@ void ethercatCheck()
                     if (ec_recover_slave(slave, EC_TIMEOUTMON))
                     {
                         ec_slave[slave].islost = FALSE;
-                        printf("%s%9.5f MESSAGE 1: slave %d recovered%s\n", cgreen.c_str(), control_time_real_, slave - 1, creset.c_str());
+                        printf("%s%9.5f MESSAGE 1: slave %d recovered%s\n", cgreen.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     }
                 }
                 else
                 {
                     ec_slave[slave].islost = FALSE;
-                    printf("%s%9.5f MESSAGE 1: slave %d found%s\n", cgreen.c_str(), control_time_real_, slave - 1, creset.c_str());
+                    printf("%s%9.5f MESSAGE 1: slave %d found%s\n", cgreen.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                 }
             }
         }
@@ -109,7 +109,7 @@ void elmoInit()
     elmofz[Waist2_Joint].init_direction = -1.0;
 
     elmofz[R_Elbow_Joint].req_length = 0.06;
-    elmofz[L_Elbow_Joint].req_length = 0.09;
+    elmofz[L_Elbow_Joint].req_length = 0.07;
     elmofz[L_Forearm_Joint].req_length = 0.09;
     elmofz[R_Forearm_Joint].req_length = 0.14;
 
@@ -118,7 +118,9 @@ void elmoInit()
     elmofz[R_Shoulder2_Joint].req_length = 0.08;
 
     elmofz[R_Shoulder3_Joint].req_length = 0.03;
-    elmofz[L_Shoulder3_Joint].req_length = 0.04;
+    elmofz[L_Shoulder3_Joint].req_length = 0.03;
+
+    elmofz[L_Armlink_Joint].req_length = 0.15;
 
     elmofz[R_Wrist2_Joint].req_length = 0.05;
     elmofz[L_Wrist2_Joint].req_length = 0.05;
@@ -679,6 +681,11 @@ void *ethercatThread1(void *data)
                             txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
                             txPDO[i]->targetTorque = (int)0;
                         }
+
+                        // if (i == R_Shoulder3_Joint)
+                        // {
+                        //     std::cout << q_desired_elmo_[i] << "  \t" << q_elmo_[i] << std::endl;
+                        // }
                     }
 
                     ec_send_processdata();
@@ -783,10 +790,7 @@ void *ethercatThread1(void *data)
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         elmost[i].state = getElmoState(rxPDO[i]->statusWord);
-                        if (elmost[i].state != elmost[i].state_before)
-                        {
-                            state_elmo_[JointMap2[i]] = elmost[i].state;
-                        }
+                        state_elmo_[JointMap2[i]] = elmost[i].state;
                         elmost[i].state_before = elmost[i].state;
                     }
 
@@ -863,11 +867,17 @@ void *ethercatThread1(void *data)
                     if (shm_msgs_->safety_reset_upper_signal)
                     {
                         memset(ElmoSafteyMode, 0, sizeof(int) * ELMO_DOF);
-                        shm_msgs_->safety_reset_lower_signal = false;
+                        shm_msgs_->safety_reset_upper_signal = false;
                     }
 
                     //Joint safety checking ..
-                    checkJointSafety();
+                    static int safe_count = 10;
+
+                    if (safe_count-- < 0)
+                    {
+                        if (!shm_msgs_->safety_disable)
+                            checkJointSafety();
+                    }
 
                     //ECAT JOINT COMMAND
                     for (int i = 0; i < ec_slavecount; i++)
@@ -1128,6 +1138,8 @@ bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord)
 }
 void checkJointSafety()
 {
+    //std::cout << q_elmo_[START_N + 12] << "  " << q_zero_elmo_[START_N + 12] << std::endl;
+
     for (int i = 0; i < ELMO_DOF_UPPER; i++)
     {
 
@@ -1142,8 +1154,7 @@ void checkJointSafety()
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
                 ElmoSafteyMode[i] = 1;
             }
-
-            if ((joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
+            else if ((joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
             {
                 std::cout << "E1 safety lock : joint limit " << i << "  " << ELMO_NAME[i] << " q : " << q_elmo_[START_N + i] << " lim : " << joint_upper_limit[START_N + i] << std::endl;
                 //joint limit reached
@@ -1261,7 +1272,7 @@ void sendJointStatus()
 
     shm_msgs_->statusWriting--;
 
-    shm_msgs_->statusCount.store(cycle_count,std::memory_order_release);
+    shm_msgs_->statusCount.store(cycle_count, std::memory_order_release);
 
     //shm_msgs_->statusCount = cycle_count;
 
@@ -1272,15 +1283,39 @@ void sendJointStatus()
 
 void getJointCommand()
 {
-    while (!shm_msgs_->commanding.load(std::memory_order_acquire))
+    while (shm_msgs_->commanding.load(std::memory_order_acquire))
     {
         clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
     }
 
-    int commandCount = shm_msgs_->commandCount;
+    static int stloop;
+    static bool stloop_check;
+    stloop_check = false;
+    if (stloop == shm_msgs_->stloopCount)
+    {
+        stloop_check = true;
+    }
+    stloop = shm_msgs_->stloopCount;
+    static int commandCount;
+    int wait_tick;
+
+    if (!stloop_check)
+    {
+        while (shm_msgs_->commandCount == commandCount)
+        {
+            clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
+            if (++wait_tick > 3)
+            {
+                break;
+            }
+        }
+    }
+
     memcpy(&command_mode_[Q_UPPER_START], &shm_msgs_->commandMode[Q_UPPER_START], sizeof(int) * PART_ELMO_DOF);
     memcpy(&q_desired_[Q_UPPER_START], &shm_msgs_->positionCommand[Q_UPPER_START], sizeof(float) * PART_ELMO_DOF);
     memcpy(&torque_desired_[Q_UPPER_START], &shm_msgs_->torqueCommand[Q_UPPER_START], sizeof(float) * PART_ELMO_DOF);
+
+    commandCount = shm_msgs_->commandCount;
 
     for (int i = 0; i < ec_slavecount; i++)
     {
@@ -1308,7 +1343,9 @@ void getJointCommand()
             if (commandCount <= commandCount_before) //shit
             {
                 errorTimes++;
-                //std::cout << control_time_us_ << "ELMO_UPP : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+                std::cout << control_time_us_ << "ELMO_UPP : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+                if (stloop_check)
+                    std::cout << "stloop same cnt" << std::endl;
             }
         }
         else if (errorTimes > 0)
@@ -1344,7 +1381,6 @@ void getJointCommand()
             }
         }
     }
-
 
     // if (commandCount <= commandCount_before)
     // {

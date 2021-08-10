@@ -49,13 +49,13 @@ void ethercatCheck()
                 ec_group[currentgroup].docheckstate = TRUE;
                 if (ec_slave[slave].state == (EC_STATE_SAFE_OP + EC_STATE_ERROR))
                 {
-                    printf("%sERROR 2: slave %d is in SAFE_OP + ERROR, attempting ack.%s\n", cred.c_str(), slave - 1, creset.c_str());
+                    printf("%s %f ERROR 2: slave %d is in SAFE_OP + ERROR, attempting ack.%s\n", cred.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
                     ec_slave[slave].state = (EC_STATE_SAFE_OP + EC_STATE_ACK);
                     ec_writestate(slave);
                 }
                 else if (ec_slave[slave].state == EC_STATE_SAFE_OP)
                 {
-                    printf("%sWARNING 2: slave %d is in SAFE_OP, change to OPERATIONAL.%s\n", cred.c_str(), slave - 1, creset.c_str());
+                    printf("%s %f WARNING 2: slave %d is in SAFE_OP, change to OPERATIONAL.%s\n", cred.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
                     ec_slave[slave].state = EC_STATE_OPERATIONAL;
                     ec_writestate(slave);
                 }
@@ -64,7 +64,7 @@ void ethercatCheck()
                     if (ec_reconfig_slave(slave, EC_TIMEOUTMON))
                     {
                         ec_slave[slave].islost = FALSE;
-                        printf("%sMESSAGE 2: slave %d reconfigured%s\n", cgreen.c_str(), slave - 1, creset.c_str());
+                        printf("%s %f MESSAGE 2: slave %d reconfigured%s\n", cgreen.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
                     }
                 }
                 else if (!ec_slave[slave].islost)
@@ -74,7 +74,7 @@ void ethercatCheck()
                     if (!ec_slave[slave].state)
                     {
                         ec_slave[slave].islost = TRUE;
-                        printf("%sERROR 2: slave %d lost %s\n", cred.c_str(), slave - 1, creset.c_str());
+                        printf("%s %f ERROR 2: slave %d lost %s\n", cred.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
                     }
                 }
             }
@@ -85,13 +85,13 @@ void ethercatCheck()
                     if (ec_recover_slave(slave, EC_TIMEOUTMON))
                     {
                         ec_slave[slave].islost = FALSE;
-                        printf("%sMESSAGE 2: slave %d recovered%s\n", cgreen.c_str(), slave - 1, creset.c_str());
+                        printf("%s %f MESSAGE 2: slave %d recovered%s\n", cgreen.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
                     }
                 }
                 else
                 {
                     ec_slave[slave].islost = FALSE;
-                    printf("%sMESSAGE 2: slave %d found%s\n", cgreen.c_str(), slave - 1, creset.c_str());
+                    printf("%s %f MESSAGE 2: slave %d found%s\n", cgreen.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
                 }
             }
         }
@@ -786,10 +786,7 @@ void *ethercatThread1(void *data)
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         elmost[i].state = getElmoState(rxPDO[i]->statusWord);
-                        if (elmost[i].state != elmost[i].state_before)
-                        {
-                            state_elmo_[JointMap2[START_N + i]] = elmost[i].state;
-                        }
+                        state_elmo_[JointMap2[START_N + i]] = elmost[i].state;
                         elmost[i].state_before = elmost[i].state;
                     }
 
@@ -870,7 +867,13 @@ void *ethercatThread1(void *data)
                     }
 
                     //Joint safety checking ..
-                    checkJointSafety();
+                    static int safe_count = 10;
+
+                    if (safe_count-- < 0)
+                    {
+                        if (!shm_msgs_->safety_disable)
+                            checkJointSafety();
+                    }
 
                     //Ecat joint command
                     for (int i = 0; i < ec_slavecount; i++)
@@ -1176,7 +1179,6 @@ void checkJointSafety()
                 ElmoSafteyMode[i] = 1;
             }
         }
-
         if (ElmoSafteyMode[i] == 1)
         {
             q_desired_elmo_[START_N + i] = q_elmo_[START_N + i];
@@ -1294,16 +1296,40 @@ void getJointCommand()
     // memcpy(command_mode_, &shm_msgs_->commandMode, sizeof(int) * PART_ELMO_DOF);
     // memcpy(q_desired_, &shm_msgs_->positionCommand, sizeof(float) * PART_ELMO_DOF);
     // memcpy(torque_desired_, &shm_msgs_->torqueCommand, sizeof(float) * PART_ELMO_DOF);
-    while (!shm_msgs_->commanding.load(std::memory_order_acquire))
+    while (shm_msgs_->commanding.load(std::memory_order_acquire))
     {
         clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
     }
 
-    int commandCount = shm_msgs_->commandCount;
+    static int stloop;
+    static bool stloop_check;
+    stloop_check = false;
+    if (stloop == shm_msgs_->stloopCount)
+    {
+        stloop_check = true;
+    }
+    stloop = shm_msgs_->stloopCount;
+
+    static int commandCount;
+    int wait_tick;
+
+    if (!stloop_check)
+    {
+        while (shm_msgs_->commandCount == commandCount)
+        {
+            clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
+            if (++wait_tick > 3)
+            {
+                break;
+            }
+        }
+    }
 
     memcpy(&command_mode_[Q_LOWER_START], &shm_msgs_->commandMode[Q_LOWER_START], sizeof(int) * PART_ELMO_DOF);
     memcpy(&q_desired_[Q_LOWER_START], &shm_msgs_->positionCommand[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
     memcpy(&torque_desired_[Q_LOWER_START], &shm_msgs_->torqueCommand[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
+
+    commandCount = shm_msgs_->commandCount;
 
     for (int i = 0; i < ec_slavecount; i++)
     {
@@ -1332,7 +1358,9 @@ void getJointCommand()
             if (commandCount <= commandCount_before) //shit
             {
                 errorTimes++;
-                //std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+                std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+                if (stloop_check)
+                    std::cout << "stloop same cnt" << std::endl;
             }
         }
         else if (errorTimes > 0)
