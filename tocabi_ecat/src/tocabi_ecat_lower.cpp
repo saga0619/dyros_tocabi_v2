@@ -1287,8 +1287,6 @@ void sendJointStatus()
     shm_msgs_->statusWriting--;
     //shm_msgs_->statusCount2 = cycle_count;
     shm_msgs_->statusCount2.store(cycle_count, std::memory_order_release);
-    
-
 }
 
 void getJointCommand()
@@ -1356,6 +1354,10 @@ void getJointCommand()
 
                         std::fill(ElmoSafteyMode, ElmoSafteyMode + MODEL_DOF, 1);
 
+                        for (int i = 0; i < ELMO_DOF_LOWER; i++)
+                        {
+                            state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_COMMAND_LOCK;
+                        }
                         errorCount = commandCount;
                     }
                     else

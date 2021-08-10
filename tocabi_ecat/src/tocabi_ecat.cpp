@@ -1,4 +1,5 @@
 #include "tocabi_ecat/tocabi_ecat.h"
+#include "bitset"
 
 int64 toff, gl_delta;
 
@@ -999,6 +1000,14 @@ void *ethercatThread2(void *data)
             {
                 std::cout << "ELMO : start searching zero point upper" << std::endl;
                 de_zp_upper_switch = true;
+            }
+            else if ((ch % 256 == 's'))
+            {
+                std::cout << "------------------------------------------------------" << std::endl;
+                for (int i = 0; i < ec_slavecount; i++)
+                { //std::cout << i << ELMO_NAME[i] <<
+                    printf("%4d   %20s  %16d\n", i, ELMO_NAME[i].c_str(), std::bitset<16>(rxPDO[i]->statusWord));
+                }
             }
             else if ((ch % 256 == 'd'))
             {

@@ -1329,7 +1329,11 @@ void getJointCommand()
                         std::cout << cred << control_time_us_ << "ELMO_UPP : commandCount Warn! SAFETY LOCK" << creset << std::endl;
 
                         std::fill(ElmoSafteyMode, ElmoSafteyMode + MODEL_DOF, 1);
-
+                        
+                        for (int i = 0; i < ELMO_DOF_UPPER; i++)
+                        {
+                            state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_COMMAND_LOCK;
+                        }
                         errorCount = commandCount;
                     }
                     else
