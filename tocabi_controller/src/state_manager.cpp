@@ -206,6 +206,7 @@ void *StateManager::LoggerThread()
     char torqueclogFile[] = "/home/dyros/tocabi_log/torque_command_log";
     char torqueActualLogFile[] = "/home/dyros/tocabi_log/torque_actual_log";
     char posLogFile[] = "/home/dyros/tocabi_log/pos_log";
+    char velLogFile[] = "/home/dyros/tocabi_log/vel_log";
 
     ofstream torqueLog;
     torqueLog.open(torqueLogFile);
@@ -223,34 +224,42 @@ void *StateManager::LoggerThread()
     ofstream posLog;
     posLog.open(posLogFile);
 
+    ofstream velLog;
+    velLog.open(posLogFile);
+
     while (!dc_.tc_shm_->shutdown)
     {
         std::this_thread::sleep_for(std::chrono::microseconds(500));
 
-        
-
-        torqueLog << (float)rd_gl_.us_from_start_/1000000.0 << "\t ";
+        torqueLog << (float)rd_gl_.us_from_start_ / 1000000.0 << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
             torqueLog << std::setfill(' ') << std::setw(5) << (int)dc_.tc_shm_->elmo_torque[i] << " ";
         }
         torqueLog << std::endl;
 
-        torqueCommandLog << (float)rd_gl_.us_from_start_/1000000.0 << "\t ";
+        torqueCommandLog << (float)rd_gl_.us_from_start_ / 1000000.0 << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
             torqueCommandLog << fixed << setprecision(4) << setw(8) << dc_.torque_command[i] << " ";
         }
         torqueCommandLog << std::endl;
 
-        posLog << (float)rd_gl_.us_from_start_/1000000.0 << "\t ";
+        posLog << (float)rd_gl_.us_from_start_ / 1000000.0 << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
-            posLog << fixed << setprecision(4) << setw(8) << dc_.torque_command[i] << " ";
+            posLog << fixed << setprecision(4) << setw(8) << rd_gl_.q_[i] << " ";
         }
         posLog << std::endl;
 
-        torqueActualLog << (float)rd_gl_.us_from_start_/1000000.0 << "\t ";
+        velLog << (float)rd_gl_.us_from_start_ / 1000000.0 << "\t ";
+        for (int i = 0; i < MODEL_DOF; i++)
+        {
+            velLog << fixed << setprecision(4) << setw(8) << rd_gl_.q_dot_[i] << " ";
+        }
+        velLog << std::endl;
+
+        torqueActualLog << (float)rd_gl_.us_from_start_ / 1000000.0 << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
             torqueActualLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->torqueActual[i] << " ";
@@ -272,7 +281,7 @@ void *StateManager::LoggerThread()
 
         if (change)
         {
-            ecatStatusLog << (float)rd_gl_.us_from_start_/1000000.0 << "\t ";
+            ecatStatusLog << (float)rd_gl_.us_from_start_ / 1000000.0 << "\t ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
                 ecatStatusLog << elmoStatus_now[i] << "  ";
