@@ -49,13 +49,13 @@ void ethercatCheck()
                 ec_group[currentgroup].docheckstate = TRUE;
                 if (ec_slave[slave].state == (EC_STATE_SAFE_OP + EC_STATE_ERROR))
                 {
-                    printf("%sERROR 2: slave %d is in SAFE_OP + ERROR, attempting ack.%s\n", cred.c_str(), slave - 1, creset.c_str());
+                    printf("%s %f ERROR 2: slave %d is in SAFE_OP + ERROR, attempting ack.%s\n", cred.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
                     ec_slave[slave].state = (EC_STATE_SAFE_OP + EC_STATE_ACK);
                     ec_writestate(slave);
                 }
                 else if (ec_slave[slave].state == EC_STATE_SAFE_OP)
                 {
-                    printf("%sWARNING 2: slave %d is in SAFE_OP, change to OPERATIONAL.%s\n", cred.c_str(), slave - 1, creset.c_str());
+                    printf("%s %f WARNING 2: slave %d is in SAFE_OP, change to OPERATIONAL.%s\n", cred.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
                     ec_slave[slave].state = EC_STATE_OPERATIONAL;
                     ec_writestate(slave);
                 }
@@ -64,7 +64,7 @@ void ethercatCheck()
                     if (ec_reconfig_slave(slave, EC_TIMEOUTMON))
                     {
                         ec_slave[slave].islost = FALSE;
-                        printf("%sMESSAGE 2: slave %d reconfigured%s\n", cgreen.c_str(), slave - 1, creset.c_str());
+                        printf("%s %f MESSAGE 2: slave %d reconfigured%s\n", cgreen.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
                     }
                 }
                 else if (!ec_slave[slave].islost)
@@ -74,7 +74,7 @@ void ethercatCheck()
                     if (!ec_slave[slave].state)
                     {
                         ec_slave[slave].islost = TRUE;
-                        printf("%sERROR 2: slave %d lost %s\n", cred.c_str(), slave - 1, creset.c_str());
+                        printf("%s %f ERROR 2: slave %d lost %s\n", cred.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
                     }
                 }
             }
@@ -85,13 +85,13 @@ void ethercatCheck()
                     if (ec_recover_slave(slave, EC_TIMEOUTMON))
                     {
                         ec_slave[slave].islost = FALSE;
-                        printf("%sMESSAGE 2: slave %d recovered%s\n", cgreen.c_str(), slave - 1, creset.c_str());
+                        printf("%s %f MESSAGE 2: slave %d recovered%s\n", cgreen.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
                     }
                 }
                 else
                 {
                     ec_slave[slave].islost = FALSE;
-                    printf("%sMESSAGE 2: slave %d found%s\n", cgreen.c_str(), slave - 1, creset.c_str());
+                    printf("%s %f MESSAGE 2: slave %d found%s\n", cgreen.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
                 }
             }
         }

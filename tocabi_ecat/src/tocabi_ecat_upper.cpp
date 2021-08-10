@@ -50,13 +50,13 @@ void ethercatCheck()
                 ec_group[currentgroup].docheckstate = TRUE;
                 if (ec_slave[slave].state == (EC_STATE_SAFE_OP + EC_STATE_ERROR))
                 {
-                    printf("%s%9.5f ERROR 1: slave %d is in SAFE_OP + ERROR, attempting ack.%s\n", cred.c_str(), control_time_real_, slave - 1, creset.c_str());
+                    printf("%s%9.5f ERROR 1: slave %d is in SAFE_OP + ERROR, attempting ack.%s\n", cred.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     ec_slave[slave].state = (EC_STATE_SAFE_OP + EC_STATE_ACK);
                     ec_writestate(slave);
                 }
                 else if (ec_slave[slave].state == EC_STATE_SAFE_OP)
                 {
-                    printf("%s%9.5f WARNING 1: slave %d is in SAFE_OP, change to OPERATIONAL.%s\n", cred.c_str(), control_time_real_, slave - 1, creset.c_str());
+                    printf("%s%9.5f WARNING 1: slave %d is in SAFE_OP, change to OPERATIONAL.%s\n", cred.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     ec_slave[slave].state = EC_STATE_OPERATIONAL;
                     ec_writestate(slave);
                 }
@@ -65,7 +65,7 @@ void ethercatCheck()
                     if (ec_reconfig_slave(slave, EC_TIMEOUTMON))
                     {
                         ec_slave[slave].islost = FALSE;
-                        printf("%s%9.5f MESSAGE 1: slave %d reconfigured%s\n", cgreen.c_str(), control_time_real_, slave - 1, creset.c_str());
+                        printf("%s%9.5f MESSAGE 1: slave %d reconfigured%s\n", cgreen.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     }
                 }
                 else if (!ec_slave[slave].islost)
@@ -75,7 +75,7 @@ void ethercatCheck()
                     if (!ec_slave[slave].state)
                     {
                         ec_slave[slave].islost = TRUE;
-                        printf("%s%9.5f ERROR 1: slave %d lost %s\n", cred.c_str(), control_time_real_, slave - 1, creset.c_str());
+                        printf("%s%9.5f ERROR 1: slave %d lost %s\n", cred.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     }
                 }
             }
@@ -86,13 +86,13 @@ void ethercatCheck()
                     if (ec_recover_slave(slave, EC_TIMEOUTMON))
                     {
                         ec_slave[slave].islost = FALSE;
-                        printf("%s%9.5f MESSAGE 1: slave %d recovered%s\n", cgreen.c_str(), control_time_real_, slave - 1, creset.c_str());
+                        printf("%s%9.5f MESSAGE 1: slave %d recovered%s\n", cgreen.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     }
                 }
                 else
                 {
                     ec_slave[slave].islost = FALSE;
-                    printf("%s%9.5f MESSAGE 1: slave %d found%s\n", cgreen.c_str(), control_time_real_, slave - 1, creset.c_str());
+                    printf("%s%9.5f MESSAGE 1: slave %d found%s\n", cgreen.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                 }
             }
         }
@@ -109,7 +109,7 @@ void elmoInit()
     elmofz[Waist2_Joint].init_direction = -1.0;
 
     elmofz[R_Elbow_Joint].req_length = 0.06;
-    elmofz[L_Elbow_Joint].req_length = 0.09;
+    elmofz[L_Elbow_Joint].req_length = 0.07;
     elmofz[L_Forearm_Joint].req_length = 0.09;
     elmofz[R_Forearm_Joint].req_length = 0.14;
 
@@ -118,7 +118,9 @@ void elmoInit()
     elmofz[R_Shoulder2_Joint].req_length = 0.08;
 
     elmofz[R_Shoulder3_Joint].req_length = 0.03;
-    elmofz[L_Shoulder3_Joint].req_length = 0.04;
+    elmofz[L_Shoulder3_Joint].req_length = 0.03;
+
+    elmofz[L_Armlink_Joint].req_length = 0.15;
 
     elmofz[R_Wrist2_Joint].req_length = 0.05;
     elmofz[L_Wrist2_Joint].req_length = 0.05;
@@ -679,6 +681,11 @@ void *ethercatThread1(void *data)
                             txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
                             txPDO[i]->targetTorque = (int)0;
                         }
+
+                        // if (i == R_Shoulder3_Joint)
+                        // {
+                        //     std::cout << q_desired_elmo_[i] << "  \t" << q_elmo_[i] << std::endl;
+                        // }
                     }
 
                     ec_send_processdata();
