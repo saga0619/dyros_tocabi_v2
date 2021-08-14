@@ -66,7 +66,7 @@ typedef struct SHMmsgs
 
     float timeCommand;
 
-    std::atomic<int> control_time_us_;
+    std::atomic<long> control_time_us_;
     
     std::atomic<int> t_cnt;
     std::atomic<int> t_cnt2;
