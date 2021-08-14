@@ -303,29 +303,26 @@ void *ethercatThread1(void *data)
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         elmost[i].state = getElmoState(rxPDO[i]->statusWord);
-                        state_elmo_[JointMap2[i]] = elmost[i].state;
 
                         if (elmost[i].state != elmost[i].state_before)
                         {
+                            state_elmo_[JointMap2[i]] = elmost[i].state;
 
                             if (elmost[i].first_check)
                             {
                                 if (elmost[i].state == ELMO_NOTFAULT)
                                 {
                                     elmost[i].commutation_required = true;
-                                    //state_elmo_[JointMap2[i]] = ESTATE::COMMUTATION_INITIALIZE;
                                 }
                                 else if (elmost[i].state == ELMO_FAULT)
                                 {
                                     //cout << "slave : " << i << " commutation check complete at first" << endl;
                                     elmost[i].commutation_not_required = true;
-                                    //state_elmo_[JointMap2[i]] = ESTATE::COMMUTATION_DONE;
                                 }
                                 else if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
                                     //cout << "slave : " << i << " commutation check complete with operation enable" << endl;
                                     elmost[i].commutation_not_required = true;
-                                    //state_elmo_[JointMap2[i]] = ESTATE::COMMUTATION_DONE;
                                     elmost[i].commutation_ok = true;
                                 }
                                 else
@@ -338,7 +335,6 @@ void *ethercatThread1(void *data)
                             {
                                 if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
-                                    //state_elmo_[JointMap2[i]] = ESTATE::COMMUTATION_DONE;
                                     //cout << "slave : " << i << " commutation check complete with operation enable 2" << endl;
                                     elmost[i].commutation_ok = true;
                                     elmost[i].commutation_required = false;
@@ -547,7 +543,7 @@ void *ethercatThread1(void *data)
                         q_dot_[JointMap2[i]] = q_dot_elmo_[i];
                         torque_[JointMap2[i]] = torque_elmo_[i];
                         q_ext_[JointMap2[i]] = q_ext_elmo_[i];
-                        joint_state_[JointMap2[i]] = joint_state_elmo_[i];
+                        //joint_state_[JointMap2[i]] = joint_state_elmo_[i];
                     }
                     sendJointStatus();
 
@@ -790,7 +786,12 @@ void *ethercatThread1(void *data)
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         elmost[i].state = getElmoState(rxPDO[i]->statusWord);
-                        state_elmo_[JointMap2[i]] = elmost[i].state;
+
+                        if (elmost[i].state_before != elmost[i].state)
+                        {
+                            state_elmo_[JointMap2[i]] = elmost[i].state;
+                        }
+
                         elmost[i].state_before = elmost[i].state;
                     }
 
@@ -837,7 +838,7 @@ void *ethercatThread1(void *data)
                         q_dot_[JointMap2[i]] = q_dot_elmo_[i];
                         torque_[JointMap2[i]] = torque_elmo_[i];
                         q_ext_[JointMap2[i]] = q_ext_elmo_[i];
-                        joint_state_[JointMap2[i]] = joint_state_elmo_[i];
+                        //joint_state_[JointMap2[i]] = joint_state_elmo_[i];
                     }
 
                     sendJointStatus();

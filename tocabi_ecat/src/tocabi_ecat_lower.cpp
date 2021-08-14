@@ -49,13 +49,13 @@ void ethercatCheck()
                 ec_group[currentgroup].docheckstate = TRUE;
                 if (ec_slave[slave].state == (EC_STATE_SAFE_OP + EC_STATE_ERROR))
                 {
-                    printf("%s %f ERROR 2: slave %d is in SAFE_OP + ERROR, attempting ack.%s\n", cred.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
+                    printf("%s %f ERROR 2: slave %d is in SAFE_OP + ERROR, attempting ack.%s\n", cred.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     ec_slave[slave].state = (EC_STATE_SAFE_OP + EC_STATE_ACK);
                     ec_writestate(slave);
                 }
                 else if (ec_slave[slave].state == EC_STATE_SAFE_OP)
                 {
-                    printf("%s %f WARNING 2: slave %d is in SAFE_OP, change to OPERATIONAL.%s\n", cred.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
+                    printf("%s %f WARNING 2: slave %d is in SAFE_OP, change to OPERATIONAL.%s\n", cred.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     ec_slave[slave].state = EC_STATE_OPERATIONAL;
                     ec_writestate(slave);
                 }
@@ -64,7 +64,7 @@ void ethercatCheck()
                     if (ec_reconfig_slave(slave, EC_TIMEOUTMON))
                     {
                         ec_slave[slave].islost = FALSE;
-                        printf("%s %f MESSAGE 2: slave %d reconfigured%s\n", cgreen.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
+                        printf("%s %f MESSAGE 2: slave %d reconfigured%s\n", cgreen.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     }
                 }
                 else if (!ec_slave[slave].islost)
@@ -74,7 +74,7 @@ void ethercatCheck()
                     if (!ec_slave[slave].state)
                     {
                         ec_slave[slave].islost = TRUE;
-                        printf("%s %f ERROR 2: slave %d lost %s\n", cred.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
+                        printf("%s %f ERROR 2: slave %d lost %s\n", cred.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     }
                 }
             }
@@ -85,13 +85,13 @@ void ethercatCheck()
                     if (ec_recover_slave(slave, EC_TIMEOUTMON))
                     {
                         ec_slave[slave].islost = FALSE;
-                        printf("%s %f MESSAGE 2: slave %d recovered%s\n", cgreen.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
+                        printf("%s %f MESSAGE 2: slave %d recovered%s\n", cgreen.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                     }
                 }
                 else
                 {
                     ec_slave[slave].islost = FALSE;
-                    printf("%s %f MESSAGE 2: slave %d found%s\n", cgreen.c_str(),(float)shm_msgs_->control_time_us_/1000000.0, slave - 1, creset.c_str());
+                    printf("%s %f MESSAGE 2: slave %d found%s\n", cgreen.c_str(), (float)shm_msgs_->control_time_us_ / 1000000.0, slave - 1, creset.c_str());
                 }
             }
         }
@@ -308,19 +308,16 @@ void *ethercatThread1(void *data)
                                 if (elmost[i].state == ELMO_NOTFAULT)
                                 {
                                     elmost[i].commutation_required = true;
-                                    //state_elmo_[JointMap2[i + START_N]] = ESTATE::COMMUTATION_INITIALIZE;
                                 }
                                 else if (elmost[i].state == ELMO_FAULT)
                                 {
                                     //cout << "slave : " << i << " commutation check complete at first" << endl;
                                     elmost[i].commutation_not_required = true;
-                                    //state_elmo_[JointMap2[i + START_N]] = ESTATE::COMMUTATION_DONE;
                                 }
                                 else if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
                                     //cout << "slave : " << i << " commutation check complete with operation enable" << endl;
                                     elmost[i].commutation_not_required = true;
-                                    //state_elmo_[JointMap2[i + START_N]] = ESTATE::COMMUTATION_DONE;
                                     elmost[i].commutation_ok = true;
                                 }
                                 else
@@ -333,7 +330,6 @@ void *ethercatThread1(void *data)
                             {
                                 if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
-                                    //state_elmo_[JointMap2[i + START_N]] = ESTATE::COMMUTATION_DONE;
                                     //cout << "slave : " << i << " commutation check complete with operation enable 2" << endl;
                                     elmost[i].commutation_ok = true;
                                     elmost[i].commutation_required = false;
@@ -542,7 +538,7 @@ void *ethercatThread1(void *data)
                         q_dot_[JointMap2[START_N + i]] = q_dot_elmo_[START_N + i];
                         torque_[JointMap2[START_N + i]] = torque_elmo_[START_N + i];
                         q_ext_[JointMap2[START_N + i]] = q_ext_elmo_[START_N + i];
-                        joint_state_[JointMap2[START_N + i]] = joint_state_elmo_[START_N + i];
+                        //joint_state_[JointMap2[START_N + i]] = joint_state_elmo_[START_N + i];
                     }
 
                     sendJointStatus();
@@ -786,7 +782,11 @@ void *ethercatThread1(void *data)
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         elmost[i].state = getElmoState(rxPDO[i]->statusWord);
-                        state_elmo_[JointMap2[START_N + i]] = elmost[i].state;
+
+                        if (elmost[i].state_before != elmost[i].state)
+                        {
+                            state_elmo_[JointMap2[START_N + i]] = elmost[i].state;
+                        }
                         elmost[i].state_before = elmost[i].state;
                     }
 
@@ -833,7 +833,7 @@ void *ethercatThread1(void *data)
                         q_dot_[JointMap2[START_N + i]] = q_dot_elmo_[START_N + i];
                         torque_[JointMap2[START_N + i]] = torque_elmo_[START_N + i];
                         q_ext_[JointMap2[START_N + i]] = q_ext_elmo_[START_N + i];
-                        joint_state_[JointMap2[START_N + i]] = joint_state_elmo_[START_N + i];
+                        //joint_state_[JointMap2[START_N + i]] = joint_state_elmo_[START_N + i];
                     }
 
                     sendJointStatus();
