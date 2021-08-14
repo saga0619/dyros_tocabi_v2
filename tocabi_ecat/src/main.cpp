@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
         std::cout << " elmo num  : " << expected_counter << std::endl;
         std::cout << " start from : " << start_joint_ << ", : " << ELMO_NAME[start_joint_] << std::endl;
         std::cout << " ----------------------------- " << std::endl;
-        std::cout << " command :  q(quit), l(lower init), u(upper init), d(debug), p(position), h(homming), c(force control), o(lock)" << std::endl;
+        std::cout << " command :  q(quit), l(lower init), u(upper init), d(debug), p(position), h(homming), c(force control), o(lock), f(torque off), s(status log)" << std::endl;
 
         val_received = true;
 

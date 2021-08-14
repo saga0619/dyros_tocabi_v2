@@ -733,6 +733,33 @@ void *ethercatThread1(void *data)
                     //ec_send_processdata();
                     wkc = ec_receive_processdata(200);
 
+                    while (EcatError)
+                        printf("%s", ec_elist2string());
+
+                    if (status_log)
+                    {
+                        bool status_changed = false;
+                        for (int i = 0; i < ec_slavecount; i++)
+                        {
+                            elmost[i].state = getElmoState(rxPDO[i]->statusWord);
+
+                            if (elmost[i].state != elmost[i].state_before)
+                            {
+                                status_changed = true;
+                            }
+                            elmost[i].state_before = elmost[i].state;
+                        }
+
+                        if (status_changed)
+                        {
+                            for (int i = 0; i < ec_slavecount; i++)
+                            {
+                                std::cout << elmost[i].state << "  ";
+                            }
+                            std::cout << endl;
+                        }
+                    }
+
                     if (wkc >= expectedWKC)
                     {
                         for (int slave = 1; slave <= ec_slavecount; slave++)
@@ -1005,6 +1032,7 @@ void *ethercatThread2(void *data)
             else if ((ch % 256 == 's'))
             {
                 std::cout << "------------------------------------------------------" << std::endl;
+                std::cout << control_time_real_ << std::endl;
                 for (int i = 0; i < ec_slavecount; i++)
                 { //std::cout << i << ELMO_NAME[i] <<
                     printf("%4d   %20s  %16d\n", i, ELMO_NAME[start_joint_ + i].c_str(), std::bitset<16>(rxPDO[i]->statusWord));
@@ -1058,11 +1086,25 @@ void *ethercatThread2(void *data)
             }
             else if ((ch % 256 == 'f'))
             {
-                std::cout << "position off" << std::endl;
+                std::cout << "torque off" << std::endl;
                 for (int i = 0; i < ec_slavecount; i++)
                 {
                     //q_desired_elmo_[i] = q_elmo_[i];
                     ElmoMode[i] = EM_DEFAULT;
+                }
+            }
+            else if ((ch % 256 == 's'))
+            {
+
+                status_log = !status_log;
+
+                if (status_log)
+                {
+                    std::cout << "log status start" << std::endl;
+                }
+                else
+                {
+                    std::cout << "log status end" << std::endl;
                 }
             }
         }
