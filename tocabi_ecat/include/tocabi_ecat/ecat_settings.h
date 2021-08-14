@@ -22,6 +22,8 @@
 
 #define LEG_DOF 12
 
+#define CL_LOCK 5
+
 #define UPPERBODY_DOF 21
 
 #define PERIOD_NS 500000
@@ -156,7 +158,7 @@ const int JointMap[ELMO_DOF] = {
     ELMO::R_Wrist1_Joint,
     ELMO::R_Wrist2_Joint};
 
-//pos_elmo[i] = pos[JointMap[i]]
+//pos_elmo[i] = pos[JointMap2[i]]
 const int JointMap2[ELMO_DOF] = {
     MODEL::Head_Joint,
     MODEL::Neck_Joint,
@@ -287,7 +289,7 @@ const double joint_velocity_limit[ELMO_DOF] =
      5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0};
 
 const double joint_upper_limit[ELMO_DOF] =
-    {1.6, 1.0,
+    {1.0, 1.6,
      1.57, 2.094, 2.094, 1.57, 1.92, 3.15, 3.15, 1.92,
      2.8, 3.15, 3.15, 0.5, 1.54, 3.15, 3.15, 2.09,
      3, 3,
@@ -296,7 +298,7 @@ const double joint_upper_limit[ELMO_DOF] =
      0.6, 3, 3, 3, 1, 0.664};
 
 const double joint_lower_limit[ELMO_DOF] =
-    {-1.6, -1.0,
+    {-1.0, -1.6,
      -1.57, -2.094, -2.094, -1.57, -1.92, -3.15, -3.15, -1.92,
      -0.5, -3.15, -3.15, -2.8, -2.09, -3.15, -3.15, -1.54,
      -3, -3,

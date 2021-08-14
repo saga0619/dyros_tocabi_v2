@@ -493,7 +493,7 @@ void *ethercatThread1(void *data)
                             if (elmost[i].commutation_required)
                             {
                                 total_commutation_cnt++;
-                                if (total_commutation_cnt < 10)
+                                if (total_commutation_cnt < 5)
                                     controlWordGenerate(rxPDO[i]->statusWord, txPDO[i]->controlWord);
                                 txPDO[i]->maxTorque = (uint16)1000; // originaly 1000
                             }
@@ -521,7 +521,7 @@ void *ethercatThread1(void *data)
                                      ((int32_t)ec_slave[slave].inputs[13] << 24)) *
                                     CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1];
                                 torque_elmo_[slave - 1] =
-                                    (((int16_t)ec_slave[slave].inputs[14]) +
+                                    (int16_t)(((int16_t)ec_slave[slave].inputs[14]) +
                                      ((int16_t)ec_slave[slave].inputs[15] << 8));
                                 q_ext_elmo_[slave - 1] =
                                     (((int32_t)ec_slave[slave].inputs[16]) +
@@ -815,7 +815,7 @@ void *ethercatThread1(void *data)
                                      ((int32_t)ec_slave[slave].inputs[13] << 24)) *
                                     CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1];
                                 torque_elmo_[slave - 1] =
-                                    (((int16_t)ec_slave[slave].inputs[14]) +
+                                    (int16_t)(((int16_t)ec_slave[slave].inputs[14]) +
                                      ((int16_t)ec_slave[slave].inputs[15] << 8));
                                 q_ext_elmo_[slave - 1] =
                                     (((int32_t)ec_slave[slave].inputs[16]) +
@@ -1360,7 +1360,7 @@ void getJointCommand()
             {
                 errorTimes++;
 
-                if (errorTimes > 3)
+                if (errorTimes > CL_LOCK)
                 {
                     if (errorCount != commandCount)
                     {
