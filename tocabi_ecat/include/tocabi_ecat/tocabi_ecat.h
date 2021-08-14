@@ -331,6 +331,9 @@ chrono::system_clock::time_point commutation_save_time_;
 bool saveZeroPoint();
 bool loadZeroPoint();
 
+
+bool status_log;
+
 void emergencyOff();
 
 int kbhit(void);

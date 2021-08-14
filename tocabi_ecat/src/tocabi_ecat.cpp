@@ -491,7 +491,7 @@ void *ethercatThread1(void *data)
                                      ((int32_t)ec_slave[slave].inputs[18] << 16) +
                                      ((int32_t)ec_slave[slave].inputs[19] << 24) - q_ext_mod_elmo_[start_joint_ + slave - 1]) *
                                     EXTCNT2RAD[start_joint_ + slave - 1] * elmo_ext_axis_direction[start_joint_ + slave - 1];
-                                if (start_joint_ + slave == 1 || start_joint_ + slave == 2 ||start_joint_ + slave == 19 || start_joint_ + slave == 20 || start_joint_ + slave == 16)
+                                if (start_joint_ + slave == 1 || start_joint_ + slave == 2 || start_joint_ + slave == 19 || start_joint_ + slave == 20 || start_joint_ + slave == 16)
                                 {
                                     hommingElmo[slave - 1] = !hommingElmo[slave - 1];
                                 }
@@ -733,6 +733,33 @@ void *ethercatThread1(void *data)
                     //ec_send_processdata();
                     wkc = ec_receive_processdata(200);
 
+                    while (EcatError)
+                        printf("%s", ec_elist2string());
+
+                    if (status_log)
+                    {
+                        bool status_changed = false;
+                        for (int i = 0; i < ec_slavecount; i++)
+                        {
+                            elmost[i].state = getElmoState(rxPDO[i]->statusWord);
+
+                            if (elmost[i].state != elmost[i].state_before)
+                            {
+                                status_changed = true;
+                            }
+                            elmost[i].state_before = elmost[i].state;
+                        }
+
+                        if (status_changed)
+                        {
+                            for (int i = 0; i < ec_slavecount; i++)
+                            {
+                                std::cout << elmost[i].state << "  ";
+                            }
+                            std::cout << endl;
+                        }
+                    }
+
                     if (wkc >= expectedWKC)
                     {
                         for (int slave = 1; slave <= ec_slavecount; slave++)
@@ -752,9 +779,8 @@ void *ethercatThread1(void *data)
                                      ((int32_t)ec_slave[slave].inputs[12] << 16) +
                                      ((int32_t)ec_slave[slave].inputs[13] << 24)) *
                                     CNT2RAD[start_joint_ + slave - 1] * elmo_axis_direction[start_joint_ + slave - 1];
-                                torque_elmo_[slave - 1] = (int16_t)
-                                    (((int16_t)ec_slave[slave].inputs[14]) +
-                                     ((int16_t)ec_slave[slave].inputs[15] << 8));
+                                torque_elmo_[slave - 1] = (int16_t)(((int16_t)ec_slave[slave].inputs[14]) +
+                                                                    ((int16_t)ec_slave[slave].inputs[15] << 8));
                                 q_ext_elmo_[slave - 1] =
                                     (((int32_t)ec_slave[slave].inputs[16]) +
                                      ((int32_t)ec_slave[slave].inputs[17] << 8) +
@@ -1056,13 +1082,26 @@ void *ethercatThread2(void *data)
             }
             else if ((ch % 256 == 'f'))
             {
-                std::cout << "position off" << std::endl;
+                std::cout << "torque off" << std::endl;
                 for (int i = 0; i < ec_slavecount; i++)
                 {
                     //q_desired_elmo_[i] = q_elmo_[i];
                     ElmoMode[i] = EM_DEFAULT;
                 }
+            }
+            else if ((ch % 256 == 's'))
+            {
 
+                status_log = !status_log;
+
+                if (status_log)
+                {
+                    std::cout << "log status start" << std::endl;
+                }
+                else
+                {
+                    std::cout << "log status end" << std::endl;
+                }
             }
         }
     }
