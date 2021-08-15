@@ -1,8 +1,6 @@
 #include "tocabi_ecat/tocabi_ecat.h"
 #include "bitset"
 
-int64 toff, gl_delta;
-
 void ethercatCheck()
 {
     if (inOP && ((wkc < expectedWKC) || ec_group[currentgroup].docheckstate))
@@ -107,7 +105,7 @@ void elmoInit()
     memset(ElmoSafteyMode, 0, sizeof(int) * ec_slavecount);
 }
 
-void ec_sync(int64 reftime, int64 cycletime, int64 *offsettime)
+void ec_sync(int64 reftime, int64 cycletime, int64& offsettime)
 {
     static int64 integral = 0;
     int64 delta;
@@ -125,8 +123,7 @@ void ec_sync(int64 reftime, int64 cycletime, int64 *offsettime)
     {
         integral--;
     }
-    *offsettime = -(delta / 100) - (integral / 20);
-    gl_delta = delta;
+    offsettime = -(delta / 100) - (integral / 20);
 }
 
 void *ethercatThread1(void *data)
@@ -196,6 +193,7 @@ void *ethercatThread1(void *data)
             /** if CA disable => automapping works */
             ec_config_map(&IOmap);
 
+            //ecdc
             ec_configdc();
 
             /* wait for all slaves to reach SAFE_OP state */
@@ -222,18 +220,54 @@ void *ethercatThread1(void *data)
 
             int wait_cnt = 200;
 
+            //ecdc
+
+            int64 toff, gl_delta;
+            unsigned long long cur_dc32 = 0;
+            unsigned long long pre_dc32 = 0;
+            long long diff_dc32 = 0;
+            long long cur_DCtime = 0, max_DCtime = 0;
+
             /* wait for all slaves to reach OP state */
             do
             {
                 ec_send_processdata();
                 ec_receive_processdata(EC_TIMEOUTRET);
                 ec_statecheck(0, EC_STATE_OPERATIONAL, 50000);
-
             } while (wait_cnt-- && (ec_slave[0].state != EC_STATE_OPERATIONAL));
 
             if (ec_slave[0].state == EC_STATE_OPERATIONAL)
             {
                 inOP = TRUE;
+
+                const int PRNS = period_ns;
+
+                //ecdc
+
+                for (int i = 0; i < ec_slavecount; i++)
+                    ec_dcsync0(i + 1, TRUE, PRNS, 0);
+
+                toff = 0;
+
+                ec_send_processdata();
+                struct timespec ts;
+                clock_gettime(CLOCK_MONOTONIC, &ts);
+
+                wkc = ec_receive_processdata(EC_TIMEOUTRET);
+
+                cur_dc32 = (uint32_t)(ec_DCtime & 0xffffffff);
+
+                long dc_remain_time = cur_dc32 % PRNS;
+                ts.tv_nsec = ts.tv_nsec - ts.tv_nsec % PRNS + dc_remain_time;
+                while (ts.tv_nsec >= SEC_IN_NSEC)
+                {
+                    ts.tv_sec++;
+                    ts.tv_nsec -= SEC_IN_NSEC;
+                }
+
+                std::cout << "dc_remain_time : " << dc_remain_time << std::endl;
+
+                clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
                 /* cyclic loop */
                 for (int slave = 1; slave <= ec_slavecount; slave++)
@@ -248,35 +282,28 @@ void *ethercatThread1(void *data)
 
                 query_check_state = true;
 
-                struct timespec ts;
-                clock_gettime(CLOCK_MONOTONIC, &ts);
-
-                ts.tv_nsec += PERIOD_NS;
-                while (ts.tv_nsec >= SEC_IN_NSEC)
-                {
-                    ts.tv_sec++;
-                    ts.tv_nsec -= SEC_IN_NSEC;
-                }
-
                 while (!de_shutdown)
                 {
-                    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
                     if (force_control_mode)
                     {
                         break;
                     }
-
-                    ts.tv_nsec += PERIOD_NS;
+                    //ecdc
+                    ts.tv_nsec += period_ns + toff;
                     while (ts.tv_nsec >= SEC_IN_NSEC)
                     {
                         ts.tv_sec++;
                         ts.tv_nsec -= SEC_IN_NSEC;
                     }
+                    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
+
                     //std::this_thread::sleep_until(st_start_time + cycle_count * cycletime);
                     cycle_count++;
                     wkc = ec_receive_processdata(0);
                     control_time_real_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count() / 1000000.0;
+                    while (EcatError)
+                        printf("%f %s", control_time_real_, ec_elist2string());
 
                     for (int i = 0; i < ec_slavecount; i++)
                     {
@@ -319,7 +346,13 @@ void *ethercatThread1(void *data)
                                     elmost[i].commutation_ok = true;
                                     elmost[i].commutation_required = false;
                                 }
+
+                                if (elmost[i].state_before == ELMO_OPERATION_ENABLE)
+                                {
+                                    elmost[i].commutation_ok = false;
+                                }
                             }
+
                             query_check_state = true;
                         }
                         elmost[i].state_before = elmost[i].state;
@@ -342,26 +375,37 @@ void *ethercatThread1(void *data)
                             cout << endl;
                             cout << endl;
                             check_commutation_first = false;
+                            for (int i = 0; i < ec_slavecount; i++)
+                            {
+                                std::cout << " " << elmost[i].state;
+                            }
+                            std::cout << std::endl;
                         }
                         if (query_check_state)
                         {
-                            printf("\x1b[A\x1b[A\33[2K\r");
+                            // printf("\x1b[A\x1b[A\33[2K\r");
+                            // for (int i = 0; i < ec_slavecount; i++)
+                            // {
+                            //     if (elmost[i].state == ELMO_OPERATION_ENABLE)
+                            //     {
+                            //         printf("%s%2d%s", cgreen.c_str(), elmost[i].state, creset.c_str());
+                            //     }
+                            //     else
+                            //     {
+                            //         printf("%2d", elmost[i].state);
+                            //     }
+                            // }
+                            // cout << endl;
+                            // for (int i = 0; i < ec_slavecount; i++)
+                            //     printf("--");
+                            // cout << endl;
+                            // fflush(stdout);
+
                             for (int i = 0; i < ec_slavecount; i++)
                             {
-                                if (elmost[i].state == ELMO_OPERATION_ENABLE)
-                                {
-                                    printf("%s%2d%s", cgreen.c_str(), elmost[i].state, creset.c_str());
-                                }
-                                else
-                                {
-                                    printf("%2d", elmost[i].state);
-                                }
+                                std::cout << " " << elmost[i].state;
                             }
-                            cout << endl;
-                            for (int i = 0; i < ec_slavecount; i++)
-                                printf("--");
-                            cout << endl;
-                            fflush(stdout);
+                            std::cout << std::endl;
                             query_check_state = false;
                         }
                     }
@@ -658,6 +702,20 @@ void *ethercatThread1(void *data)
                     }
 
                     ec_send_processdata();
+
+                    cur_dc32 = (uint32_t)(ec_DCtime & 0xffffffff);
+                    if (cur_dc32 > pre_dc32)
+                        diff_dc32 = cur_dc32 - pre_dc32;
+                    else
+                        diff_dc32 = (0xffffffff - pre_dc32) + cur_dc32;
+                    pre_dc32 = cur_dc32;
+
+                    cur_DCtime += diff_dc32;
+
+                    ec_sync(cur_DCtime, period_ns, toff);
+
+                    if (cur_DCtime > max_DCtime)
+                        max_DCtime = cur_DCtime;
                 }
 
                 cout << "ELMO : Control Mode Start ... " << endl;
@@ -693,22 +751,17 @@ void *ethercatThread1(void *data)
                 savg = 0;
                 sat = 0;
 
-                const int PRNS = period_ns;
-
-                clock_gettime(CLOCK_MONOTONIC, &ts);
-                ts.tv_nsec += PRNS;
-                while (ts.tv_nsec >= SEC_IN_NSEC)
-                {
-                    ts.tv_sec++;
-                    ts.tv_nsec -= SEC_IN_NSEC;
-                }
-
                 struct timespec ts1, ts2;
 
                 while (!de_shutdown)
                 {
                     chrono::steady_clock::time_point rcv_ = chrono::steady_clock::now();
-
+                    ts.tv_nsec += period_ns + toff;
+                    while (ts.tv_nsec >= SEC_IN_NSEC)
+                    {
+                        ts.tv_sec++;
+                        ts.tv_nsec -= SEC_IN_NSEC;
+                    }
                     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
                     clock_gettime(CLOCK_MONOTONIC, &ts1);
@@ -719,22 +772,16 @@ void *ethercatThread1(void *data)
                         lat += SEC_IN_NSEC;
                     }
 
-                    ts.tv_nsec += PRNS;
-                    while (ts.tv_nsec >= SEC_IN_NSEC)
-                    {
-                        ts.tv_sec++;
-                        ts.tv_nsec -= SEC_IN_NSEC;
-                    }
-
                     chrono::steady_clock::time_point rcv2_ = chrono::steady_clock::now();
                     //std::this_thread::sleep_for(std::chrono::microseconds(30));
 
                     /** PDO I/O refresh */
                     //ec_send_processdata();
                     wkc = ec_receive_processdata(200);
+                    control_time_real_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count() / 1000000.0;
 
                     while (EcatError)
-                        printf("%s", ec_elist2string());
+                        printf("%f %s", control_time_real_, ec_elist2string());
 
                     if (status_log)
                     {
@@ -752,6 +799,7 @@ void *ethercatThread1(void *data)
 
                         if (status_changed)
                         {
+                            std::cout << control_time_real_ << "  ";
                             for (int i = 0; i < ec_slavecount; i++)
                             {
                                 std::cout << elmost[i].state << "  ";
@@ -884,6 +932,25 @@ void *ethercatThread1(void *data)
                         emergencyOff();
 
                     ec_send_processdata();
+                    cur_dc32 = (uint32_t)(ec_DCtime & 0xffffffff);
+                    if (cur_dc32 > pre_dc32)
+                        diff_dc32 = cur_dc32 - pre_dc32;
+                    else
+                        diff_dc32 = (0xffffffff - pre_dc32) + cur_dc32;
+                    pre_dc32 = cur_dc32;
+
+                    cur_DCtime += diff_dc32;
+
+                    ec_sync(cur_DCtime, period_ns, toff);
+
+                    if (cur_DCtime > max_DCtime)
+                        max_DCtime = cur_DCtime;
+                    ts.tv_nsec += PRNS + toff;
+                    while (ts.tv_nsec >= SEC_IN_NSEC)
+                    {
+                        ts.tv_sec++;
+                        ts.tv_nsec -= SEC_IN_NSEC;
+                    }
 
                     sat = chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - rcv2_).count();
 
@@ -1093,7 +1160,7 @@ void *ethercatThread2(void *data)
                     ElmoMode[i] = EM_DEFAULT;
                 }
             }
-            else if ((ch % 256 == 's'))
+            else if ((ch % 256 == 'w'))
             {
 
                 status_log = !status_log;

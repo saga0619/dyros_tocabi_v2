@@ -56,11 +56,11 @@ int main(int argc, char *argv[])
         period_ns = period_us * 1000;
 
         std::cout << " ecat port : " << soem_port << std::endl;
-        std::cout << " period_us  : " << period_ns << std::endl;
+        std::cout << " period_ns  : " << period_ns << std::endl;
         std::cout << " elmo num  : " << expected_counter << std::endl;
         std::cout << " start from : " << start_joint_ << ", : " << ELMO_NAME[start_joint_] << std::endl;
         std::cout << " ----------------------------- " << std::endl;
-        std::cout << " command :  q(quit), l(lower init), u(upper init), d(debug), p(position), h(homming), c(force control), o(lock), f(torque off), s(status log)" << std::endl;
+        std::cout << " command :  q(quit), l(lower init), u(upper init), d(debug), p(position), h(homming), c(force control), o(lock), f(torque off), w(status log)" << std::endl;
 
         val_received = true;
 

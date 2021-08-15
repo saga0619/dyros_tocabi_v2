@@ -332,7 +332,7 @@ bool saveZeroPoint();
 bool loadZeroPoint();
 
 
-bool status_log;
+bool status_log = false;
 
 void emergencyOff();
 
