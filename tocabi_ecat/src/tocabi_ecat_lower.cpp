@@ -804,9 +804,15 @@ void *ethercatThread1(void *data)
                 us_50.tv_sec = 0;
                 us_50.tv_nsec = 50 * 1000;
 
+#ifdef TIME_CHECK
+                chrono::steady_clock::time_point t_point[5];
+
+#endif
+                chrono::steady_clock::time_point rcv_;
+                chrono::steady_clock::time_point rcv2_;
                 while (!shm_msgs_->shutdown)
                 {
-                    chrono::steady_clock::time_point rcv_ = chrono::steady_clock::now();
+                    rcv_ = chrono::steady_clock::now();
 
                     //
                     ts.tv_nsec += PERIOD_NS + toff;
@@ -823,15 +829,14 @@ void *ethercatThread1(void *data)
                     control_time_us_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count();
                     control_time_real_ = control_time_us_ / 1000000.0;
 
-                    lat = ts1.tv_nsec - ts.tv_nsec;
-                    if (lat < 0)
-                    {
-                        lat += SEC_IN_NSEC;
-                    }
+                    lat = (ts1.tv_sec - ts1.tv_nsec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec;
 
-                    chrono::steady_clock::time_point rcv2_ = chrono::steady_clock::now();
+                    rcv2_ = chrono::steady_clock::now();
                     //std::this_thread::sleep_for(std::chrono::microseconds(30));
 
+#ifdef TIME_CHECK
+                    t_point[0] = std::chrono::steady_clock::now();
+#endif
                     /** PDO I/O refresh */
                     //ec_send_processdata();
                     wkc = ec_receive_processdata(200);
@@ -839,6 +844,9 @@ void *ethercatThread1(void *data)
                     while (EcatError)
                         printf("%f %s", control_time_real_, ec_elist2string());
 
+#ifdef TIME_CHECK
+                    t_point[1] = std::chrono::steady_clock::now();
+#endif
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         elmost[i].state = getElmoState(rxPDO[i]->statusWord);
@@ -976,8 +984,41 @@ void *ethercatThread1(void *data)
                     //Torque off if emergency off received
                     if (de_emergency_off)
                         emergencyOff();
-
+#ifdef TIME_CHECK
+                    t_point[2] = std::chrono::steady_clock::now();
+#endif
                     ec_send_processdata();
+#ifdef TIME_CHECK
+                    t_point[3] = std::chrono::steady_clock::now();
+
+                    static long low_rcv_total = 0, low_mid_total = 0, low_snd_total = 0;
+                    static int low_us, mid_us, snd_us;
+                    static int low_max, mid_max, snd_max;
+
+                    low_us = std::chrono::duration_cast<std::chrono::microseconds>(t_point[1] - t_point[0]).count();
+                    mid_us = std::chrono::duration_cast<std::chrono::microseconds>(t_point[2] - t_point[1]).count();
+                    snd_us = std::chrono::duration_cast<std::chrono::microseconds>(t_point[3] - t_point[2]).count();
+                    low_rcv_total += low_us;
+                    low_mid_total += mid_us;
+                    low_snd_total += snd_us;
+
+                    shm_msgs_->low_rcv_avg = low_rcv_total / cycle_count;
+                    shm_msgs_->low_mid_avg = low_mid_total / cycle_count;
+                    shm_msgs_->low_snd_avg = low_snd_total / cycle_count;
+
+                    if (shm_msgs_->low_rcv_max < low_us)
+                        shm_msgs_->low_rcv_max = low_us;
+                    if (shm_msgs_->low_mid_max < mid_us)
+                        shm_msgs_->low_mid_max = mid_us;
+                    if (shm_msgs_->low_snd_max < snd_us)
+                        shm_msgs_->low_snd_max = snd_us;
+                    if (low_us > 100)
+                        shm_msgs_->low_rcv_ovf++;
+                    if (mid_us > 100)
+                        shm_msgs_->low_mid_ovf++;
+                    if (snd_us > 100)
+                        shm_msgs_->low_snd_ovf++;
+#endif
 
                     cur_dc32 = (uint32_t)(ec_DCtime & 0xffffffff);
                     if (cur_dc32 > pre_dc32)

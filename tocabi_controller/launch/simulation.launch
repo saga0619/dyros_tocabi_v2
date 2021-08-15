@@ -2,13 +2,13 @@
     <arg name="hand" default="false"/>
     <arg name="gui" default="true"/>
     <group if="$(arg hand)">
-        <param name="tocabi_controller/urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi_with_allegro_qb.urdf"/>
+        <param name="tocabi_controller/urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi_with_redhands.urdf"/>
     </group>
     <group unless="$(arg hand)">
         <param name="tocabi_controller/urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi.urdf"/>
     </group>
     <group if="$(arg hand)">
-        <param name="mujoco_ros/model_file" type="string" value="$(find tocabi_description)/mujoco_model/dyros_tocabi_with_allegro_qb.xml"/>
+        <param name="mujoco_ros/model_file" type="string" value="$(find tocabi_description)/mujoco_model/dyros_tocabi_with_redhands.xml"/>
     </group>
     <group unless="$(arg hand)">
         <param name="mujoco_ros/model_file" type="string" value="$(find tocabi_description)/mujoco_model/dyros_tocabi.xml"/>

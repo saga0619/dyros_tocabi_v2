@@ -182,7 +182,7 @@ double torqueCC_recvt;
 double torqueCC_comt;
 
 double control_time_real_;
-int control_time_us_;
+long control_time_us_;
 double torque_on_time_;
 double torque_off_time_;
 bool torque_switch_;

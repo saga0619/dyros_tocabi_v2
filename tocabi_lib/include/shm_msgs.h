@@ -67,6 +67,7 @@ typedef struct SHMmsgs
     float timeCommand;
 
     std::atomic<long> control_time_us_;
+
     
     std::atomic<int> t_cnt;
     std::atomic<int> t_cnt2;
@@ -83,13 +84,17 @@ typedef struct SHMmsgs
 
     std::atomic<bool> upperTimerSet;
     std::atomic<bool> lowerTimerSet;
-    
 
     float lat_avg, lat_min, lat_max, lat_dev;
     float send_avg, send_min, send_max, send_dev;
 
     float lat_avg2, lat_min2, lat_max2, lat_dev2;
     float send_avg2, send_min2, send_max2, send_dev2;
+
+    int low_rcv_ovf, low_mid_ovf, low_snd_ovf;
+    float low_rcv_avg, low_rcv_max;
+    float low_mid_avg, low_mid_max;
+    float low_snd_avg, low_snd_max;    
 
     bool low_init_signal = false;
     bool waist_init_signal = false;
@@ -179,7 +184,9 @@ static void init_shm(int shm_key, int &shm_id_, SHMmsgs **shm_ref)
 
     if ((*shm_ref)->process_num == 0)
     {
-        std::cout << "\033[0;32m" << "Process num 0 ! Clean Start!" << "\033[0m" << std::endl;
+        std::cout << "\033[0;32m"
+                  << "Process num 0 ! Clean Start!"
+                  << "\033[0m" << std::endl;
     }
 
     (*shm_ref)->process_num++;

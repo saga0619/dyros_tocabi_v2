@@ -1153,7 +1153,7 @@
     name="Upperbody_Link">
     <inertial>
       <origin
-        xyz="-0.04294 0 0.16798"
+        xyz="-0.07294 0 0.16798"
         rpy="0 0 0" />
       <mass
         value="18.13384" />
