@@ -68,6 +68,7 @@ typedef struct SHMmsgs
 
     std::atomic<long> control_time_us_;
 
+    
     std::atomic<int> t_cnt;
     std::atomic<int> t_cnt2;
     std::atomic<bool> controllerReady;

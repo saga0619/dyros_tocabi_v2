@@ -308,19 +308,16 @@ void *ethercatThread1(void *data)
                                 if (elmost[i].state == ELMO_NOTFAULT)
                                 {
                                     elmost[i].commutation_required = true;
-                                    //state_elmo_[JointMap2[i + START_N]] = ESTATE::COMMUTATION_INITIALIZE;
                                 }
                                 else if (elmost[i].state == ELMO_FAULT)
                                 {
                                     //cout << "slave : " << i << " commutation check complete at first" << endl;
                                     elmost[i].commutation_not_required = true;
-                                    //state_elmo_[JointMap2[i + START_N]] = ESTATE::COMMUTATION_DONE;
                                 }
                                 else if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
                                     //cout << "slave : " << i << " commutation check complete with operation enable" << endl;
                                     elmost[i].commutation_not_required = true;
-                                    //state_elmo_[JointMap2[i + START_N]] = ESTATE::COMMUTATION_DONE;
                                     elmost[i].commutation_ok = true;
                                 }
                                 else
@@ -333,7 +330,6 @@ void *ethercatThread1(void *data)
                             {
                                 if (elmost[i].state == ELMO_OPERATION_ENABLE)
                                 {
-                                    //state_elmo_[JointMap2[i + START_N]] = ESTATE::COMMUTATION_DONE;
                                     //cout << "slave : " << i << " commutation check complete with operation enable 2" << endl;
                                     elmost[i].commutation_ok = true;
                                     elmost[i].commutation_required = false;
@@ -492,7 +488,7 @@ void *ethercatThread1(void *data)
                             if (elmost[i].commutation_required)
                             {
                                 total_commutation_cnt++;
-                                if (total_commutation_cnt < 5)
+                                if (total_commutation_cnt < 3)
                                     controlWordGenerate(rxPDO[i]->statusWord, txPDO[i]->controlWord);
                                 txPDO[i]->maxTorque = (uint16)1000; // originaly 1000
                             }
@@ -520,7 +516,7 @@ void *ethercatThread1(void *data)
                                      ((int32_t)ec_slave[slave].inputs[13] << 24)) *
                                     CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
                                 torque_elmo_[START_N + slave - 1] =
-                                    (((int16_t)ec_slave[slave].inputs[14]) +
+                                    (int16_t)(((int16_t)ec_slave[slave].inputs[14]) +
                                      ((int16_t)ec_slave[slave].inputs[15] << 8));
                                 q_ext_elmo_[START_N + slave - 1] =
                                     (((int32_t)ec_slave[slave].inputs[16]) +
@@ -542,7 +538,7 @@ void *ethercatThread1(void *data)
                         q_dot_[JointMap2[START_N + i]] = q_dot_elmo_[START_N + i];
                         torque_[JointMap2[START_N + i]] = torque_elmo_[START_N + i];
                         q_ext_[JointMap2[START_N + i]] = q_ext_elmo_[START_N + i];
-                        joint_state_[JointMap2[START_N + i]] = joint_state_elmo_[START_N + i];
+                        //joint_state_[JointMap2[START_N + i]] = joint_state_elmo_[START_N + i];
                     }
 
                     sendJointStatus();
@@ -793,7 +789,11 @@ void *ethercatThread1(void *data)
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         elmost[i].state = getElmoState(rxPDO[i]->statusWord);
-                        state_elmo_[JointMap2[START_N + i]] = elmost[i].state;
+
+                        if (elmost[i].state_before != elmost[i].state)
+                        {
+                            state_elmo_[JointMap2[START_N + i]] = elmost[i].state;
+                        }
                         elmost[i].state_before = elmost[i].state;
                     }
 
@@ -817,7 +817,7 @@ void *ethercatThread1(void *data)
                                      ((int32_t)ec_slave[slave].inputs[13] << 24)) *
                                     CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
                                 torque_elmo_[START_N + slave - 1] =
-                                    (((int16_t)ec_slave[slave].inputs[14]) +
+                                    (int16_t)(((int16_t)ec_slave[slave].inputs[14]) +
                                      ((int16_t)ec_slave[slave].inputs[15] << 8));
                                 q_ext_elmo_[START_N + slave - 1] =
                                     (((int32_t)ec_slave[slave].inputs[16]) +
@@ -840,7 +840,7 @@ void *ethercatThread1(void *data)
                         q_dot_[JointMap2[START_N + i]] = q_dot_elmo_[START_N + i];
                         torque_[JointMap2[START_N + i]] = torque_elmo_[START_N + i];
                         q_ext_[JointMap2[START_N + i]] = q_ext_elmo_[START_N + i];
-                        joint_state_[JointMap2[START_N + i]] = joint_state_elmo_[START_N + i];
+                        //joint_state_[JointMap2[START_N + i]] = joint_state_elmo_[START_N + i];
                     }
 
                     sendJointStatus();
@@ -1414,7 +1414,7 @@ void getJointCommand()
             {
                 errorTimes++;
 
-                if (errorTimes > 3)
+                if (errorTimes > CL_LOCK)
                 {
                     if (errorCount != commandCount)
                     {

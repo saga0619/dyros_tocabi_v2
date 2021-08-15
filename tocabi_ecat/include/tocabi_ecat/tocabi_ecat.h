@@ -170,6 +170,8 @@ volatile int wkc;
 boolean inOP;
 uint8 currentgroup = 0;
 
+int start_joint_ = 0;
+
 char commutation_cache_file[] = "/home/dyros/.tocabi_bootlog/commutationlog";
 char zeropoint_cache_file[] = "/home/dyros/.tocabi_bootlog/zeropointlog";
 int stateElmo[ELMO_DOF];
@@ -328,6 +330,9 @@ chrono::system_clock::time_point commutation_save_time_;
 
 bool saveZeroPoint();
 bool loadZeroPoint();
+
+
+bool status_log;
 
 void emergencyOff();
 
