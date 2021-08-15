@@ -37,6 +37,7 @@ static void set_latency_target(void)
 
 int main(int argc, char *argv[])
 {
+    ios::sync_with_stdio(false);
     bool val_received = false;
 
     int ret;

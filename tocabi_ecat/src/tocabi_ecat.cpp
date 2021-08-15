@@ -105,7 +105,7 @@ void elmoInit()
     memset(ElmoSafteyMode, 0, sizeof(int) * ec_slavecount);
 }
 
-void ec_sync(int64 reftime, int64 cycletime, int64& offsettime)
+void ec_sync(int64 reftime, int64 cycletime, int64 &offsettime)
 {
     static int64 integral = 0;
     int64 delta;
@@ -183,12 +183,17 @@ void *ethercatThread1(void *data)
                 //0x1a13 :  Torque actual value         16bit
                 //0x1a1e :  Auxiliary position value    32bit
                 uint16 map_1c13[5] = {0x0004, 0x1a00, 0x1a11, 0x1a13, 0x1a1e}; //, 0x1a12};
+
+                int16 map_6007 = 0x0000;
+
                 //uint16 map_1c13[6] = {0x0005, 0x1a04, 0x1a11, 0x1a12, 0x1a1e, 0X1a1c};
                 int os;
                 os = sizeof(map_1c12);
                 ec_SDOwrite(slave, 0x1c12, 0, TRUE, os, map_1c12, EC_TIMEOUTRXM);
                 os = sizeof(map_1c13);
                 ec_SDOwrite(slave, 0x1c13, 0, TRUE, os, map_1c13, EC_TIMEOUTRXM);
+                os = sizeof(map_6007);
+                ec_SDOwrite(slave, 0x6007, 0, FALSE, os, &map_6007, EC_TIMEOUTRXM);
             }
             /** if CA disable => automapping works */
             ec_config_map(&IOmap);
@@ -719,6 +724,9 @@ void *ethercatThread1(void *data)
                 }
 
                 cout << "ELMO : Control Mode Start ... " << endl;
+#ifdef TIME_CHECK
+                cout << "TIME CHECK enabled" << endl;
+#endif
 
                 memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ec_slavecount);
                 st_start_time = std::chrono::steady_clock::now();
@@ -751,8 +759,6 @@ void *ethercatThread1(void *data)
                 savg = 0;
                 sat = 0;
 
-                const int PRNS = period_ns;
-
                 clock_gettime(CLOCK_MONOTONIC, &ts);
                 ts.tv_nsec += PRNS;
                 while (ts.tv_nsec >= SEC_IN_NSEC)
@@ -769,13 +775,6 @@ void *ethercatThread1(void *data)
                 chrono::steady_clock::time_point rcv2_;
                 while (!de_shutdown)
                 {
-                    chrono::steady_clock::time_point rcv_ = chrono::steady_clock::now();
-                    ts.tv_nsec += period_ns + toff;
-                    while (ts.tv_nsec >= SEC_IN_NSEC)
-                    {
-                        ts.tv_sec++;
-                        ts.tv_nsec -= SEC_IN_NSEC;
-                    }
 #ifdef TIME_CHECK
                     rcv_ = chrono::steady_clock::now();
 #endif
@@ -783,18 +782,9 @@ void *ethercatThread1(void *data)
 
                     clock_gettime(CLOCK_MONOTONIC, &ts1);
 
-                    lat = ts1.tv_nsec - ts.tv_nsec;
-                    if (lat < 0)
-                    {
-                        lat += SEC_IN_NSEC;
-                    }
-
-                    chrono::steady_clock::time_point rcv2_ = chrono::steady_clock::now();
-                    //std::this_thread::sleep_for(std::chrono::microseconds(30));
-
 #ifdef TIME_CHECK
 
-                    lat = (ts1.tv_sec - ts1.tv_nsec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec;
+                    lat = (ts1.tv_sec - ts1.tv_sec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec;
 
                     rcv2_ = chrono::steady_clock::now();
                     //std::this_thread::sleep_for(std::chrono::microseconds(30));
@@ -817,22 +807,23 @@ void *ethercatThread1(void *data)
                         for (int i = 0; i < ec_slavecount; i++)
                         {
                             elmost[i].state = getElmoState(rxPDO[i]->statusWord);
-
-                            if (elmost[i].state != elmost[i].state_before)
+                            
+                            if (rxPDO[i]->statusWord != elmost[i].check_value)
                             {
                                 status_changed = true;
+                                elmost[i].check_value = rxPDO[i]->statusWord;
                             }
                             elmost[i].state_before = elmost[i].state;
                         }
 
                         if (status_changed)
                         {
-                            std::cout << control_time_real_ << "  ";
+                            printf("status changed time: %lf\n[bits]\n", control_time_real_);
                             for (int i = 0; i < ec_slavecount; i++)
                             {
-                                std::cout << elmost[i].state << "  ";
+                                printf("0x%x\t", rxPDO[i]->statusWord);
                             }
-                            std::cout << endl;
+                            printf("\n");
                         }
                     }
 
@@ -985,33 +976,47 @@ void *ethercatThread1(void *data)
 #ifdef TIME_CHECK
                     t_point[3] = std::chrono::steady_clock::now();
 
-                    static long low_rcv_total = 0, low_mid_total = 0, low_snd_total = 0;
-                    static int low_us, mid_us, snd_us;
-                    static int low_max, mid_max, snd_max;
+                    static int64_t low_rcv_total = 0, low_mid_total = 0, low_snd_total = 0;
+                    static float low_us, mid_us, snd_us;
+                    static float low_max, mid_max, snd_max;
 
-                    low_us = std::chrono::duration_cast<std::chrono::microseconds>(t_point[1] - t_point[0]).count();
-                    mid_us = std::chrono::duration_cast<std::chrono::microseconds>(t_point[2] - t_point[1]).count();
-                    snd_us = std::chrono::duration_cast<std::chrono::microseconds>(t_point[3] - t_point[2]).count();
+                    low_us = std::chrono::duration_cast<std::chrono::nanoseconds>(t_point[1] - t_point[0]).count();
+                    mid_us = std::chrono::duration_cast<std::chrono::nanoseconds>(t_point[2] - t_point[1]).count();
+                    snd_us = std::chrono::duration_cast<std::chrono::nanoseconds>(t_point[3] - t_point[2]).count();
+
                     low_rcv_total += low_us;
                     low_mid_total += mid_us;
                     low_snd_total += snd_us;
 
-                    shm_msgs_->low_rcv_avg = low_rcv_total / cycle_count;
-                    shm_msgs_->low_mid_avg = low_mid_total / cycle_count;
-                    shm_msgs_->low_snd_avg = low_snd_total / cycle_count;
+                    low_rcv_us = low_us;
+                    low_mid_us = mid_us;
+                    low_snd_us = snd_us;
 
-                    if (shm_msgs_->low_rcv_max < low_us)
-                        shm_msgs_->low_rcv_max = low_us;
-                    if (shm_msgs_->low_mid_max < mid_us)
-                        shm_msgs_->low_mid_max = mid_us;
-                    if (shm_msgs_->low_snd_max < snd_us)
-                        shm_msgs_->low_snd_max = snd_us;
-                    if (low_us > 100)
-                        shm_msgs_->low_rcv_ovf++;
-                    if (mid_us > 100)
-                        shm_msgs_->low_mid_ovf++;
-                    if (snd_us > 100)
-                        shm_msgs_->low_snd_ovf++;
+                    low_rcv_avg = low_rcv_total / cycle_count;
+                    low_mid_avg = low_mid_total / cycle_count;
+                    low_snd_avg = low_snd_total / cycle_count;
+
+                    if (low_rcv_max < low_us)
+                        low_rcv_max = low_us;
+                    if (low_mid_max < mid_us)
+                        low_mid_max = mid_us;
+                    if (low_snd_max < snd_us)
+                        low_snd_max = snd_us;
+                    if (low_us > 100000)
+                    {
+                        low_rcv_ovf++;
+                        std::cout << control_time_real_ << "rcv ovf" << low_us << " " << mid_us << "" << snd_us << "" << std::endl;
+                    }
+                    if (mid_us > 100000)
+                    {
+                        low_mid_ovf++;
+                        std::cout << control_time_real_ << "mid ovf" << low_us << " " << mid_us << "" << snd_us << "" << std::endl;
+                    }
+                    if (snd_us > 100000)
+                    {
+                        low_snd_ovf++;
+                        std::cout << control_time_real_ << "snd ovf" << low_us << " " << mid_us << "" << snd_us << "" << std::endl;
+                    }
 
                     sat = chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - rcv2_).count();
 
@@ -1030,10 +1035,10 @@ void *ethercatThread1(void *data)
                     total_dev1 += sqrt(((lat - lavg) * (lat - lavg)));
                     ldev = total_dev1 / cycle_count;
 
-                    shm_msgs_->lat_avg = lavg;
-                    shm_msgs_->lat_max = lmax;
-                    shm_msgs_->lat_min = lmin;
-                    shm_msgs_->lat_dev = ldev;
+                    lat_avg = lavg;
+                    lat_max = lmax;
+                    lat_min = lmin;
+                    lat_dev = ldev;
 
                     //sat = latency2.count();
                     total2 += sat;
@@ -1050,25 +1055,29 @@ void *ethercatThread1(void *data)
                     total_dev2 += sqrt(((sat - savg) * (sat - savg)));
                     sdev = total_dev2 / cycle_count;
 
-                    shm_msgs_->send_avg = savg;
-                    shm_msgs_->send_max = smax;
-                    shm_msgs_->send_min = smin;
-                    shm_msgs_->send_dev = sdev;
+                    send_avg = savg;
+                    send_max = smax;
+                    send_min = smin;
+                    send_dev = sdev;
 
 #endif
 
                     cycle_count++;
-
                     if (de_debug_level == 1)
                     {
-                        printf("\x1b[A\x1b[A\x1b[A\33[2K\r");
+                        if (cycle_count % 2000 == 0)
+                        {
+                            printf("%d Lat avg : %7.3f max : %7.3f", cycle_count / 2000, lat_avg / 1000.0, lat_max / 1000.0);
+                            printf("  rcv max : %7.3f ovf : %d mid max : %7.3f ovf : %d snd max : %7.3f ovf : %d\n", low_rcv_max / 1000.0, low_rcv_ovf, low_mid_max / 1000.0, low_mid_ovf, low_snd_max / 1000.0, low_snd_ovf);
+                        }
 
-                        printf("Current Count : %d\n", cycle_count);
-                        printf("Lat Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", lat / 1000.0, lmin / 1000.0, lmax / 1000.0, lavg / 1000.0, ldev / 1000.0);
-                        printf("Sen Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", sat / 1000.0, smin / 1000.0, smax / 1000.0, savg / 1000.0, sdev / 1000.0);
+                        // printf("Current Count : %d\n", cycle_count);
+                        // printf("Lat Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", lat / 1000.0, lmin / 1000.0, lmax / 1000.0, lavg / 1000.0, ldev / 1000.0);
+                        // printf("Sen Act : %7.3f Min : %7.3f Max : %7.3f Avg : %7.3f Dev : %7.3f\n", sat / 1000.0, smin / 1000.0, smax / 1000.0, savg / 1000.0, sdev / 1000.0);
 
-                        fflush(stdout);
+                        // fflush(stdout);
                     }
+
                     /*
                             if (dc.disableSafetyLock)
                             {
@@ -1136,7 +1145,7 @@ void *ethercatThread2(void *data)
 {
     while (!de_shutdown)
     {
-        this_thread::sleep_for(std::chrono::milliseconds(10));
+        this_thread::sleep_for(std::chrono::milliseconds(1));
         ethercatCheck();
 
         int ch = kbhit();
@@ -1147,7 +1156,6 @@ void *ethercatThread2(void *data)
             {
                 std::cout << "ELMO : shutdown request" << std::endl;
                 de_shutdown = true;
-                shm_msgs_->shutdown = true;
             }
             else if ((ch % 256 == 'l'))
             {

@@ -319,7 +319,7 @@ void sendJointStatus();
 void getJointCommand();
 
 int shm_id_;
-SHMmsgs* shm_msgs_;
+SHMmsgs *shm_msgs_;
 
 bool saveCommutationLog();
 bool loadCommutationLog();
@@ -330,7 +330,6 @@ chrono::system_clock::time_point commutation_save_time_;
 
 bool saveZeroPoint();
 bool loadZeroPoint();
-
 
 bool status_log = false;
 
@@ -349,3 +348,15 @@ const std::string creset("\033[0m");
 const std::string cblue("\033[0;34m");
 const std::string cgreen("\033[0;32m");
 const std::string cyellow("\033[0;33m");
+
+float lat_avg, lat_min, lat_max, lat_dev;
+float send_avg, send_min, send_max, send_dev;
+
+float lat_avg2, lat_min2, lat_max2, lat_dev2;
+float send_avg2, send_min2, send_max2, send_dev2;
+
+int low_rcv_ovf, low_mid_ovf, low_snd_ovf;
+int low_rcv_us, low_mid_us, low_snd_us;
+float low_rcv_avg, low_rcv_max;
+float low_mid_avg, low_mid_max;
+float low_snd_avg, low_snd_max;

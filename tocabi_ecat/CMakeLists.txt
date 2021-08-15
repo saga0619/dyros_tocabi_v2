@@ -129,7 +129,7 @@ add_executable(tocabi_ecat_upper src/ecat_upper.cpp)
 
 add_executable(watcher src/watcher.cpp)
 
-add_executable(watcher src/watcher_status.cpp)
+add_executable(watcher2 src/watcher_status.cpp)
 
 
 

@@ -19,12 +19,12 @@
 #include "shm_msgs.h"
 #include "tocabi_ecat/ecat_settings.h"
 
-std::atomic<bool> *prog_shutdown;
+std::atomic<bool> prog_shutdown;
 
 void SIGINT_handler(int sig)
 {
   std::cout << "shutdown Signal" << std::endl;
-  *prog_shutdown = true;
+  prog_shutdown = true;
 }
 
 int main()
@@ -33,12 +33,12 @@ int main()
   SHMmsgs *shm_msgs_;
 
   init_shm(shm_msg_key, shm_id_, &shm_msgs_);
-  prog_shutdown = &shm_msgs_->shutdown;
+  prog_shutdown = false;
+
   signal(SIGINT, SIGINT_handler);
 
-
   printf("\n\n\n\n\n\n\n\n");
-  while (true)
+  while (!prog_shutdown)
   {
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
@@ -60,6 +60,7 @@ int main()
     printf("\x1b[A\33[2K\r");
     printf("\x1b[A\33[2K\r");
     printf("\x1b[A\33[2K\r");
+    printf("\x1b[A\33[2K\r");
     // printf("\x1b[A\33[2K\r");
     // printf("\x1b[A\33[2K\r");
     // printf("\x1b[A\33[2K\r");
@@ -71,13 +72,10 @@ int main()
            shm_msgs_->lat_avg / 1000.0, shm_msgs_->lat_max / 1000.0, shm_msgs_->lat_min / 1000.0, shm_msgs_->lat_dev / 1000.0,
            shm_msgs_->send_avg / 1000.0, shm_msgs_->send_max / 1000.0, shm_msgs_->send_min / 1000.0, shm_msgs_->send_dev / 1000.0);
 
+    printf("rcv cur %6.3f avg %6.3f max %6.3f ovf %d\n", shm_msgs_->low_rcv_us/ 1000.0, shm_msgs_->low_rcv_avg/ 1000.0, shm_msgs_->low_rcv_max/ 1000.0, shm_msgs_->low_rcv_ovf);
+    printf("mid cur %6.3f avg %6.3f max %6.3f ovf %d\n", shm_msgs_->low_mid_us/ 1000.0, shm_msgs_->low_mid_avg/ 1000.0, shm_msgs_->low_mid_max/ 1000.0, shm_msgs_->low_mid_ovf);
+    printf("snd cur %6.3f avg %6.3f max %6.3f ovf %d\n", shm_msgs_->low_snd_us/ 1000.0, shm_msgs_->low_snd_avg/ 1000.0, shm_msgs_->low_snd_max/ 1000.0, shm_msgs_->low_snd_ovf);
 
-    printf("rcv avg %6.3f max %6.3f ovf %d\n", shm_msgs_->low_rcv_avg , shm_msgs_->low_rcv_max , shm_msgs_->low_rcv_ovf);
-    printf("mid avg %6.3f max %6.3f ovf %d\n", shm_msgs_->low_mid_avg , shm_msgs_->low_mid_max , shm_msgs_->low_mid_ovf);
-    printf("snd avg %6.3f max %6.3f ovf %d\n", shm_msgs_->low_snd_avg , shm_msgs_->low_snd_max , shm_msgs_->low_snd_ovf);
-    
-
-    
     // int i = 0;
     //printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
 
@@ -94,14 +92,7 @@ int main()
     // printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f ", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
 
     std::fflush(stdout);
-
-    if (shm_msgs_->t_cnt > 100000000 || shm_msgs_->shutdown)
-    {
-      break;
-    }
   }
-
-  deleteSharedMemory(shm_id_, shm_msgs_);
 
   return 0;
 }
