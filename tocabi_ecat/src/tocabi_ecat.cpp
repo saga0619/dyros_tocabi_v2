@@ -702,22 +702,21 @@ void *ethercatThread1(void *data)
                     ts.tv_sec++;
                     ts.tv_nsec -= SEC_IN_NSEC;
                 }
+#ifdef TIME_CHECK
+                chrono::steady_clock::time_point t_point[5];
 
+#endif
                 struct timespec ts1, ts2;
-
+                chrono::steady_clock::time_point rcv_;
+                chrono::steady_clock::time_point rcv2_;
                 while (!de_shutdown)
                 {
-                    chrono::steady_clock::time_point rcv_ = chrono::steady_clock::now();
-
+#ifdef TIME_CHECK
+                    rcv_ = chrono::steady_clock::now();
+#endif
                     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
                     clock_gettime(CLOCK_MONOTONIC, &ts1);
-
-                    lat = ts1.tv_nsec - ts.tv_nsec;
-                    if (lat < 0)
-                    {
-                        lat += SEC_IN_NSEC;
-                    }
 
                     ts.tv_nsec += PRNS;
                     while (ts.tv_nsec >= SEC_IN_NSEC)
@@ -726,13 +725,20 @@ void *ethercatThread1(void *data)
                         ts.tv_nsec -= SEC_IN_NSEC;
                     }
 
-                    chrono::steady_clock::time_point rcv2_ = chrono::steady_clock::now();
-                    //std::this_thread::sleep_for(std::chrono::microseconds(30));
+#ifdef TIME_CHECK
 
+                    lat = (ts1.tv_sec - ts1.tv_nsec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec;
+
+                    rcv2_ = chrono::steady_clock::now();
+                    //std::this_thread::sleep_for(std::chrono::microseconds(30));
+                    t_point[0] = std::chrono::steady_clock::now();
+#endif
                     /** PDO I/O refresh */
                     //ec_send_processdata();
                     wkc = ec_receive_processdata(200);
-
+#ifdef TIME_CHECK
+                    t_point[1] = std::chrono::steady_clock::now();
+#endif
                     if (wkc >= expectedWKC)
                     {
                         for (int slave = 1; slave <= ec_slavecount; slave++)
@@ -851,8 +857,41 @@ void *ethercatThread1(void *data)
                     //Torque off if emergency off received
                     if (de_emergency_off)
                         emergencyOff();
-
+#ifdef TIME_CHECK
+                    t_point[2] = std::chrono::steady_clock::now();
+#endif
                     ec_send_processdata();
+
+#ifdef TIME_CHECK
+                    t_point[3] = std::chrono::steady_clock::now();
+
+                    static long low_rcv_total = 0, low_mid_total = 0, low_snd_total = 0;
+                    static int low_us, mid_us, snd_us;
+                    static int low_max, mid_max, snd_max;
+
+                    low_us = std::chrono::duration_cast<std::chrono::microseconds>(t_point[1] - t_point[0]).count();
+                    mid_us = std::chrono::duration_cast<std::chrono::microseconds>(t_point[2] - t_point[1]).count();
+                    snd_us = std::chrono::duration_cast<std::chrono::microseconds>(t_point[3] - t_point[2]).count();
+                    low_rcv_total += low_us;
+                    low_mid_total += mid_us;
+                    low_snd_total += snd_us;
+
+                    shm_msgs_->low_rcv_avg = low_rcv_total / cycle_count;
+                    shm_msgs_->low_mid_avg = low_mid_total / cycle_count;
+                    shm_msgs_->low_snd_avg = low_snd_total / cycle_count;
+
+                    if (shm_msgs_->low_rcv_max < low_us)
+                        shm_msgs_->low_rcv_max = low_us;
+                    if (shm_msgs_->low_mid_max < mid_us)
+                        shm_msgs_->low_mid_max = mid_us;
+                    if (shm_msgs_->low_snd_max < snd_us)
+                        shm_msgs_->low_snd_max = snd_us;
+                    if (low_us > 100)
+                        shm_msgs_->low_rcv_ovf++;
+                    if (mid_us > 100)
+                        shm_msgs_->low_mid_ovf++;
+                    if (snd_us > 100)
+                        shm_msgs_->low_snd_ovf++;
 
                     sat = chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - rcv2_).count();
 
@@ -895,6 +934,8 @@ void *ethercatThread1(void *data)
                     shm_msgs_->send_max = smax;
                     shm_msgs_->send_min = smin;
                     shm_msgs_->send_dev = sdev;
+
+#endif
 
                     cycle_count++;
 

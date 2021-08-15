@@ -156,7 +156,7 @@ const int JointMap[ELMO_DOF] = {
     ELMO::R_Wrist1_Joint,
     ELMO::R_Wrist2_Joint};
 
-//pos_elmo[i] = pos[JointMap[i]]
+//pos_elmo[i] = pos[JointMap2[i]]
 const int JointMap2[ELMO_DOF] = {
     MODEL::Head_Joint,
     MODEL::Neck_Joint,

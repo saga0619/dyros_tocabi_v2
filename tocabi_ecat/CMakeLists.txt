@@ -10,6 +10,7 @@ if(${FORCE_REALROBOT} MATCHES ON)
   set(COMPILE_REAL TRUE)
 else()
 
+ADD_DEFINITIONS(-DTIME_CHECK)
 
 execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RES OUTPUT_STRIP_TRAILING_WHITESPACE)
 message("-- kernel version : " ${UNAME_RES})
@@ -127,6 +128,8 @@ add_executable(tocabi_ecat_lower src/ecat_lower.cpp)
 add_executable(tocabi_ecat_upper src/ecat_upper.cpp)
 
 add_executable(watcher src/watcher.cpp)
+
+add_executable(watcher src/watcher_status.cpp)
 
 
 
