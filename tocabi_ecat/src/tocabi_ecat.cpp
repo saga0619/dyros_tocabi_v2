@@ -305,7 +305,9 @@ void *ethercatThread1(void *data)
 
                     //std::this_thread::sleep_until(st_start_time + cycle_count * cycletime);
                     cycle_count++;
-                    wkc = ec_receive_processdata(0);
+
+                    ec_send_processdata();
+                    wkc = ec_receive_processdata(250);
                     control_time_real_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count() / 1000000.0;
                     while (EcatError)
                         printf("%f %s", control_time_real_, ec_elist2string());
@@ -706,7 +708,6 @@ void *ethercatThread1(void *data)
                         }
                     }
 
-                    ec_send_processdata();
 
                     cur_dc32 = (uint32_t)(ec_DCtime & 0xffffffff);
                     if (cur_dc32 > pre_dc32)
@@ -730,7 +731,7 @@ void *ethercatThread1(void *data)
 
                 memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ec_slavecount);
                 st_start_time = std::chrono::steady_clock::now();
-                cycle_count = 1;
+                //cycle_count = 1;
                 ////////////////////////////////////////////////////////////////////////////////////////////
                 ////////////////////////////////////////////////////////////////////////////////////////////
                 //Starting
@@ -782,6 +783,7 @@ void *ethercatThread1(void *data)
 
                     clock_gettime(CLOCK_MONOTONIC, &ts1);
 
+                    ec_send_processdata();
 #ifdef TIME_CHECK
 
                     lat = (ts1.tv_sec - ts1.tv_sec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec;
@@ -791,12 +793,11 @@ void *ethercatThread1(void *data)
                     t_point[0] = std::chrono::steady_clock::now();
 #endif
                     /** PDO I/O refresh */
-                    //ec_send_processdata();
-                    wkc = ec_receive_processdata(200);
-                    control_time_real_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count() / 1000000.0;
+                    wkc = ec_receive_processdata(250);
 #ifdef TIME_CHECK
                     t_point[1] = std::chrono::steady_clock::now();
 #endif
+                    control_time_real_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count() / 1000000.0;
 
                     while (EcatError)
                         printf("%f %s", control_time_real_, ec_elist2string());
@@ -807,7 +808,7 @@ void *ethercatThread1(void *data)
                         for (int i = 0; i < ec_slavecount; i++)
                         {
                             elmost[i].state = getElmoState(rxPDO[i]->statusWord);
-                            
+
                             if (rxPDO[i]->statusWord != elmost[i].check_value)
                             {
                                 status_changed = true;
@@ -952,7 +953,6 @@ void *ethercatThread1(void *data)
 #ifdef TIME_CHECK
                     t_point[2] = std::chrono::steady_clock::now();
 #endif
-                    ec_send_processdata();
                     cur_dc32 = (uint32_t)(ec_DCtime & 0xffffffff);
                     if (cur_dc32 > pre_dc32)
                         diff_dc32 = cur_dc32 - pre_dc32;
@@ -1002,20 +1002,35 @@ void *ethercatThread1(void *data)
                         low_mid_max = mid_us;
                     if (low_snd_max < snd_us)
                         low_snd_max = snd_us;
-                    if (low_us > 100000)
+                    static bool enable_kill = false;
+                    if (low_us > 250000)
                     {
                         low_rcv_ovf++;
-                        std::cout << control_time_real_ << "rcv ovf" << low_us << " " << mid_us << "" << snd_us << "" << std::endl;
+                        printf("[ERR:Recv overflow -  LOW] [t:%.4lf] cc: %4d\tlow: %4.2f mid: %4.2f send: %4.2f\n", control_time_real_, cycle_count, low_us, mid_us, snd_us);
+                        // std::cout << control_time_real_ << " cc: " << cycle_count << " rcv ovf" << low_us << " " << mid_us << "" << snd_us << "" << std::endl;
+                        //enable_kill = true;
                     }
-                    if (mid_us > 100000)
+                    if (mid_us > 250000)
                     {
                         low_mid_ovf++;
-                        std::cout << control_time_real_ << "mid ovf" << low_us << " " << mid_us << "" << snd_us << "" << std::endl;
+                        printf("[ERR:Recv overflow -  MID] [t:%.4lf] cc: %4d\tlow: %4.2f mid: %4.2f send: %4.2f\n", control_time_real_, cycle_count, low_us, mid_us, snd_us);
+                        // std::cout << control_time_real_ << "mid ovf" << low_us << " " << mid_us << "" << snd_us << "" << std::endl;
                     }
-                    if (snd_us > 100000)
+                    if (snd_us > 250000)
                     {
                         low_snd_ovf++;
-                        std::cout << control_time_real_ << "snd ovf" << low_us << " " << mid_us << "" << snd_us << "" << std::endl;
+                        printf("[ERR:Recv overflow - SEND] [t:%.4lf] cc: %4d\tlow: %4.2f mid: %4.2f send: %4.2f\n", control_time_real_, cycle_count, low_us, mid_us, snd_us);
+                        // std::cout << control_time_real_ << "snd ovf" << low_us << " " << mid_us << "" << snd_us << "" << std::endl;
+                    }
+
+                    if (enable_kill)
+                    {
+                        static int que = 10;
+
+                        que--;
+                        std::cout<<"kill!"<<std::endl;
+                        if (que == 0)
+                            break;
                     }
 
                     sat = chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - rcv2_).count();
@@ -1138,14 +1153,14 @@ void *ethercatThread1(void *data)
     }
 
     deleteSharedMemory(shm_id_, shm_msgs_);
-    std::cout << "ELMO : EthercatThread1 Shutdown" << std::endl;
+    std::cout << "ELMO : EthercatThread1 Shutdown" << cycle_count << std::endl;
 }
 
 void *ethercatThread2(void *data)
 {
     while (!de_shutdown)
     {
-        this_thread::sleep_for(std::chrono::milliseconds(1));
+        this_thread::sleep_for(std::chrono::milliseconds(10));
         ethercatCheck();
 
         int ch = kbhit();
