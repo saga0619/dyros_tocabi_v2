@@ -514,6 +514,7 @@ void *ethercatThread1(void *data)
                     {
                         if (!elmost[slave - 1].commutation_required)
                         {
+                            checkFault(rxPDO[slave - 1]->statusWord, slave);
                             if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
                             {
                                 reachedInitial[slave - 1] = true;
@@ -834,6 +835,7 @@ void *ethercatThread1(void *data)
                     {
                         for (int slave = 1; slave <= ec_slavecount; slave++)
                         {
+                            checkFault(rxPDO[slave - 1]->statusWord, slave);
                             if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
                             {
                                 reachedInitial[slave - 1] = true;
@@ -875,9 +877,8 @@ void *ethercatThread1(void *data)
                         joint_state_[i] = joint_state_elmo_[JointMap[start_joint_ + i]];
                     }
 
-                    //sendJointStatus();
-
-                    //getJointCommand();
+                    sendJointStatus();
+                    getJointCommand();
 
                     //ECAT JOINT COMMAND
                     for (int i = 0; i < ec_slavecount; i++)
@@ -1327,6 +1328,20 @@ bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord)
     controlWord = 0;
     return false;
 }
+
+void checkFault(const uint16_t statusWord, int slave)
+{
+    if (statusWord & (1 << FAULT_BIT))
+    { 
+        uint8_t data;
+        uint16_t data16;
+        printf("[Fault at slave %d] reading SDO...\n", slave);
+        ec_SDOread(slave, 0x1001, 0, 0, false, sizeof(data), &data, EC_TIMEOUTRXM);
+        ec_SDOread(slave, 0x603f, 0, 0, false, sizeof(data16), &data16, EC_TIMEOUTRXM);
+        printf("[Err info slave %d - decimal] Err register: %d / Err code: %d\n", slave, data, data16);
+    }
+}
+
 void checkJointSafety()
 {
     for (int i = 0; i < ec_slavecount; i++)
