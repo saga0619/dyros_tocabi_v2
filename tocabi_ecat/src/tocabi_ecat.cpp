@@ -833,6 +833,7 @@ void *ethercatThread1(void *data)
                     {
                         for (int slave = 1; slave <= ec_slavecount; slave++)
                         {
+                            checkFault(rxPDO[slave - 1]->statusWord, slave);
                             if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
                             {
                                 reachedInitial[slave - 1] = true;
@@ -874,9 +875,8 @@ void *ethercatThread1(void *data)
                         joint_state_[i] = joint_state_elmo_[JointMap[start_joint_ + i]];
                     }
 
-                    //sendJointStatus();
-
-                    //getJointCommand();
+                    sendJointStatus();
+                    getJointCommand();
 
                     //ECAT JOINT COMMAND
                     for (int i = 0; i < ec_slavecount; i++)
