@@ -802,6 +802,7 @@ void *ethercatThread1(void *data)
                     while (EcatError)
                         printf("%f %s", control_time_real_, ec_elist2string());
 
+                    static int status_changed_count = 0;
                     if (status_log)
                     {
                         bool status_changed = false;
@@ -819,6 +820,7 @@ void *ethercatThread1(void *data)
 
                         if (status_changed)
                         {
+                            status_changed_count++;
                             printf("status changed time: %lf\n[bits]\n", control_time_real_);
                             for (int i = 0; i < ec_slavecount; i++)
                             {
@@ -1083,7 +1085,7 @@ void *ethercatThread1(void *data)
                         if (cycle_count % 2000 == 0)
                         {
                             printf("%d Lat avg : %7.3f max : %7.3f", cycle_count / 2000, lat_avg / 1000.0, lat_max / 1000.0);
-                            printf("  rcv max : %7.3f ovf : %d mid max : %7.3f ovf : %d snd max : %7.3f ovf : %d\n", low_rcv_max / 1000.0, low_rcv_ovf, low_mid_max / 1000.0, low_mid_ovf, low_snd_max / 1000.0, low_snd_ovf);
+                            printf("  rcv max : %7.3f ovf : %d mid max : %7.3f ovf : %d snd max : %7.3f ovf : %d statwrd chg cnt : %d\n", low_rcv_max / 1000.0, low_rcv_ovf, low_mid_max / 1000.0, low_mid_ovf, low_snd_max / 1000.0, low_snd_ovf, status_changed_count);
                         }
 
                         // printf("Current Count : %d\n", cycle_count);
