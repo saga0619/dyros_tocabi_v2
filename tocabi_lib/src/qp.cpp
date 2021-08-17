@@ -244,7 +244,7 @@ int CQuadraticProgram::SolveQPoases(const int &num_max_iter, VectorXd &solv, boo
 
     if (scs != SUCCESSFUL_RETURN)
     {
-        // std::cout << "QP SOLVE FAILED" << std::endl;
+        std::cout << "QP SOLVE FAILED" << std::endl;
         //PrintMinProb();
 
         int size_H_ = _H.cols();
@@ -407,7 +407,7 @@ VectorXd CQuadraticProgram::SolveQPoases(const int &num_max_iter, bool MPC)
 
     if (scs != SUCCESSFUL_RETURN)
     {
-        // std::cout << "QP SOLVE FAILED" << std::endl;
+        std::cout << "QP SOLVE FAILED" << std::endl;
         PrintMinProb();
 
         int size_H_ = _H.cols();

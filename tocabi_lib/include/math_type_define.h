@@ -1557,5 +1557,20 @@ namespace DyrosMath
 
     return skew;
   }
+  static int sign(double value)
+  {
+    if(value > 0.0)
+    {
+      return 1;
+    }
+    else if(value < 0.0)
+    {
+      return -1;
+    }
+    else
+    {
+      return 0;
+    }
+  }
 } // namespace DyrosMath
 #endif
