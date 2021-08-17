@@ -302,8 +302,18 @@ double q_zero_point[ELMO_DOF];
 double q_zero_elmo_[ELMO_DOF];
 double q_zero_mod_elmo_[ELMO_DOF];
 
-OSAL_THREAD_FUNC_RT ethercatThread1(void *data);
-OSAL_THREAD_FUNC ethercatThread2(void *data);
+int64 toff, gl_delta;
+unsigned long long cur_dc32 = 0;
+unsigned long long pre_dc32 = 0;
+long long diff_dc32 = 0;
+long long cur_DCtime = 0, max_DCtime = 0;
+
+struct timespec ts_global;
+int PRNS = 1;
+
+
+void * ethercatThread1(void *data);
+void * ethercatThread2(void *data);
 void ethercatCheck();
 
 double elmoJointMove(double init, double angle, double start_time, double traj_time);

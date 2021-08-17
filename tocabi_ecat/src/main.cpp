@@ -78,6 +78,8 @@ int main(int argc, char *argv[])
     if (!init_result)
     {
         printf("[ECAT - ERRO] init failed\n");
+        cleanupTocabiSystem();
+        return 0;
     }
 
     printf("[ECAT - INFO] init process has been done\n");

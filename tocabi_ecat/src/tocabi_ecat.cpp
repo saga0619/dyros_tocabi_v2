@@ -227,13 +227,6 @@ bool initTocabiSystem()
     int wait_cnt = 200;
 
     //ecdc
-
-    int64 toff, gl_delta;
-    unsigned long long cur_dc32 = 0;
-    unsigned long long pre_dc32 = 0;
-    long long diff_dc32 = 0;
-    long long cur_DCtime = 0, max_DCtime = 0;
-
     /* wait for all slaves to reach OP state */
     do
     {
@@ -259,7 +252,7 @@ bool initTocabiSystem()
     }
 
     inOP = TRUE;
-    const int PRNS = period_ns;
+    PRNS = period_ns;
 
     //ecdc
 
@@ -283,6 +276,7 @@ bool initTocabiSystem()
         ts.tv_sec++;
         ts.tv_nsec -= SEC_IN_NSEC;
     }
+    ts_global = ts;
 
     std::cout << "dc_remain_time : " << dc_remain_time << '\n';
 
@@ -309,8 +303,11 @@ void cleanupTocabiSystem()
     deleteSharedMemory(shm_id_, shm_msgs_);
 }
 
-OSAL_THREAD_FUNC_RT ethercatThread1(void *data)
+void * ethercatThread1(void *data)
 {
+    struct timespec ts;
+    ts = ts_global;
+
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
 
@@ -1165,7 +1162,7 @@ OSAL_THREAD_FUNC_RT ethercatThread1(void *data)
     std::cout << "ELMO : EthercatThread1 Shutdown" << cycle_count << '\n';
 }
 
-OSAL_THREAD_FUNC ethercatThread2(void *data)
+void * ethercatThread2(void *data)
 {
     while (!de_shutdown)
     {
