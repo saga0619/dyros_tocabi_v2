@@ -311,6 +311,9 @@ double elmoJointMove(double init, double angle, double start_time, double traj_t
 bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord);
 void checkFault(const uint16_t statusWord, int slave);
 
+bool initTocabiSystem();
+void cleanupTocabiSystem();
+
 void elmoInit();
 
 void checkJointSafety();

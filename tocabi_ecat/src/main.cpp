@@ -48,116 +48,136 @@ int main(int argc, char *argv[])
     {
         std::cout << "usage : tocabi_ecat {port} {period_us} {ecat num} {starting num} {Core}" << std::endl;
 
-        goto out;
+        return 0;
     }
-    else
+    
+    soem_port = argv[1];
+    int period_us = atoi(argv[2]);
+    expected_counter = atoi(argv[3]);
+    start_joint_ = atoi(argv[4]);
+    lock_core_ = atoi(argv[5]);
+    period_ns = period_us * 1000;
+
+    std::cout << " ecat port : " << soem_port << std::endl;
+    std::cout << " period_ns  : " << period_ns << std::endl;
+    std::cout << " elmo num  : " << expected_counter << std::endl;
+    std::cout << " start from : " << start_joint_ << ", : " << ELMO_NAME[start_joint_] << std::endl;
+    std::cout << " locked at core " << lock_core_ << std::endl;
+    std::cout << " ----------------------------- " << std::endl;
+    std::cout << " command :  q(quit), l(lower init), u(upper init), d(debug), p(position), h(homming), c(force control), o(lock), f(torque off), w(status log)" << std::endl;
+
+    val_received = true;
+
+    struct sched_param param;
+    pthread_attr_t attr, attr2;
+    pthread_t thread1, thread2;
+    //set_latency_target();
+    
+    printf("[ECAT - INFO] start init process\n");
+    bool init_result = initTocabiSystem();
+    if (!init_result)
     {
-        soem_port = argv[1];
-        int period_us = atoi(argv[2]);
-        expected_counter = atoi(argv[3]);
-        start_joint_ = atoi(argv[4]);
-        lock_core_ = atoi(argv[5]);
-        period_ns = period_us * 1000;
-
-        std::cout << " ecat port : " << soem_port << std::endl;
-        std::cout << " period_ns  : " << period_ns << std::endl;
-        std::cout << " elmo num  : " << expected_counter << std::endl;
-        std::cout << " start from : " << start_joint_ << ", : " << ELMO_NAME[start_joint_] << std::endl;
-        std::cout << " locked at core " << lock_core_ << std::endl;
-        std::cout << " ----------------------------- " << std::endl;
-        std::cout << " command :  q(quit), l(lower init), u(upper init), d(debug), p(position), h(homming), c(force control), o(lock), f(torque off), w(status log)" << std::endl;
-
-        val_received = true;
-
-        struct sched_param param;
-        pthread_attr_t attr, attr2;
-        pthread_t thread1, thread2;
-        //set_latency_target();
-        const char *ifname = soem_port.c_str();
-        if (!ec_init(ifname))
-        {   return -1;
-        }
-        printf("ELMO : ec_init on %s succeeded.\n", ifname);
-
-        if (ec_config_init(FALSE) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
-        {
-            return -1;
-        }
-        
-        /* create RT thread */
-        osal_thread_create_rt(&thread1, stack64k * 2, (void*) &ethercatThread1, NULL);
-        osal_thread_create(&thread2, stack64k * 4, (void*) &ethercatThread2, NULL);
-
-        pthread_join(thread1, NULL);
-        pthread_join(thread2, NULL);
-
-        // /* Initialize pthread attributes (default values) */
-        // ret = pthread_attr_init(&attr);
-        // if (ret)
-        // {
-        //     printf("init pthread attributes failed\n");
-        //     goto out;
-        // }
-
-        // ret = pthread_attr_init(&attr2);
-
-        // /* Set scheduler policy and priority of pthread */
-        // ret = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-        // if (ret)
-        // {
-        //     printf("pthread setschedpolicy failed\n");
-        //     goto out;
-        // }
-        // param.sched_priority = 80;
-        // ret = pthread_attr_setschedparam(&attr, &param);
-        // if (ret)
-        // {
-        //     printf("pthread setschedparam failed\n");
-        //     goto out;
-        // }
-
-        // cpu_set_t cpuset;
-        // CPU_ZERO(&cpuset);
-        // CPU_SET(lock_core_, &cpuset);
-
-        // ret = pthread_attr_setaffinity_np(&attr, sizeof(cpuset), &cpuset);
-        // if (ret)
-        // {
-        //     printf("pthread setaffinity failed\n");
-        //     goto out;
-        // }
-
-        // /* Use scheduling parameters of attr */
-        // ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
-        // if (ret)
-        // {
-        //     printf("pthread setinheritsched failed\n");
-        //     goto out;
-        // }
-
-        // // /* Create a pthread with specified attributes */
-        // ret = pthread_create(&thread2, &attr2, ethercatThread2, NULL);
-
-        // ret = pthread_create(&thread1, &attr, ethercatThread1, NULL);
-
-        // if (ret)
-        // {
-        //     printf("create pthread failed\n");
-        //     goto out;
-        // }
-        // pthread_attr_destroy(&attr);
-        // // pthread_attr_destroy(&attr2);
-
-        // /* Join the thread and wait until it is done */
-        // ret = pthread_join(thread1, NULL);
-        // if (ret)
-        //     printf("join pthread failed: %m\n");
-
-        // ret = pthread_join(thread2, NULL);
-        // if (ret)
-        //     printf("join pthread failed: %m\n");
+        printf("[ECAT - ERRO] init failed\n");
     }
 
-out:
-    return ret;
+    printf("[ECAT - INFO] init process has been done\n");
+
+    /* create RT thread */
+    // osal_thread_create_rt(&thread1, stack64k * 2, (void*) &ethercatThread1, NULL);
+    // osal_thread_create(&thread2, stack64k * 4, (void*) &ethercatThread2, NULL);
+
+    // cpu_set_t cpuset;
+    // CPU_ZERO(&cpuset);
+    // CPU_SET(lock_core_, &cpuset);
+
+    // ret = pthread_attr_setaffinity_np(&attr, sizeof(cpuset), &cpuset);
+    // if (ret)
+    // {
+    //     printf("pthread setaffinity failed\n");
+    //     return ret;
+    // }
+
+    // pthread_join(thread1, NULL);
+    // pthread_join(thread2, NULL);
+
+
+    printf("[ECAT - INFO] start main threads\n");
+    /* Initialize pthread attributes (default values) */
+    ret = pthread_attr_init(&attr);
+    if (ret)
+    {
+        printf("init pthread attributes failed\n");
+        return ret;
+    }
+
+    ret = pthread_attr_init(&attr2);
+    if (ret)
+    {
+        printf("init pthread attributes failed\n");
+        return ret;
+    }
+
+    /* Set scheduler policy and priority of pthread */
+    ret = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+    if (ret)
+    {
+        printf("pthread setschedpolicy failed\n");
+        return ret;
+    }
+    param.sched_priority = 80;
+    ret = pthread_attr_setschedparam(&attr, &param);
+    if (ret)
+    {
+        printf("pthread setschedparam failed\n");
+        return ret;
+    }
+
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(lock_core_, &cpuset);
+
+    ret = pthread_attr_setaffinity_np(&attr, sizeof(cpuset), &cpuset);
+    if (ret)
+    {
+        printf("pthread setaffinity failed\n");
+        return ret;
+    }
+
+    /* Use scheduling parameters of attr */
+    ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+    if (ret)
+    {
+        printf("pthread setinheritsched failed\n");
+        return ret;
+    }
+
+    // /* Create a pthread with specified attributes */
+    ret = pthread_create(&thread1, &attr, ethercatThread1, NULL);
+    if (ret)
+    {
+        printf("create pthread 1 failed\n");
+        return ret;
+    }
+    ret = pthread_create(&thread2, &attr2, ethercatThread2, NULL);
+    if (ret)
+    {
+        printf("create pthread 2 failed\n");
+        return ret;
+    }
+
+    pthread_attr_destroy(&attr);
+    pthread_attr_destroy(&attr2);
+
+    /* Join the thread and wait until it is done */
+    ret = pthread_join(thread1, NULL);
+    if (ret)
+        printf("join pthread failed: %m\n");
+
+    ret = pthread_join(thread2, NULL);
+    if (ret)
+        printf("join pthread failed: %m\n");
+
+    printf("[ECAT - INFO] cleaning up\n");
+    cleanupTocabiSystem();
+    return 0;
 }
