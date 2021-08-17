@@ -124,9 +124,8 @@ void ec_sync(int64 reftime, int64 cycletime, int64 &offsettime)
         integral--;
     }
     offsettime = -(delta / 100) - (integral / 20);
-}
-
-void *ethercatThread1(void *data)
+} 
+OSAL_THREAD_FUNC_RT ethercatThread1(void *data)
 {
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};

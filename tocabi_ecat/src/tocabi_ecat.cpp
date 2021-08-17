@@ -126,26 +126,27 @@ void ec_sync(int64 reftime, int64 cycletime, int64 &offsettime)
     offsettime = -(delta / 100) - (integral / 20);
 }
 
-void *ethercatThread1(void *data)
+OSAL_THREAD_FUNC_RT ethercatThread1(void *data)
 {
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
 
     const char *ifname = soem_port.c_str();
-
-    if (ec_init(ifname))
+    if(1)
+    // if (ec_init(ifname))
     {
         printf("ELMO : ec_init on %s succeeded.\n", ifname);
-        elmoInit();
         //initSharedMemory();
 
-        init_shm(shm_msg_key, shm_id_, &shm_msgs_);
 
         /* find and auto-config slaves */
         /* network discovery */
         //ec_config_init()
-        if (ec_config_init(FALSE) > 0) // TRUE when using configtable to init slaves, FALSE otherwise
+        // if (ec_config_init(FALSE) > 0) // TRUE when using configtable to init slavtes, FALSE oherwise
+        if(1)
         {
+            elmoInit();
+            init_shm(shm_msg_key, shm_id_, &shm_msgs_);
             printf("ELMO : %d slaves found and configured.\n", ec_slavecount); // ec_slavecount -> slave num
             if (ec_slavecount == expected_counter)
             {
@@ -153,7 +154,7 @@ void *ethercatThread1(void *data)
             }
             else
             {
-                std::cout << cred << "WARNING : SLAVE NUMBER INSUFFICIENT" << creset << std::endl;
+                std::cout << cred << "WARNING : SLAVE NUMBER INSUFFICIENT" << creset << '\n';
                 de_shutdown = true;
             }
             /** CompleteAccess disabled for Elmo driver */
@@ -210,7 +211,7 @@ void *ethercatThread1(void *data)
 
             if (expectedWKC != 3 * expected_counter)
             {
-                std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << creset << std::endl;
+                std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << creset << '\n';
                 ecat_WKC_ok = true;
             }
 
@@ -270,7 +271,7 @@ void *ethercatThread1(void *data)
                     ts.tv_nsec -= SEC_IN_NSEC;
                 }
 
-                std::cout << "dc_remain_time : " << dc_remain_time << std::endl;
+                std::cout << "dc_remain_time : " << dc_remain_time << '\n';
 
                 clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
@@ -386,7 +387,7 @@ void *ethercatThread1(void *data)
                             {
                                 std::cout << " " << elmost[i].state;
                             }
-                            std::cout << std::endl;
+                            std::cout << '\n';
                         }
                         if (query_check_state)
                         {
@@ -412,7 +413,7 @@ void *ethercatThread1(void *data)
                             {
                                 std::cout << " " << elmost[i].state;
                             }
-                            std::cout << std::endl;
+                            std::cout << '\n';
                             query_check_state = false;
                         }
                     }
@@ -1009,20 +1010,20 @@ void *ethercatThread1(void *data)
                     {
                         low_rcv_ovf++;
                         printf("[ERR:Recv overflow -  LOW] [t:%.4lf] cc: %4d\tlow: %4.2f mid: %4.2f send: %4.2f\n", control_time_real_, cycle_count, low_us, mid_us, snd_us);
-                        // std::cout << control_time_real_ << " cc: " << cycle_count << " rcv ovf" << low_us << " " << mid_us << "" << snd_us << "" << std::endl;
+                        // std::cout << control_time_real_ << " cc: " << cycle_count << " rcv ovf" << low_us << " " << mid_us << "" << snd_us << "" << '\n';
                         //enable_kill = true;
                     }
                     if (mid_us > 250000)
                     {
                         low_mid_ovf++;
                         printf("[ERR:Recv overflow -  MID] [t:%.4lf] cc: %4d\tlow: %4.2f mid: %4.2f send: %4.2f\n", control_time_real_, cycle_count, low_us, mid_us, snd_us);
-                        // std::cout << control_time_real_ << "mid ovf" << low_us << " " << mid_us << "" << snd_us << "" << std::endl;
+                        // std::cout << control_time_real_ << "mid ovf" << low_us << " " << mid_us << "" << snd_us << "" << '\n';
                     }
                     if (snd_us > 250000)
                     {
                         low_snd_ovf++;
                         printf("[ERR:Recv overflow - SEND] [t:%.4lf] cc: %4d\tlow: %4.2f mid: %4.2f send: %4.2f\n", control_time_real_, cycle_count, low_us, mid_us, snd_us);
-                        // std::cout << control_time_real_ << "snd ovf" << low_us << " " << mid_us << "" << snd_us << "" << std::endl;
+                        // std::cout << control_time_real_ << "snd ovf" << low_us << " " << mid_us << "" << snd_us << "" << '\n';
                     }
 
                     if (enable_kill)
@@ -1030,7 +1031,7 @@ void *ethercatThread1(void *data)
                         static int que = 10;
 
                         que--;
-                        std::cout << "kill!" << std::endl;
+                        std::cout << "kill!" << '\n';
                         if (que == 0)
                             break;
                     }
@@ -1160,10 +1161,10 @@ void *ethercatThread1(void *data)
     }
 
     deleteSharedMemory(shm_id_, shm_msgs_);
-    std::cout << "ELMO : EthercatThread1 Shutdown" << cycle_count << std::endl;
+    std::cout << "ELMO : EthercatThread1 Shutdown" << cycle_count << '\n';
 }
 
-void *ethercatThread2(void *data)
+OSAL_THREAD_FUNC ethercatThread2(void *data)
 {
     while (!de_shutdown)
     {
@@ -1173,26 +1174,26 @@ void *ethercatThread2(void *data)
         int ch = kbhit();
         if (ch != -1)
         {
-            //std::cout << "key input : " << (char)(ch % 256) << std::endl;
+            //std::cout << "key input : " << (char)(ch % 256) << '\n';
             if ((ch % 256 == 'q'))
             {
-                std::cout << "ELMO : shutdown request" << std::endl;
+                std::cout << "ELMO : shutdown request" << '\n';
                 de_shutdown = true;
             }
             else if ((ch % 256 == 'l'))
             {
-                std::cout << "ELMO : start searching zero point lower" << std::endl;
+                std::cout << "ELMO : start searching zero point lower" << '\n';
                 de_zp_lower_switch = true;
             }
             else if ((ch % 256 == 'u'))
             {
-                std::cout << "ELMO : start searching zero point upper" << std::endl;
+                std::cout << "ELMO : start searching zero point upper" << '\n';
                 de_zp_upper_switch = true;
             }
             else if ((ch % 256 == 's'))
             {
-                std::cout << "------------------------------------------------------" << std::endl;
-                std::cout << control_time_real_ << std::endl;
+                std::cout << "------------------------------------------------------" << '\n';
+                std::cout << control_time_real_ << '\n';
                 for (int i = 0; i < ec_slavecount; i++)
                 { //std::cout << i << ELMO_NAME[i] <<
                     printf("%4d   %20s  %16d\n", i, ELMO_NAME[start_joint_ + i].c_str(), std::bitset<16>(rxPDO[i]->statusWord));
@@ -1204,12 +1205,12 @@ void *ethercatThread2(void *data)
                 if (de_debug_level > 2)
                     de_debug_level = 0;
 
-                std::cout << "ELMO : debug mode, level : " << (int)de_debug_level << std::endl;
+                std::cout << "ELMO : debug mode, level : " << (int)de_debug_level << '\n';
             }
             else if ((ch % 256 == 'p'))
             {
-                std::cout << "------------------------------------------------------" << std::endl;
-                std::cout << control_time_real_ << std::endl;
+                std::cout << "------------------------------------------------------" << '\n';
+                std::cout << control_time_real_ << '\n';
                 for (int i = 0; i < ec_slavecount; i++)
                 { //std::cout << i << ELMO_NAME[i] <<
                     printf("%4d   %20s  %12f  ext : %12f\n", i, ELMO_NAME[start_joint_ + i].c_str(), (double)q_elmo_[i], (double)q_ext_elmo_[i]);
@@ -1217,7 +1218,7 @@ void *ethercatThread2(void *data)
             }
             else if ((ch % 256 == 't'))
             {
-                std::cout << "-torque actual " << std::endl;
+                std::cout << "-torque actual " << '\n';
                 for (int i = 0; i < ec_slavecount; i++)
                 { //std::cout << i << ELMO_NAME[i] <<
                     printf("%4d   %20s  %12f \n", i, ELMO_NAME[start_joint_ + i].c_str(), (double)torque_elmo_[i]);
@@ -1225,19 +1226,19 @@ void *ethercatThread2(void *data)
             }
             else if ((ch % 256 == 'h'))
             {
-                std::cout << "------------------------------------------------------" << std::endl;
-                std::cout << control_time_real_ << std::endl;
+                std::cout << "------------------------------------------------------" << '\n';
+                std::cout << control_time_real_ << '\n';
                 for (int i = 0; i < ec_slavecount; i++)
-                    std::cout << i << ELMO_NAME[start_joint_ + i] << "\t" << (uint32_t)ec_slave[i + 1].inputs[4] << " " << (uint32_t)ec_slave[i + 1].inputs[5] << " " << (uint32_t)ec_slave[i + 1].inputs[6] << " " << (uint32_t)ec_slave[i + 1].inputs[7] << " " << std::endl;
+                    std::cout << i << ELMO_NAME[start_joint_ + i] << "\t" << (uint32_t)ec_slave[i + 1].inputs[4] << " " << (uint32_t)ec_slave[i + 1].inputs[5] << " " << (uint32_t)ec_slave[i + 1].inputs[6] << " " << (uint32_t)ec_slave[i + 1].inputs[7] << " " << '\n';
             }
             else if ((ch % 256 == 'c'))
             {
-                std::cout << "Force Control Mode" << std::endl;
+                std::cout << "Force Control Mode" << '\n';
                 force_control_mode = true;
             }
             else if ((ch % 256 == 'o'))
             {
-                std::cout << "lock current position" << std::endl;
+                std::cout << "lock current position" << '\n';
                 for (int i = 0; i < ec_slavecount; i++)
                 {
                     shm_msgs_->positionCommand[i] = q_elmo_[i];
@@ -1247,7 +1248,7 @@ void *ethercatThread2(void *data)
             }
             else if ((ch % 256 == 'f'))
             {
-                std::cout << "torque off" << std::endl;
+                std::cout << "torque off" << '\n';
                 for (int i = 0; i < ec_slavecount; i++)
                 {
                     //q_desired_elmo_[i] = q_elmo_[i];
@@ -1261,17 +1262,17 @@ void *ethercatThread2(void *data)
 
                 if (status_log)
                 {
-                    std::cout << "log status start" << std::endl;
+                    std::cout << "log status start" << '\n';
                 }
                 else
                 {
-                    std::cout << "log status end" << std::endl;
+                    std::cout << "log status end" << '\n';
                 }
             }
         }
     }
 
-    std::cout << "ELMO : EthercatThread2 Shutdown" << std::endl;
+    std::cout << "ELMO : EthercatThread2 Shutdown" << '\n';
 }
 
 double elmoJointMove(double init, double angle, double start_time, double traj_time)
@@ -1374,38 +1375,38 @@ void checkJointStatus()
 
 //     if ((shm_id_ = shmget(shm_msg_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
 //     {
-//         std::cout << "shm mtx failed " << std::endl;
+//         std::cout << "shm mtx failed " << '\n';
 //         exit(0);
 //     }
 
 //     if ((shm_msgs_ = (SHMmsgs *)shmat(shm_id_, NULL, 0)) == (SHMmsgs *)-1)
 //     {
-//         std::cout << "shmat failed " << std::endl;
+//         std::cout << "shmat failed " << '\n';
 //         exit(0);
 //     }
 //     /*
 //     if (pthread_mutexattr_init(&shm_msgs_->mutexAttr) == 0)
 //     {
-//         std::cout << "shared mutex attr init" << std::endl;
+//         std::cout << "shared mutex attr init" << '\n';
 //     }
 
 //     if (pthread_mutexattr_setpshared(&shm_msgs_->mutexAttr, PTHREAD_PROCESS_SHARED) == 0)
 //     {
-//         std::cout << "shared mutexattr set" << std::endl;
+//         std::cout << "shared mutexattr set" << '\n';
 //     }
 
 //     if (pthread_mutex_init(&shm_msgs_->mutex, &shm_msgs_->mutexAttr) == 0)
 //     {
-//         std::cout << "shared mutex init" << std::endl;
+//         std::cout << "shared mutex init" << '\n';
 //     }*/
 
 //     if (shmctl(shm_id_, SHM_LOCK, NULL) == 0)
 //     {
-//         //std::cout << "SHM_LOCK enabled" << std::endl;
+//         //std::cout << "SHM_LOCK enabled" << '\n';
 //     }
 //     else
 //     {
-//         std::cout << "SHM lock failed" << std::endl;
+//         std::cout << "SHM lock failed" << '\n';
 //     }
 
 //     shm_msgs_->t_cnt = 0;
@@ -1485,7 +1486,7 @@ bool loadCommutationLog()
 
     std::chrono::duration<double> commutation_before = std::chrono::system_clock::now() - cache_valid_time;
     //std::cout << std::ctime(&file_time);
-    std::cout << "Commutation done " << commutation_before.count() << "seconds before .... " << std::endl;
+    std::cout << "Commutation done " << commutation_before.count() << "seconds before .... " << '\n';
 
     return true;
 }
@@ -1515,7 +1516,7 @@ bool loadZeroPoint()
 
     if (!ifs.is_open())
     {
-        std::cout << "open failed " << std::endl;
+        std::cout << "open failed " << '\n';
         return false;
     }
 
@@ -1537,12 +1538,12 @@ bool loadZeroPoint()
 
     if (commutation_save_time_ > cache_valid_time)
     {
-        std::cout << "commutation saved time is longer then cached valid time" << std::endl;
+        std::cout << "commutation saved time is longer then cached valid time" << '\n';
         return false;
     }
 
     //std::cout << "ZP saved at " << std::ctime(&file_time);
-    //std::cout << "ZP saved at " << commutation_before.count() << "seconds before .... " << std::endl;
+    //std::cout << "ZP saved at " << commutation_before.count() << "seconds before .... " << '\n';
     //for (int i = 0; i < ELMO_DOF; i++)
     //   cout << getzp[i] << endl;
 
@@ -1627,8 +1628,8 @@ void findzeroLeg()
         //pub_to_gui(dc, "jointzp %d %d", i + R_HipYaw_Joint, 1);
         q_zero_elmo_[i + L_HipYaw_Joint] = q_elmo_[i + L_HipYaw_Joint] - q_ext_elmo_[i + L_HipYaw_Joint];
         //pub_to_gui(dc, "jointzp %d %d", i + TOCABI::L_HipYaw_Joint, 1);
-        //std::cout << ELMO_NAME[i + R_HipRoll_Joint] << " pz IE P : " << q_elmo_[i + R_HipRoll_Joint] << " pz EE P : " << q_ext_elmo_[i + R_HipRoll_Joint] << std::endl;
-        //std::cout << ELMO_NAME[i + L_HipRoll_Joint] << " pz ELMO : " << q_elmo_[i + L_HipRoll_Joint] << " pz ELMO : " << q_ext_elmo_[i + L_HipRoll_Joint] << std::endl;
+        //std::cout << ELMO_NAME[i + R_HipRoll_Joint] << " pz IE P : " << q_elmo_[i + R_HipRoll_Joint] << " pz EE P : " << q_ext_elmo_[i + R_HipRoll_Joint] << '\n';
+        //std::cout << ELMO_NAME[i + L_HipRoll_Joint] << " pz ELMO : " << q_elmo_[i + L_HipRoll_Joint] << " pz ELMO : " << q_ext_elmo_[i + L_HipRoll_Joint] << '\n';
     }
 }
 void findZeroPointlow(int slv_number)
@@ -1654,7 +1655,7 @@ void findZeroPointlow(int slv_number)
         if ((q_ext_elmo_[slv_number] > 3.14) || (q_ext_elmo_[slv_number < -3.14]))
         {
 
-            std::cout << cred << "elmo reboot required. joint " << slv_number << "external encoder error" << q_ext_elmo_[slv_number] << std::endl;
+            std::cout << cred << "elmo reboot required. joint " << slv_number << "external encoder error" << q_ext_elmo_[slv_number] << '\n';
         }
     }
 
@@ -1666,7 +1667,7 @@ void findZeroPointlow(int slv_number)
 
         if (control_time_real_ == elmofz[slv_number].initTime)
         {
-            //std::cout << "joint " << slv_number << "  init pos : " << elmofz[slv_number].initPos << "   goto " << elmofz[slv_number].initPos + elmofz[slv_number].init_direction * 0.6 << std::endl;
+            //std::cout << "joint " << slv_number << "  init pos : " << elmofz[slv_number].initPos << "   goto " << elmofz[slv_number].initPos + elmofz[slv_number].init_direction * 0.6 << '\n';
         }
         static int sucnum = 0;
 
@@ -1677,7 +1678,7 @@ void findZeroPointlow(int slv_number)
                 elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
                 elmofz[slv_number].result = ElmoHommingStatus::SUCCESS;
                 sucnum++;
-                std::cout << slv_number << "success : " << sucnum << std::endl;
+                std::cout << slv_number << "success : " << sucnum << '\n';
             }
             else
             {
@@ -1703,7 +1704,7 @@ void findZeroPoint(int slv_number)
         //pub_to_gui(dc, "jointzp %d %d", slv_number, 0);
         if (hommingElmo[slv_number])
         {
-            //std::cout << "motor " << slv_number << " init state : homming on" << std::endl;
+            //std::cout << "motor " << slv_number << " init state : homming on" << '\n';
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGSTART;
             elmofz[slv_number].initTime = control_time_real_;
             elmofz[slv_number].initPos = q_elmo_[slv_number];
@@ -1711,7 +1712,7 @@ void findZeroPoint(int slv_number)
         }
         else
         {
-            //std::cout << "motor " << slv_number << " init state : homming off" << std::endl;
+            //std::cout << "motor " << slv_number << " init state : homming off" << '\n';
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMING;
             elmofz[slv_number].initTime = control_time_real_;
             elmofz[slv_number].initPos = q_elmo_[slv_number];
@@ -1726,7 +1727,7 @@ void findZeroPoint(int slv_number)
 
         if ((hommingElmo[slv_number] == 0) && (hommingElmo_before[slv_number] == 0))
         {
-            //std::cout << "motor " << slv_number << " seq 1 complete, wait 1 sec" << std::endl;
+            //std::cout << "motor " << slv_number << " seq 1 complete, wait 1 sec" << '\n';
             hommingElmo_before[slv_number] = hommingElmo[slv_number];
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
             elmofz[slv_number].initTime = control_time_real_;
@@ -1736,7 +1737,7 @@ void findZeroPoint(int slv_number)
 
         if (control_time_real_ > elmofz[slv_number].initTime + fztime)
         {
-            std::cout << cred << "warning, " << ELMO_NAME[slv_number] << " : homming sensor not turning off" << creset << std::endl;
+            std::cout << cred << "warning, " << ELMO_NAME[slv_number] << " : homming sensor not turning off" << creset << '\n';
         }
     }
     else if (elmofz[slv_number].findZeroSequence == FZ_FINDHOMMINGEND)
@@ -1820,7 +1821,7 @@ void findZeroPoint(int slv_number)
         //go to zero position
         if (control_time_real_ > (elmofz[slv_number].initTime + go_to_zero_dur))
         {
-            //std::cout << "go to zero complete !" << std::endl;
+            //std::cout << "go to zero complete !" << '\n';
             //printf("Motor %d %s : Zero Point Found : %8.6f, homming length : %8.6f ! ", slv_number, ELMO_NAME[slv_number].c_str(), q_zero_elmo_[slv_number], abs(elmofz[slv_number].posStart - elmofz[slv_number].posEnd));
             //fflush(stdout);
 
@@ -1833,7 +1834,7 @@ void findZeroPoint(int slv_number)
             //pub_to_gui(dc, "jointzp %d %d", slv_number, 1);
             elmofz[slv_number].result = ElmoHommingStatus::SUCCESS;
             //joint_state_elmo_[slv_number] = ESTATE::ZP_SUCCESS;
-            //std::cout << slv_number << "Start : " << elmofz[slv_number].posStart << "End:" << elmofz[slv_number].posEnd << std::endl;
+            //std::cout << slv_number << "Start : " << elmofz[slv_number].posStart << "End:" << elmofz[slv_number].posEnd << '\n';
             //q_desired_elmo_[slv_number] = positionZeroElmo(slv_number);
             elmofz[slv_number].findZeroSequence = 8; // torque to zero -> 8 position hold -> 5
             ElmoMode[slv_number] = EM_TORQUE;

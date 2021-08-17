@@ -35,6 +35,7 @@ static void set_latency_target(void)
     printf("# /dev/cpu_dma_latency set to %dus\n", latency_target_value);
 }
 
+#define stack64k (64 * 1024)
 int main(int argc, char *argv[])
 {
     ios::sync_with_stdio(false);
@@ -72,72 +73,89 @@ int main(int argc, char *argv[])
         pthread_attr_t attr, attr2;
         pthread_t thread1, thread2;
         //set_latency_target();
-
-        /* Initialize pthread attributes (default values) */
-        ret = pthread_attr_init(&attr);
-        if (ret)
-        {
-            printf("init pthread attributes failed\n");
-            goto out;
+        const char *ifname = soem_port.c_str();
+        if (!ec_init(ifname))
+        {   return -1;
         }
+        printf("ELMO : ec_init on %s succeeded.\n", ifname);
 
-        ret = pthread_attr_init(&attr2);
-
-        /* Set scheduler policy and priority of pthread */
-        ret = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-        if (ret)
+        if (ec_config_init(FALSE) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
         {
-            printf("pthread setschedpolicy failed\n");
-            goto out;
+            return -1;
         }
-        param.sched_priority = 80;
-        ret = pthread_attr_setschedparam(&attr, &param);
-        if (ret)
-        {
-            printf("pthread setschedparam failed\n");
-            goto out;
-        }
+        
+        /* create RT thread */
+        osal_thread_create_rt(&thread1, stack64k * 2, (void*) &ethercatThread1, NULL);
+        osal_thread_create(&thread2, stack64k * 4, (void*) &ethercatThread2, NULL);
 
-        cpu_set_t cpuset;
-        CPU_ZERO(&cpuset);
-        CPU_SET(lock_core_, &cpuset);
+        pthread_join(thread1, NULL);
+        pthread_join(thread2, NULL);
 
-        ret = pthread_attr_setaffinity_np(&attr, sizeof(cpuset), &cpuset);
-        if (ret)
-        {
-            printf("pthread setaffinity failed\n");
-            goto out;
-        }
+        // /* Initialize pthread attributes (default values) */
+        // ret = pthread_attr_init(&attr);
+        // if (ret)
+        // {
+        //     printf("init pthread attributes failed\n");
+        //     goto out;
+        // }
 
-        /* Use scheduling parameters of attr */
-        ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
-        if (ret)
-        {
-            printf("pthread setinheritsched failed\n");
-            goto out;
-        }
+        // ret = pthread_attr_init(&attr2);
 
-        /* Create a pthread with specified attributes */
-        ret = pthread_create(&thread2, &attr2, ethercatThread2, NULL);
+        // /* Set scheduler policy and priority of pthread */
+        // ret = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+        // if (ret)
+        // {
+        //     printf("pthread setschedpolicy failed\n");
+        //     goto out;
+        // }
+        // param.sched_priority = 80;
+        // ret = pthread_attr_setschedparam(&attr, &param);
+        // if (ret)
+        // {
+        //     printf("pthread setschedparam failed\n");
+        //     goto out;
+        // }
 
-        ret = pthread_create(&thread1, &attr, ethercatThread1, NULL);
+        // cpu_set_t cpuset;
+        // CPU_ZERO(&cpuset);
+        // CPU_SET(lock_core_, &cpuset);
 
-        if (ret)
-        {
-            printf("create pthread failed\n");
-            goto out;
-        }
-        pthread_attr_destroy(&attr);
-        pthread_attr_destroy(&attr2);
+        // ret = pthread_attr_setaffinity_np(&attr, sizeof(cpuset), &cpuset);
+        // if (ret)
+        // {
+        //     printf("pthread setaffinity failed\n");
+        //     goto out;
+        // }
 
-        /* Join the thread and wait until it is done */
-        ret = pthread_join(thread1, NULL);
-        if (ret)
-            printf("join pthread failed: %m\n");
+        // /* Use scheduling parameters of attr */
+        // ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+        // if (ret)
+        // {
+        //     printf("pthread setinheritsched failed\n");
+        //     goto out;
+        // }
 
-        ret = pthread_join(thread2, NULL);
-        if (ret)
-            printf("join pthread failed: %m\n");
+        // // /* Create a pthread with specified attributes */
+        // ret = pthread_create(&thread2, &attr2, ethercatThread2, NULL);
+
+        // ret = pthread_create(&thread1, &attr, ethercatThread1, NULL);
+
+        // if (ret)
+        // {
+        //     printf("create pthread failed\n");
+        //     goto out;
+        // }
+        // pthread_attr_destroy(&attr);
+        // // pthread_attr_destroy(&attr2);
+
+        // /* Join the thread and wait until it is done */
+        // ret = pthread_join(thread1, NULL);
+        // if (ret)
+        //     printf("join pthread failed: %m\n");
+
+        // ret = pthread_join(thread2, NULL);
+        // if (ret)
+        //     printf("join pthread failed: %m\n");
     }
 
 out:

@@ -302,8 +302,8 @@ double q_zero_point[ELMO_DOF];
 double q_zero_elmo_[ELMO_DOF];
 double q_zero_mod_elmo_[ELMO_DOF];
 
-void *ethercatThread1(void *data);
-void *ethercatThread2(void *data);
+OSAL_THREAD_FUNC_RT ethercatThread1(void *data);
+OSAL_THREAD_FUNC ethercatThread2(void *data);
 void ethercatCheck();
 
 double elmoJointMove(double init, double angle, double start_time, double traj_time);
