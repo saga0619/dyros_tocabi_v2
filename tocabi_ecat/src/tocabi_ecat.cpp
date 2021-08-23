@@ -126,18 +126,22 @@ void ec_sync(int64 reftime, int64 cycletime, int64 &offsettime)
     offsettime = -(delta / 100) - (integral / 20);
 }
 
-bool initTocabiSystem()
+bool initTocabiSystem(const TocabiInitArgs & args)
 {    
     init_shm(shm_msg_key, shm_id_, &shm_msgs_);
 
-    const char *ifname = soem_port.c_str();
+    const char *ifname1 = args.port1.c_str();
+    char ifname2[100];
+    strcpy(ifname2, args.port2.c_str());
+    // char *ifname2 = args.port2.c_str();
 
-    if (!ec_init(ifname))
+    if (!ec_init_redundant(ifname1, ifname2))
+    // if (!ec_init(ifname))
     {
-        printf("ELMO : No socket connection on %s\nExcecute as root\n", ifname);
+        printf("ELMO : No socket connection on %s / %s \nExcecute as root\n", ifname1, ifname2);
         return false;
     }
-    printf("ELMO : ec_init on %s succeeded.\n", ifname);
+    printf("ELMO : ec_init on %s %s succeeded.\n", ifname1, ifname2);
 
     if (ec_config_init(FALSE) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
     {
@@ -147,8 +151,9 @@ bool initTocabiSystem()
 
     elmoInit();
 
-    printf("ELMO : %d slaves found and configured.\n", ec_slavecount); // ec_slavecount -> slave num
-    if (ec_slavecount == expected_counter)
+    printf("ELMO : %d / %d slaves found and configured.\n", ec_slavecount, args.expected_counter); // ec_slavecount -> slave num
+    
+    if (ec_slavecount == args.expected_counter)
     {
         ecat_number_ok = true;
     }
@@ -209,7 +214,7 @@ bool initTocabiSystem()
     expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
     printf("ELMO : Request operational state for all slaves. Calculated workcounter : %d\n", expectedWKC);
 
-    if (expectedWKC != 3 * expected_counter)
+    if (expectedWKC != 3 * args.expected_counter)
     {
         std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << creset << '\n';
         ecat_WKC_ok = true;
@@ -259,7 +264,8 @@ bool initTocabiSystem()
     }
 
     inOP = TRUE;
-    const int PRNS = period_ns;
+    const int PRNS = args.period_ns;
+    period_ns = args.period_ns;
 
     //ecdc
 

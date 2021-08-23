@@ -22,6 +22,16 @@
 
 using namespace std;
 
+struct TocabiInitArgs
+{
+    std::string port1;
+    std::string port2;
+
+    int period_ns;
+    int lock_core;
+    int start_joint;
+    int expected_counter;
+};
 namespace EtherCAT_Elmo
 {
     enum MODE_OF_OPERATION
@@ -311,7 +321,7 @@ double elmoJointMove(double init, double angle, double start_time, double traj_t
 bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord);
 void checkFault(const uint16_t statusWord, int slave);
 
-bool initTocabiSystem();
+bool initTocabiSystem(const TocabiInitArgs & args);
 void cleanupTocabiSystem();
 
 void elmoInit();
@@ -374,3 +384,4 @@ long long g_cur_DCtime = 0, g_max_DCtime = 0;
 int g_PRNS = period_ns;
 struct timespec g_ts;
 int64 g_toff;//, gl_delta;
+
