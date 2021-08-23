@@ -143,7 +143,7 @@ bool initTocabiSystem(const TocabiInitArgs & args)
     }
     printf("ELMO : ec_init on %s %s succeeded.\n", ifname1, ifname2);
 
-    if (ec_config_init(FALSE) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
+    if (ec_config(FALSE, &  IOmap) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
     {
         printf("%sELMO : No slaves found!%s\n", cred.c_str(), creset.c_str());
         return false;
@@ -202,14 +202,31 @@ bool initTocabiSystem(const TocabiInitArgs & args)
         ec_SDOwrite(slave, 0x6007, 0, FALSE, os, &map_6007, EC_TIMEOUTRXM);
     }
     /** if CA disable => automapping works */
-    ec_config_map(&IOmap);
+    // ec_config_map(&IOmap);
 
     //ecdc
     ec_configdc();
-
-    /* wait for all slaves to reach SAFE_OP state */
     printf("ELMO : EC WAITING STATE TO SAFE_OP\n");
     ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4);
+    ec_readstate();
+
+    void * digout;
+
+    for(int cnt = 1; cnt <= ec_slavecount ; cnt++)
+    {
+        printf("Slave:%d Name:%s Output size:%3dbits Input size:%3dbits State:%2d delay:%d.%d\n",
+                cnt, ec_slave[cnt].name, ec_slave[cnt].Obits, ec_slave[cnt].Ibits,
+                ec_slave[cnt].state, (int)ec_slave[cnt].pdelay, ec_slave[cnt].hasdc);
+        printf("         Out:%8.8x,%4d In:%8.8x,%4d\n",
+                (int*)ec_slave[cnt].outputs, ec_slave[cnt].Obytes, (int*)ec_slave[cnt].inputs, ec_slave[cnt].Ibytes);
+        /* check for EL2004 or EL2008 */
+        if( !digout && ((ec_slave[cnt].eep_id == 0x07d43052) || (ec_slave[cnt].eep_id == 0x07d83052)))
+        {
+            digout = ec_slave[cnt].outputs;
+        }
+    }
+
+    /* wait for all slaves to reach SAFE_OP state */
 
     expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
     printf("ELMO : Request operational state for all slaves. Calculated workcounter : %d\n", expectedWKC);

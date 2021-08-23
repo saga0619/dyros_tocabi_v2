@@ -53,15 +53,15 @@ int main(int argc, char *argv[])
     
     TocabiInitArgs init_args;
     init_args.port1 = argv[1];
-    init_args.port1 = argv[2];
+    init_args.port2 = argv[2];
     // soem_port = argv[1];
-    int period_us = atoi(argv[2]);
+    int period_us = atoi(argv[3]);
     init_args.period_ns = period_us * 1000;
-    expected_counter = atoi(argv[3]);
+    expected_counter = atoi(argv[4]);
     init_args.expected_counter = expected_counter;
-    start_joint_ = atoi(argv[4]);
+    start_joint_ = atoi(argv[5]);
     init_args.start_joint = start_joint_;
-    lock_core_ = atoi(argv[5]);
+    lock_core_ = atoi(argv[6]);
     init_args.lock_core = lock_core_;
     period_ns = period_us * 1000;
 
