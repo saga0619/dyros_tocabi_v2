@@ -143,7 +143,7 @@ bool initTocabiSystem(const TocabiInitArgs & args)
     }
     printf("ELMO : ec_init on %s %s succeeded.\n", ifname1, ifname2);
 
-    if (ec_config(FALSE, &  IOmap) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
+    if (ec_config_init(FALSE) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
     {
         printf("%sELMO : No slaves found!%s\n", cred.c_str(), creset.c_str());
         return false;
@@ -202,7 +202,8 @@ bool initTocabiSystem(const TocabiInitArgs & args)
         ec_SDOwrite(slave, 0x6007, 0, FALSE, os, &map_6007, EC_TIMEOUTRXM);
     }
     /** if CA disable => automapping works */
-    // ec_config_map(&IOmap);
+    ec_config_map(&IOmap);
+    // ec_config_overlap_map(IOmap);
 
     //ecdc
     ec_configdc();
