@@ -300,6 +300,13 @@ bool initTocabiSystem()
     cout << "ELMO : Initialization Mode" << endl;
 
     query_check_state = true;
+    g_toff = toff;
+    g_cur_dc32 = cur_dc32;
+    g_pre_dc32 = pre_dc32;
+    g_diff_dc32 = diff_dc32;
+    g_cur_DCtime = cur_DCtime;
+    g_PRNS = PRNS;
+    g_ts = ts;
     
     return true;
 }
@@ -309,8 +316,17 @@ void cleanupTocabiSystem()
     deleteSharedMemory(shm_id_, shm_msgs_);
 }
 
-OSAL_THREAD_FUNC_RT ethercatThread1(void *data)
+void * ethercatThread1(void *data)
 {
+    int64 toff = g_toff;
+    unsigned long long cur_dc32 = g_cur_dc32;
+    unsigned long long pre_dc32 = g_pre_dc32;
+    long long diff_dc32 = g_diff_dc32;
+    long long cur_DCtime = g_cur_dc32, max_DCtime = g_max_DCtime;
+    int PRNS = g_PRNS;
+    struct timespec ts = g_ts;
+
+
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
 
@@ -1165,7 +1181,7 @@ OSAL_THREAD_FUNC_RT ethercatThread1(void *data)
     std::cout << "ELMO : EthercatThread1 Shutdown" << cycle_count << '\n';
 }
 
-OSAL_THREAD_FUNC ethercatThread2(void *data)
+void * ethercatThread2(void *data)
 {
     while (!de_shutdown)
     {

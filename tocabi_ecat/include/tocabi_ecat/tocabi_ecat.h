@@ -302,8 +302,8 @@ double q_zero_point[ELMO_DOF];
 double q_zero_elmo_[ELMO_DOF];
 double q_zero_mod_elmo_[ELMO_DOF];
 
-OSAL_THREAD_FUNC_RT ethercatThread1(void *data);
-OSAL_THREAD_FUNC ethercatThread2(void *data);
+void * ethercatThread1(void *data);
+void * ethercatThread2(void *data);
 void ethercatCheck();
 
 double elmoJointMove(double init, double angle, double start_time, double traj_time);
@@ -365,3 +365,12 @@ int low_rcv_us, low_mid_us, low_snd_us;
 float low_rcv_avg, low_rcv_max;
 float low_mid_avg, low_mid_max;
 float low_snd_avg, low_snd_max;
+
+
+unsigned long long g_cur_dc32 = 0;
+unsigned long long g_pre_dc32 = 0;
+long long g_diff_dc32 = 0;
+long long g_cur_DCtime = 0, g_max_DCtime = 0;
+int g_PRNS = period_ns;
+struct timespec g_ts;
+int64 g_toff;//, gl_delta;
