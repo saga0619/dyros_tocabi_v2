@@ -19,8 +19,8 @@ typedef struct SHMmsgs
     int8_t ecat_status[MODEL_DOF];
     int8_t zp_status[MODEL_DOF];
 
-    long tv_sec;
-    long tv_nsec;
+    int64_t tv_sec;
+    int64_t tv_nsec;
     std::atomic<bool> lowerReady;
     std::atomic<bool> ecatTimerSet;
 
@@ -57,6 +57,7 @@ typedef struct SHMmsgs
 
     std::atomic<bool> commanding;
     std::atomic<int> commandCount;
+    std::atomic<int> stloopCount;
     int commandMode[MODEL_DOF]; //command mode 0 -> off 1 -> torque 2 -> position
     float torqueCommand[MODEL_DOF];
     float positionCommand[MODEL_DOF];
@@ -65,7 +66,9 @@ typedef struct SHMmsgs
 
     float timeCommand;
 
-    std::atomic<int> control_time_us_;
+    std::atomic<int64_t> control_time_us_;
+
+    
     std::atomic<int> t_cnt;
     std::atomic<int> t_cnt2;
     std::atomic<bool> controllerReady;
@@ -75,7 +78,12 @@ typedef struct SHMmsgs
     std::atomic<bool> emergencyOff;
     std::atomic<bool> controlModeLower;
     std::atomic<bool> controlModeUpper;
-    
+    std::atomic<bool> safety_disable;
+
+    int64_t std_timer_ns;
+
+    std::atomic<bool> upperTimerSet;
+    std::atomic<bool> lowerTimerSet;
 
     float lat_avg, lat_min, lat_max, lat_dev;
     float send_avg, send_min, send_max, send_dev;
@@ -83,12 +91,18 @@ typedef struct SHMmsgs
     float lat_avg2, lat_min2, lat_max2, lat_dev2;
     float send_avg2, send_min2, send_max2, send_dev2;
 
+    int low_rcv_ovf, low_mid_ovf, low_snd_ovf;
+    int low_rcv_us, low_mid_us, low_snd_us;
+    float low_rcv_avg, low_rcv_max;
+    float low_mid_avg, low_mid_max;
+    float low_snd_avg, low_snd_max;    
+
     bool low_init_signal = false;
     bool waist_init_signal = false;
     bool upper_init_signal = false;
 
-    bool safety_reset_lower_signal = false;
-    bool safety_reset_upper_signal = false;
+    std::atomic<bool> safety_reset_lower_signal;
+    std::atomic<bool> safety_reset_upper_signal;
     bool force_load_saved_signal = false;
 
 } SHMmsgs;
@@ -135,6 +149,7 @@ enum SSTATE
     SAFETY_JOINT_LIMIT,
     SAFETY_VELOCITY_LIMIT,
     SAFETY_TORQUE_LIMIT,
+    SAFETY_COMMAND_LOCK,
 };
 
 enum ZSTATE
@@ -170,7 +185,9 @@ static void init_shm(int shm_key, int &shm_id_, SHMmsgs **shm_ref)
 
     if ((*shm_ref)->process_num == 0)
     {
-        std::cout << "\033[0;32m" << "Process num 0 ! Clean Start!" << "\033[0m" << std::endl;
+        std::cout << "\033[0;32m"
+                  << "Process num 0 ! Clean Start!"
+                  << "\033[0m" << std::endl;
     }
 
     (*shm_ref)->process_num++;

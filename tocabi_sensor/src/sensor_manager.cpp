@@ -1,6 +1,15 @@
 #include "tocabi_sensor/sensor_manager.h"
 #include <thread>
 #include <chrono>
+#include <signal.h>
+
+std::atomic<bool> *prog_shutdown;
+
+void SIGINT_handler(int sig)
+{
+    std::cout << "shutdown Signal" << std::endl;
+    *prog_shutdown = true;
+}
 
 SensorManager::SensorManager()
 {
@@ -18,6 +27,14 @@ void SensorManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "ftcalib")
     {
         ft_calib_signal_ = true;
+    }
+    else if(msg->data == "E0")
+    {
+        shm_->emergencyOff = true;
+    }
+    else if(msg->data == "E1")
+    {
+        //pos 
     }
 }
 
@@ -138,11 +155,15 @@ void *SensorManager::SensorThread(void)
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "sensor_manager");
+    signal(SIGINT, SIGINT_handler);
+    ros::init(argc, argv, "sensor_manager",ros::init_options::NoSigintHandler);
     SensorManager sm_;
     int shm_id_;
 
     init_shm(shm_msg_key, shm_id_, &sm_.shm_);
+
+
+    prog_shutdown = &sm_.shm_->shutdown;
 
     struct sched_param param;
     pthread_attr_t attr;

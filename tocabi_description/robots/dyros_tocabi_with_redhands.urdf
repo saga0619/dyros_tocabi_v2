@@ -1844,10 +1844,10 @@
     name="L_Wrist2_Link">
     <inertial>
       <origin
-        xyz="0.00063 0.0636 0.00178"
+        xyz="0.00063 0.0636 -0.08"
         rpy="0 0 0" />
       <mass
-        value="0.1" />
+        value="0.350" />
       <inertia
         ixx="0.000865450"
         ixy="0"
@@ -2335,10 +2335,10 @@
     name="R_Wrist2_Link">
     <inertial>
       <origin
-        xyz="0.00063 -0.0636 0.00178"
+        xyz="0.00063 -0.0636 -0.08"
         rpy="0 0 0" />
       <mass
-        value="0.1" />
+        value="0.350" />
       <inertia
         ixx="0.000865450"
         ixy="0"

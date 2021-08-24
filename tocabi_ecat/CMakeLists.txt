@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tocabi_ecat)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11 -O3)
+add_compile_options(-std=c++11 -Ofast)
 
 if(${FORCE_REALROBOT} MATCHES ON)
   message(" forces realrobot compile mode ")
@@ -10,6 +10,7 @@ if(${FORCE_REALROBOT} MATCHES ON)
   set(COMPILE_REAL TRUE)
 else()
 
+ADD_DEFINITIONS(-DTIME_CHECK)
 
 execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RES OUTPUT_STRIP_TRAILING_WHITESPACE)
 message("-- kernel version : " ${UNAME_RES})
@@ -127,6 +128,8 @@ add_executable(tocabi_ecat_lower src/ecat_lower.cpp)
 add_executable(tocabi_ecat_upper src/ecat_upper.cpp)
 
 add_executable(watcher src/watcher.cpp)
+
+add_executable(watcher2 src/watcher_status.cpp)
 
 
 

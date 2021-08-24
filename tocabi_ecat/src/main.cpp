@@ -37,13 +37,15 @@ static void set_latency_target(void)
 
 int main(int argc, char *argv[])
 {
+    ios::sync_with_stdio(false);
     bool val_received = false;
 
-    int ret;
+    int ret = 0;
+    int lock_core_ = 0;
 
-    if (argc != 4)
+    if (argc != 6)
     {
-        std::cout << "usage : tocabi_ecat {port} {period_us} {ecat num}" << std::endl;
+        std::cout << "usage : tocabi_ecat {port} {period_us} {ecat num} {starting num} {Core}" << std::endl;
 
         goto out;
     }
@@ -52,13 +54,17 @@ int main(int argc, char *argv[])
         soem_port = argv[1];
         int period_us = atoi(argv[2]);
         expected_counter = atoi(argv[3]);
+        start_joint_ = atoi(argv[4]);
+        lock_core_ = atoi(argv[5]);
         period_ns = period_us * 1000;
 
         std::cout << " ecat port : " << soem_port << std::endl;
-        std::cout << " period_us  : " << period_ns << std::endl;
+        std::cout << " period_ns  : " << period_ns << std::endl;
         std::cout << " elmo num  : " << expected_counter << std::endl;
+        std::cout << " start from : " << start_joint_ << ", : " << ELMO_NAME[start_joint_] << std::endl;
+        std::cout << " locked at core " << lock_core_ << std::endl;
         std::cout << " ----------------------------- " << std::endl;
-        std::cout << " command :  q(quit), l(lower init), u(upper init), d(debug), p(position), h(homming), c(force control)" << std::endl;
+        std::cout << " command :  q(quit), l(lower init), u(upper init), d(debug), p(position), h(homming), c(force control), o(lock), f(torque off), w(status log)" << std::endl;
 
         val_received = true;
 
@@ -94,7 +100,7 @@ int main(int argc, char *argv[])
 
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
-        CPU_SET(7, &cpuset);
+        CPU_SET(lock_core_, &cpuset);
 
         ret = pthread_attr_setaffinity_np(&attr, sizeof(cpuset), &cpuset);
         if (ret)

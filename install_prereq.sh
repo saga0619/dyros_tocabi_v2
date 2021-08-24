@@ -73,6 +73,7 @@ while true; do
               make all
               sudo make install
               cd ../..
+              exit;;
 
         [2]* ) echo "Starting Install ... MSCL";
         

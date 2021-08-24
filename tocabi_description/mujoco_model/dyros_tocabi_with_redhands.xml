@@ -1,6 +1,6 @@
 <mujoco model="dyros_tocabi">
     <include file="simulation_scene.xml"/>
-    
+
     <asset>
         <mesh name="Pelvis_link" file="Pelvis_link2.STL" scale="0.001 0.001 0.001"/>
         <mesh name="HipRoll_R_link" file="HipRoll_R_link.STL" />
@@ -34,7 +34,9 @@
         <mesh name="L_wrist1" file="L_wrist1.STL" />
         <mesh name="neck" file="neck.STL" />
         <mesh name="head" file="head.STL" />
-        <mesh name="hand" file="wrist2joint.STL" scale="0.001 0.001 0.001"/>
+        <!-- <mesh name="hand" file="wrist2joint.STL" scale="0.001 0.001 0.001"/> -->
+        <mesh name="R_hand" file="allegro_hand_model.STL" />
+        <mesh name="L_hand" file="QBhand_assembly_left.STL" scale="0.001 0.001 0.001" />
         <mesh name="Foot_Link" file="Foot_Link.STL"/>
 
 
@@ -237,10 +239,11 @@
                                                     <geom class="viz" rgba="0.20313 0.20313 0.20313 1" mesh="L_wrist1" />
                                                     <geom size="0.02 0.03" pos="0 0.046 0" type="cylinder" class="cls" />
                                                     <body name="L_Wrist2_Link" pos="0 0.046 0" quat="0 0 -0.707107 0.707107">
-                                                        <inertial pos="0.00063 0.0636 0.00178" mass="0.1" fullinertia="0.000865450 0.000696917 0.015377823 0 0 0" />
+                                                        <inertial pos="0.00063 0.0636 -0.08" mass="0.350" fullinertia="0.000865450 0.000696917 0.015377823 0 0 0" />
                                                         <joint name="L_Wrist2_Joint" pos="0 0 0" axis="0 1 0" limited="true" range="-2.094 2.094" class="Upper"/>
                                                         <geom size="0.03 0.03 0.01" pos="0 0 -0.025" type="box" class="cls"/>
-                                                        <geom size="0.03 0.03 0.01" pos="0 0 -0.025" type="box" class="viz" rgba="0.20313 0.20313 0.20313 1" />
+                                                        <!-- <geom size="0.03 0.03 0.01" pos="0 0 -0.025" type="box" class="viz" rgba="0.20313 0.20313 0.20313 1" /> -->
+                                                        <geom class="viz" pos="0.27 -0.06 -0.37" quat="0.707107 -0.707107 0 0" rgba="0.20313 0.20313 0.20313 1" mesh="L_hand" />
                                                         <site class="FTsensor" name="LH_FT" pos="0 0 -0.035"/>
                                                     </body>
                                                 </body>
@@ -302,10 +305,11 @@
                                                     <geom class="viz" rgba="0.20313 0.20313 0.20313 1" mesh="R_wrist1" />
                                                     <geom size="0.02 0.03" pos="0 -0.046 0" type="cylinder" class="cls" />
                                                     <body name="R_Wrist2_Link" pos="0 -0.046 0" quat="0 0 0.707107 0.707107">
-                                                        <inertial pos="0.00063 -0.0636 0.00178" quat="0.5 0.5 -0.5 0.5" mass="0.1" fullinertia="0.000865450 0.000696917 0.015377823 0 0 0" />
+                                                        <inertial pos="0.00063 -0.0636 -0.08" quat="0.5 0.5 -0.5 0.5" mass="0.350" fullinertia="0.000865450 0.000696917 0.015377823 0 0 0" />
                                                         <joint name="R_Wrist2_Joint" pos="0 0 0" axis="0 -1 0" limited="true" range="-2.094 2.094" class="Upper"/>
                                                         <geom size="0.03 0.03 0.01" pos="0 0 -0.025" type="box" class="cls" />
-                                                        <geom size="0.03 0.03 0.01" pos="0 0 -0.025" type="box" class="viz" rgba="0.20313 0.20313 0.20313 1" />
+                                                        <!-- <geom size="0.03 0.03 0.01" pos="0 0 -0.025" type="box" class="viz" rgba="0.20313 0.20313 0.20313 1" /> -->
+                                                        <geom class="viz" pos="0.130 0.05 -0.01" quat="0 0 -707107 707107" rgba="0.20313 0.20313 0.20313 1" mesh="R_hand" />
                                                         <site class="FTsensor" name="RH_FT" pos="0 0 -0.035"/>
                                                     </body>
                                                 </body>
