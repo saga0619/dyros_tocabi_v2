@@ -22,6 +22,16 @@
 
 using namespace std;
 
+struct TocabiInitArgs
+{
+    std::string port1;
+    std::string port2;
+
+    int period_ns;
+    int lock_core;
+    int start_joint;
+    int expected_counter;
+};
 namespace EtherCAT_Elmo
 {
     enum MODE_OF_OPERATION
@@ -302,16 +312,6 @@ double q_zero_point[ELMO_DOF];
 double q_zero_elmo_[ELMO_DOF];
 double q_zero_mod_elmo_[ELMO_DOF];
 
-int64 toff, gl_delta;
-unsigned long long cur_dc32 = 0;
-unsigned long long pre_dc32 = 0;
-long long diff_dc32 = 0;
-long long cur_DCtime = 0, max_DCtime = 0;
-
-struct timespec ts_global;
-int PRNS = 1;
-
-
 void * ethercatThread1(void *data);
 void * ethercatThread2(void *data);
 void ethercatCheck();
@@ -321,7 +321,7 @@ double elmoJointMove(double init, double angle, double start_time, double traj_t
 bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord);
 void checkFault(const uint16_t statusWord, int slave);
 
-bool initTocabiSystem();
+bool initTocabiSystem(const TocabiInitArgs & args);
 void cleanupTocabiSystem();
 
 void elmoInit();
@@ -375,3 +375,13 @@ int low_rcv_us, low_mid_us, low_snd_us;
 float low_rcv_avg, low_rcv_max;
 float low_mid_avg, low_mid_max;
 float low_snd_avg, low_snd_max;
+
+
+unsigned long long g_cur_dc32 = 0;
+unsigned long long g_pre_dc32 = 0;
+long long g_diff_dc32 = 0;
+long long g_cur_DCtime = 0, g_max_DCtime = 0;
+int g_PRNS = period_ns;
+struct timespec g_ts;
+int64 g_toff;//, gl_delta;
+

@@ -126,18 +126,22 @@ void ec_sync(int64 reftime, int64 cycletime, int64 &offsettime)
     offsettime = -(delta / 100) - (integral / 20);
 }
 
-bool initTocabiSystem()
+bool initTocabiSystem(const TocabiInitArgs & args)
 {    
     init_shm(shm_msg_key, shm_id_, &shm_msgs_);
 
-    const char *ifname = soem_port.c_str();
+    const char *ifname1 = args.port1.c_str();
+    char ifname2[100];
+    strcpy(ifname2, args.port2.c_str());
+    // char *ifname2 = args.port2.c_str();
 
-    if (!ec_init(ifname))
+    if (!ec_init_redundant(ifname1, ifname2))
+    // if (!ec_init(ifname))
     {
-        printf("ELMO : No socket connection on %s\nExcecute as root\n", ifname);
+        printf("ELMO : No socket connection on %s / %s \nExcecute as root\n", ifname1, ifname2);
         return false;
     }
-    printf("ELMO : ec_init on %s succeeded.\n", ifname);
+    printf("ELMO : ec_init on %s %s succeeded.\n", ifname1, ifname2);
 
     if (ec_config_init(FALSE) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
     {
@@ -147,8 +151,9 @@ bool initTocabiSystem()
 
     elmoInit();
 
-    printf("ELMO : %d slaves found and configured.\n", ec_slavecount); // ec_slavecount -> slave num
-    if (ec_slavecount == expected_counter)
+    printf("ELMO : %d / %d slaves found and configured.\n", ec_slavecount, args.expected_counter); // ec_slavecount -> slave num
+    
+    if (ec_slavecount == args.expected_counter)
     {
         ecat_number_ok = true;
     }
@@ -198,18 +203,36 @@ bool initTocabiSystem()
     }
     /** if CA disable => automapping works */
     ec_config_map(&IOmap);
+    // ec_config_overlap_map(IOmap);
 
     //ecdc
     ec_configdc();
-
-    /* wait for all slaves to reach SAFE_OP state */
     printf("ELMO : EC WAITING STATE TO SAFE_OP\n");
     ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4);
+    ec_readstate();
+
+    void * digout;
+
+    for(int cnt = 1; cnt <= ec_slavecount ; cnt++)
+    {
+        printf("Slave:%d Name:%s Output size:%3dbits Input size:%3dbits State:%2d delay:%d.%d\n",
+                cnt, ec_slave[cnt].name, ec_slave[cnt].Obits, ec_slave[cnt].Ibits,
+                ec_slave[cnt].state, (int)ec_slave[cnt].pdelay, ec_slave[cnt].hasdc);
+        printf("         Out:%8.8x,%4d In:%8.8x,%4d\n",
+                (int*)ec_slave[cnt].outputs, ec_slave[cnt].Obytes, (int*)ec_slave[cnt].inputs, ec_slave[cnt].Ibytes);
+        /* check for EL2004 or EL2008 */
+        if( !digout && ((ec_slave[cnt].eep_id == 0x07d43052) || (ec_slave[cnt].eep_id == 0x07d83052)))
+        {
+            digout = ec_slave[cnt].outputs;
+        }
+    }
+
+    /* wait for all slaves to reach SAFE_OP state */
 
     expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
     printf("ELMO : Request operational state for all slaves. Calculated workcounter : %d\n", expectedWKC);
 
-    if (expectedWKC != 3 * expected_counter)
+    if (expectedWKC != 3 * args.expected_counter)
     {
         std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << creset << '\n';
         ecat_WKC_ok = true;
@@ -252,7 +275,8 @@ bool initTocabiSystem()
     }
 
     inOP = TRUE;
-    PRNS = period_ns;
+    const int PRNS = args.period_ns;
+    period_ns = args.period_ns;
 
     //ecdc
 
@@ -294,6 +318,13 @@ bool initTocabiSystem()
     cout << "ELMO : Initialization Mode" << endl;
 
     query_check_state = true;
+    g_toff = toff;
+    g_cur_dc32 = cur_dc32;
+    g_pre_dc32 = pre_dc32;
+    g_diff_dc32 = diff_dc32;
+    g_cur_DCtime = cur_DCtime;
+    g_PRNS = PRNS;
+    g_ts = ts;
     
     return true;
 }
@@ -305,8 +336,14 @@ void cleanupTocabiSystem()
 
 void * ethercatThread1(void *data)
 {
-    struct timespec ts;
-    ts = ts_global;
+    int64 toff = g_toff;
+    unsigned long long cur_dc32 = g_cur_dc32;
+    unsigned long long pre_dc32 = g_pre_dc32;
+    long long diff_dc32 = g_diff_dc32;
+    long long cur_DCtime = g_cur_dc32, max_DCtime = g_max_DCtime;
+    int PRNS = g_PRNS;
+    struct timespec ts = g_ts;
+
 
     char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};

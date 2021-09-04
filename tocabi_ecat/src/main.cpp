@@ -1,5 +1,5 @@
 #include "tocabi_ecat/tocabi_ecat.h"
-#include <cstring>
+// #include <cstring>
 
 static int latency_target_fd = -1;
 static int32_t latency_target_value = 0;
@@ -44,18 +44,25 @@ int main(int argc, char *argv[])
     int ret = 0;
     int lock_core_ = 0;
 
-    if (argc != 6)
+    if (argc != 7)
     {
-        std::cout << "usage : tocabi_ecat {port} {period_us} {ecat num} {starting num} {Core}" << std::endl;
+        std::cout << "usage : tocabi_ecat {port1} {port2} {period_us} {ecat num} {starting num} {Core}" << std::endl;
 
         return 0;
     }
     
-    soem_port = argv[1];
-    int period_us = atoi(argv[2]);
-    expected_counter = atoi(argv[3]);
-    start_joint_ = atoi(argv[4]);
-    lock_core_ = atoi(argv[5]);
+    TocabiInitArgs init_args;
+    init_args.port1 = argv[1];
+    init_args.port2 = argv[2];
+    // soem_port = argv[1];
+    int period_us = atoi(argv[3]);
+    init_args.period_ns = period_us * 1000;
+    expected_counter = atoi(argv[4]);
+    init_args.expected_counter = expected_counter;
+    start_joint_ = atoi(argv[5]);
+    init_args.start_joint = start_joint_;
+    lock_core_ = atoi(argv[6]);
+    init_args.lock_core = lock_core_;
     period_ns = period_us * 1000;
 
     std::cout << " ecat port : " << soem_port << std::endl;
@@ -74,12 +81,11 @@ int main(int argc, char *argv[])
     //set_latency_target();
     
     printf("[ECAT - INFO] start init process\n");
-    bool init_result = initTocabiSystem();
+    bool init_result = initTocabiSystem(init_args);
     if (!init_result)
     {
         printf("[ECAT - ERRO] init failed\n");
-        cleanupTocabiSystem();
-        return 0;
+        return -1;
     }
 
     printf("[ECAT - INFO] init process has been done\n");
