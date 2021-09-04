@@ -877,7 +877,7 @@ void *ethercatThread1(void *data)
                     }
 
                     sendJointStatus();
-                    getJointCommand();
+                    //getJointCommand();
 
                     //ECAT JOINT COMMAND
                     for (int i = 0; i < ec_slavecount; i++)
@@ -1240,7 +1240,7 @@ void *ethercatThread2(void *data)
                 std::cout << "lock current position" << std::endl;
                 for (int i = 0; i < ec_slavecount; i++)
                 {
-                    shm_msgs_->positionCommand[i] = q_elmo_[i];
+                    q_desired_elmo_[i] = q_elmo_[i];
 
                     ElmoMode[i] = EM_TORQUE;
                 }
