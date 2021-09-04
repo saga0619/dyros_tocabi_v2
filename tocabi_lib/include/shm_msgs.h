@@ -26,6 +26,8 @@ typedef struct SHMmsgs
 
     std::atomic<int> statusCount;
     std::atomic<int> statusCount2;
+    std::atomic<int> avatarCount;
+    
     std::atomic<int> statusWriting;
     std::atomic<bool> triggerS1;
 
@@ -96,6 +98,9 @@ typedef struct SHMmsgs
     float low_rcv_avg, low_rcv_max;
     float low_mid_avg, low_mid_max;
     float low_snd_avg, low_snd_max;    
+
+    int low_toff;
+    int upp_toff;
 
     bool low_init_signal = false;
     bool waist_init_signal = false;

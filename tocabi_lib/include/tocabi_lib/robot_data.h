@@ -47,8 +47,8 @@ struct RobotData
     /////////////////////////////////////////////////
     ///////////REFRESHING VARIABLES START////////////
 
-    std::atomic<int> us_from_start_{};
-    float control_time_ = 0;
+    std::atomic<float> control_time_;
+    std::atomic<int64_t> control_time_us_;
 
     RigidBodyDynamics::Model model_;
     LinkData link_[LINK_NUMBER + 1];
@@ -219,6 +219,8 @@ struct DataContainer
 
     bool simMode = false;
     SHMmsgs *tc_shm_;
+    atomic<int> stm_cnt;
+    atomic<int> tcm_cnt;
 
     bool torqueOnSwitch = false;
     bool torqueOffSwitch = false;

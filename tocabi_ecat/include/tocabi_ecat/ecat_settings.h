@@ -22,7 +22,7 @@
 
 #define LEG_DOF 12
 
-#define CL_LOCK 5
+#define CL_LOCK 20
 
 #define UPPERBODY_DOF 21
 
@@ -31,7 +31,7 @@
 
 #define FORCE_CONTROL_MODE false
 
-const char ifname_lower[] = "eth0";
+const char ifname_lower[] = "enp1s0";
 const char ifname_upper[] = "eth1";
 
 const int starting_point = ELMO_DOF_UPPER;
@@ -332,7 +332,7 @@ const double pos_p_gain[ELMO_DOF] =
      2000.0, 5000.0, 4000.0, 3700.0, 3200.0, 3200.0,
      6000.0, 10000.0, 10000.0,
      400.0, 1000.0, 400.0, 400.0, 400.0, 400.0, 10.0, 10.0,
-     10.0, 10.0,
+     1000.0, 1000.0,
      400.0, 1000.0, 400.0, 400.0, 400.0, 400.0, 10.0, 10.0
 
 };
@@ -341,7 +341,7 @@ const double pos_d_gain[ELMO_DOF] =
      15.0, 50.0, 20.0, 25.0, 24.0, 24.0,
      200.0, 100.0, 100.0,
      10.0, 28.0, 10.0, 10.0, 10.0, 10.0, 1.0, 1.0,
-     1.0, 1.0,
+     10.0, 10.0,
      10.0, 28.0, 10.0, 10.0, 10.0, 10.0, 1.0, 1.0
 
 };

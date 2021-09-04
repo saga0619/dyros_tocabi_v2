@@ -309,8 +309,8 @@ void *ethercatThread1(void *data)
                     ec_send_processdata();
                     wkc = ec_receive_processdata(250);
                     control_time_real_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count() / 1000000.0;
-                    while (EcatError)
-                        printf("%f %s", control_time_real_, ec_elist2string());
+                    // while (EcatError)
+                    //     printf("%f %s", control_time_real_, ec_elist2string());
 
                     for (int i = 0; i < ec_slavecount; i++)
                     {
@@ -799,8 +799,8 @@ void *ethercatThread1(void *data)
 #endif
                     control_time_real_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count() / 1000000.0;
 
-                    while (EcatError)
-                        printf("%f %s", control_time_real_, ec_elist2string());
+                    // while (EcatError)
+                    //     printf("%f %s", control_time_real_, ec_elist2string());
 
                     static int status_changed_count = -1;
                     if (status_log)
@@ -1334,8 +1334,33 @@ bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord)
     return false;
 }
 
+void getErrorName(int err_register, char *err)
+{   
+    // 3 characters
+
+    const char * codes[8] = {"ERR", 
+                            "CRT", 
+                            "VTG",
+                            "TPR",
+                            "COM",
+                            "DEV",
+                            "RES",
+                            "MAN"};
+
+    memset(err,' ', 4 * 8);
+    err[32] = 0; // ending word
+    for (int i = 0; i<8; ++i)
+    {
+        if (err_register & 1 << i)
+        {
+            memcpy(err+i*4,codes[i],3);
+        }
+    }
+} 
+
 void checkFault(const uint16_t statusWord, int slave)
 {
+    char err_text[100] = {0};
     if (statusWord & (1 << FAULT_BIT))
     {
         char data1[128] = {0};
@@ -1344,7 +1369,11 @@ void checkFault(const uint16_t statusWord, int slave)
         printf("[Fault at slave %d] reading SDO...\n", slave);
         ec_SDOread(slave, 0x1001, 0, false, &data_length, &data1, EC_TIMEOUTRXM);
         ec_SDOread(slave, 0x603f, 0, false, &data_length, &data2, EC_TIMEOUTRXM);
-        printf("[Err info slave %d - decimal] Err register: %d / Err code: %d\n", slave, *(uint8_t *)data1, *(uint16_t *)data2);
+        int reg = *(uint8_t *)data1;
+        int errcode =  *(uint16_t *)data2;
+        printf("[Err info slave %d - decimal] Err register: %d / Err code: %d\n", slave, reg, errcode);
+        getErrorName(reg, err_text);
+        printf(" reg info: %s", err_text);
     }
 }
 

@@ -28,6 +28,49 @@ void ec_sync(int64 reftime, int64 cycletime, int64 &offsettime)
     offsettime = -(delta / 100) - (integral / 20);
 }
 
+void getErrorName(int err_register, char *err)
+{
+    // 3 characters
+
+    const char *codes[8] = {"ERR",
+                            "CRT",
+                            "VTG",
+                            "TPR",
+                            "COM",
+                            "DEV",
+                            "RES",
+                            "MAN"};
+
+    memset(err, ' ', 4 * 8);
+    err[32] = 0; // ending word
+    for (int i = 0; i < 8; ++i)
+    {
+        if (err_register & 1 << i)
+        {
+            memcpy(err + i * 4, codes[i], 3);
+        }
+    }
+}
+
+void checkFault(const uint16_t statusWord, int slave)
+{
+    char err_text[100] = {0};
+    if (statusWord & (1 << FAULT_BIT))
+    {
+        char data1[128] = {0};
+        char data2[128] = {0};
+        int data_length = sizeof(data1) - 1;
+        printf("[Fault at slave %d] reading SDO...\n", slave);
+        ec_SDOread(slave, 0x1001, 0, false, &data_length, &data1, EC_TIMEOUTRXM);
+        ec_SDOread(slave, 0x603f, 0, false, &data_length, &data2, EC_TIMEOUTRXM);
+        int reg = *(uint8_t *)data1;
+        int errcode = *(uint16_t *)data2;
+        printf("[Err slave %d] Err code: %d Err register: %d", slave, reg, errcode);
+        getErrorName(reg, err_text);
+        printf("#%s#\n", err_text);
+    }
+}
+
 void ethercatCheck()
 {
     if (inOP && ((wkc < expectedWKC) || ec_group[currentgroup].docheckstate))
@@ -204,9 +247,9 @@ void *ethercatThread1(void *data)
             if (ecat_verbose)
                 printf("ELMO 2 : EC WAITING STATE TO SAFE_OP\n");
             ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4);
-
+#ifdef ECAT_DC
             ec_configdc();
-
+#endif
             expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
             printf("ELMO 2 : Request operational state for all slaves. Calculated workcounter : %d\n", expectedWKC);
 
@@ -247,17 +290,17 @@ void *ethercatThread1(void *data)
                 inOP = TRUE;
                 const int PRNS = PERIOD_NS;
 
-                //ecdc
+                // //ecdc
 
-                for (int i = 0; i < ec_slavecount; i++)
-                    ec_dcsync0(i + 1, TRUE, PRNS, 0);
 
                 toff = 0;
 
-                ec_send_processdata();
                 struct timespec ts;
                 clock_gettime(CLOCK_MONOTONIC, &ts);
-
+#ifdef ECAT_DC
+                for (int i = 0; i < ec_slavecount; i++)
+                    ec_dcsync0(i + 1, TRUE, PRNS, 0);
+                ec_send_processdata();
                 wkc = ec_receive_processdata(EC_TIMEOUTRET);
 
                 while (EcatError)
@@ -276,7 +319,7 @@ void *ethercatThread1(void *data)
                 std::cout << "dc_remain_time : " << dc_remain_time << std::endl;
 
                 clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
-
+#endif
                 /* cyclic loop */
                 for (int slave = 1; slave <= ec_slavecount; slave++)
                 {
@@ -325,18 +368,11 @@ void *ethercatThread1(void *data)
                     }
                     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
-                    // ts.tv_nsec += PERIOD_NS;
-                    // while (ts.tv_nsec >= SEC_IN_NSEC)
-                    // {
-                    //     ts.tv_sec++;
-                    //     ts.tv_nsec -= SEC_IN_NSEC;
-                    // }
-                    //std::this_thread::sleep_until(st_start_time + cycle_count * cycletime);
                     cycle_count++;
-                    wkc = ec_receive_processdata(0);
 
-                    while (EcatError)
-                        printf("%f %s", control_time_real_, ec_elist2string());
+                    ec_send_processdata();
+                    wkc = ec_receive_processdata(200);
+
                     control_time_us_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count();
                     control_time_real_ = control_time_us_ / 1000000.0;
 
@@ -498,7 +534,7 @@ void *ethercatThread1(void *data)
                     if (shm_msgs_->force_load_saved_signal)
                     {
                         loadZeroPoint(true);
-                        cout << "ELMO 1 : force load ZP" << endl;
+                        cout << "ELMO 2 : force load ZP" << endl;
                         break;
                     }
 
@@ -717,9 +753,7 @@ void *ethercatThread1(void *data)
                             txPDO[i]->targetTorque = (int)0;
                         }
                     }
-
-                    ec_send_processdata();
-
+#ifdef ECAT_DC
                     cur_dc32 = (uint32_t)(ec_DCtime & 0xffffffff);
                     if (cur_dc32 > pre_dc32)
                         diff_dc32 = cur_dc32 - pre_dc32;
@@ -733,6 +767,7 @@ void *ethercatThread1(void *data)
 
                     if (cur_DCtime > max_DCtime)
                         max_DCtime = cur_DCtime;
+#endif
                 }
 
                 // cout << "ELMO 2 : Ready to Sync " << endl;
@@ -810,6 +845,8 @@ void *ethercatThread1(void *data)
 #endif
                 chrono::steady_clock::time_point rcv_;
                 chrono::steady_clock::time_point rcv2_;
+
+                int t_l = 100;
                 while (!shm_msgs_->shutdown)
                 {
                     rcv_ = chrono::steady_clock::now();
@@ -829,20 +866,16 @@ void *ethercatThread1(void *data)
                     control_time_us_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count();
                     control_time_real_ = control_time_us_ / 1000000.0;
 
-                    lat = (ts1.tv_sec - ts1.tv_nsec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec;
+                    lat = (ts1.tv_sec - ts.tv_sec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec;
 
                     rcv2_ = chrono::steady_clock::now();
-                    //std::this_thread::sleep_for(std::chrono::microseconds(30));
 
 #ifdef TIME_CHECK
                     t_point[0] = std::chrono::steady_clock::now();
 #endif
                     /** PDO I/O refresh */
-                    //ec_send_processdata();
+                    ec_send_processdata();
                     wkc = ec_receive_processdata(200);
-
-                    while (EcatError)
-                        printf("%f %s", control_time_real_, ec_elist2string());
 
 #ifdef TIME_CHECK
                     t_point[1] = std::chrono::steady_clock::now();
@@ -862,6 +895,7 @@ void *ethercatThread1(void *data)
                     {
                         for (int slave = 1; slave <= ec_slavecount; slave++)
                         {
+                            checkFault(rxPDO[slave - 1]->statusWord, slave);
                             if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
                             {
                                 reachedInitial[slave - 1] = true;
@@ -910,22 +944,22 @@ void *ethercatThread1(void *data)
 
                     getJointCommand();
 
-                    for (int i = 0; i < ec_slavecount; i++)
-                    {
-                        if (command_mode_elmo_[START_N + i] == 0)
-                        {
-                            ElmoMode[i] = EM_TORQUE;
-                            torque_desired_elmo_[START_N + i] = 0;
-                        }
-                        else if (command_mode_elmo_[START_N + i] == 1)
-                        {
-                            ElmoMode[i] = EM_TORQUE;
-                        }
-                        else if (command_mode_elmo_[START_N + i] == 2)
-                        {
-                            ElmoMode[i] = EM_POSITION;
-                        }
-                    }
+                    //for (int i = 0; i < ec_slavecount; i++)
+                    //{
+                    // if (command_mode_elmo_[START_N + i] == 0)
+                    // {
+                    //     ElmoMode[i] = EM_TORQUE;
+                    //     torque_desired_elmo_[START_N + i] = 0;
+                    // }
+                    // else if (command_mode_elmo_[START_N + i] == 1)
+                    // {
+                    //ElmoMode[i] = EM_TORQUE;
+                    // }
+                    // else if (command_mode_elmo_[START_N + i] == 2)
+                    // {
+                    //     ElmoMode[i] = EM_POSITION;
+                    // }
+                    //}
 
                     //ECAT JOINT COMMAND
                     if (shm_msgs_->safety_reset_lower_signal)
@@ -946,40 +980,37 @@ void *ethercatThread1(void *data)
                     //Ecat joint command
                     for (int i = 0; i < ec_slavecount; i++)
                     {
-                        if (ElmoMode[i] == EM_POSITION)
-                        {
-                            txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousPositionmode;
-                            txPDO[i]->targetPosition = (int)(elmo_axis_direction[START_N + i] * RAD2CNT[START_N + i] * (q_desired_elmo_[START_N + i] + q_zero_elmo_[START_N + i]));
-                            txPDO[i]->maxTorque = (uint16)500;
-                        }
-                        else if (ElmoMode[i] == EM_TORQUE)
-                        {
-                            txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
-                            txPDO[i]->targetTorque = (int)(torque_desired_elmo_[START_N + i] * NM2CNT[START_N + i] * elmo_axis_direction[START_N + i]);
-                            txPDO[i]->maxTorque = (uint16)maxTorque;
+                        txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
+                        txPDO[i]->targetTorque = (int)(torque_desired_elmo_[START_N + i] * NM2CNT[START_N + i] * elmo_axis_direction[START_N + i]);
+                        txPDO[i]->maxTorque = (uint16)maxTorque;
+                        // if (ElmoMode[i] == EM_POSITION)
+                        // {
+                        //     txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousPositionmode;
+                        //     txPDO[i]->targetPosition = (int)(elmo_axis_direction[START_N + i] * RAD2CNT[START_N + i] * (q_desired_elmo_[START_N + i] + q_zero_elmo_[START_N + i]));
+                        //     txPDO[i]->maxTorque = (uint16)500;
+                        // }
+                        // else if (ElmoMode[i] == EM_TORQUE)
+                        // {
+                        //     txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
+                        //     txPDO[i]->targetTorque = (int)(torque_desired_elmo_[START_N + i] * NM2CNT[START_N + i] * elmo_axis_direction[START_N + i]);
+                        //     txPDO[i]->maxTorque = (uint16)maxTorque;
 
-                            /*
-                            if (dc.customGain)
-                            {
-                                txPDO[i]->targetTorque = (int)(ELMO_torque[i] * CustomGain[i] * elmo_axis_direction[i]);
-                            }
-                            else
-                            {
-                                txPDO[i]->targetTorque = (roundtoint)(ELMO_torque[i] * ELMO_NM2CNT[i] * elmo_axis_direction[i]);
-                            }*/
-                        }
-                        else
-                        {
-                            txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
-                            txPDO[i]->targetTorque = (int)0;
-                        }
+                        //     /*
+                        //     if (dc.customGain)
+                        //     {
+                        //         txPDO[i]->targetTorque = (int)(ELMO_torque[i] * CustomGain[i] * elmo_axis_direction[i]);
+                        //     }
+                        //     else
+                        //     {
+                        //         txPDO[i]->targetTorque = (roundtoint)(ELMO_torque[i] * ELMO_NM2CNT[i] * elmo_axis_direction[i]);
+                        //     }*/
+                        // }
+                        // else
+                        // {
+                        //     txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
+                        //     txPDO[i]->targetTorque = (int)0;
+                        // }
                     }
-
-                    // if (ec_slave[0].hasdc)
-                    // {
-                    //     static int cycletime = PERIOD_NS;
-                    //     ec_sync(ec_DCtime, cycletime, &toff);
-                    // }
 
                     //Torque off if emergency off received
                     if (de_emergency_off)
@@ -987,7 +1018,7 @@ void *ethercatThread1(void *data)
 #ifdef TIME_CHECK
                     t_point[2] = std::chrono::steady_clock::now();
 #endif
-                    ec_send_processdata();
+                    //ec_send_processdata();
 #ifdef TIME_CHECK
                     t_point[3] = std::chrono::steady_clock::now();
 
@@ -1012,14 +1043,10 @@ void *ethercatThread1(void *data)
                         shm_msgs_->low_mid_max = mid_us;
                     if (shm_msgs_->low_snd_max < snd_us)
                         shm_msgs_->low_snd_max = snd_us;
-                    if (low_us > 100)
+                    if (low_us > 200)
                         shm_msgs_->low_rcv_ovf++;
-                    if (mid_us > 100)
-                        shm_msgs_->low_mid_ovf++;
-                    if (snd_us > 100)
-                        shm_msgs_->low_snd_ovf++;
 #endif
-
+#ifdef ECAT_DC
                     cur_dc32 = (uint32_t)(ec_DCtime & 0xffffffff);
                     if (cur_dc32 > pre_dc32)
                         diff_dc32 = cur_dc32 - pre_dc32;
@@ -1034,6 +1061,8 @@ void *ethercatThread1(void *data)
                     if (cur_DCtime > max_DCtime)
                         max_DCtime = cur_DCtime;
 
+                    shm_msgs_->low_toff = toff;
+#endif
                     sat = chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - rcv2_).count();
 
                     for (int i = 0; i < ec_slavecount; i++)
@@ -1411,10 +1440,10 @@ void getJointCommand()
     // memcpy(command_mode_, &shm_msgs_->commandMode, sizeof(int) * PART_ELMO_DOF);
     // memcpy(q_desired_, &shm_msgs_->positionCommand, sizeof(float) * PART_ELMO_DOF);
     // memcpy(torque_desired_, &shm_msgs_->torqueCommand, sizeof(float) * PART_ELMO_DOF);
-    while (shm_msgs_->commanding.load(std::memory_order_acquire))
-    {
-        clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
-    }
+    // while (shm_msgs_->commanding.load(std::memory_order_acquire))
+    // {
+    //     clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
+    // }
 
     static int stloop;
     static bool stloop_check;
@@ -1428,36 +1457,36 @@ void getJointCommand()
     static int commandCount;
     int wait_tick;
 
-    if (!stloop_check)
-    {
-        while (shm_msgs_->commandCount == commandCount)
-        {
-            clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
-            if (++wait_tick > 3)
-            {
-                break;
-            }
-        }
-    }
+    // if (!stloop_check)
+    // {
+    //     while (shm_msgs_->commandCount == commandCount)
+    //     {
+    //         clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
+    //         if (++wait_tick > 3)
+    //         {
+    //             break;
+    //         }
+    //     }
+    // }
 
-    memcpy(&command_mode_[Q_LOWER_START], &shm_msgs_->commandMode[Q_LOWER_START], sizeof(int) * PART_ELMO_DOF);
-    memcpy(&q_desired_[Q_LOWER_START], &shm_msgs_->positionCommand[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
+    // memcpy(&command_mode_[Q_LOWER_START], &shm_msgs_->commandMode[Q_LOWER_START], sizeof(int) * PART_ELMO_DOF);
+    // memcpy(&q_desired_[Q_LOWER_START], &shm_msgs_->positionCommand[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
     memcpy(&torque_desired_[Q_LOWER_START], &shm_msgs_->torqueCommand[Q_LOWER_START], sizeof(float) * PART_ELMO_DOF);
 
     commandCount = shm_msgs_->commandCount;
 
     for (int i = 0; i < ec_slavecount; i++)
     {
-        command_mode_elmo_[JointMap[Q_LOWER_START + i]] = command_mode_[Q_LOWER_START + i];
+        // command_mode_elmo_[JointMap[Q_LOWER_START + i]] = command_mode_[Q_LOWER_START + i];
 
-        if (command_mode_[Q_LOWER_START + i] == 1)
-        {
-            torque_desired_elmo_[JointMap[Q_LOWER_START + i]] = torque_desired_[Q_LOWER_START + i];
-        }
-        else if (command_mode_[Q_LOWER_START + i] == 2)
-        {
-            q_desired_elmo_[JointMap[Q_LOWER_START + i]] = q_desired_[Q_LOWER_START + i];
-        }
+        // if (command_mode_[Q_LOWER_START + i] == 1)
+        // {
+        torque_desired_elmo_[JointMap[Q_LOWER_START + i]] = torque_desired_[Q_LOWER_START + i];
+        // }
+        // else if (command_mode_[Q_LOWER_START + i] == 2)
+        // {
+        //     q_desired_elmo_[JointMap[Q_LOWER_START + i]] = q_desired_[Q_LOWER_START + i];
+        // }
     }
 
     static int commandCount_before = -1;
@@ -1473,9 +1502,11 @@ void getJointCommand()
             if (commandCount <= commandCount_before) //shit
             {
                 errorTimes++;
-                std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
                 if (stloop_check)
+                {
+                    std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
                     std::cout << "stloop same cnt" << std::endl;
+                }
             }
         }
         else if (errorTimes > 0)
@@ -1724,6 +1755,8 @@ void findZeroPointlow(int slv_number)
     double fztime = 1.0;
     if (elmofz[slv_number].findZeroSequence == FZ_CHECKHOMMINGSTATUS)
     {
+
+        state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_SEARCHING_ZP;
         elmofz[slv_number].initTime = control_time_real_;
         elmofz[slv_number].initPos = q_elmo_[slv_number];
         elmofz[slv_number].desPos = q_ext_elmo_[slv_number];
@@ -1764,7 +1797,8 @@ void findZeroPointlow(int slv_number)
                 elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
                 elmofz[slv_number].result = ElmoHommingStatus::SUCCESS;
                 sucnum++;
-                std::cout << slv_number << "success : " << sucnum << std::endl;
+                //std::cout << slv_number << "success : " << sucnum << std::endl;
+                state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_SUCCESS;
             }
             else
             {

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tocabi_controller)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++17 -Ofast)
+add_compile_options(-std=c++17)
 
 ## if -dVE-march=native  -mavx -mfma
 

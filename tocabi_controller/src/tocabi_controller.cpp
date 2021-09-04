@@ -75,7 +75,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
             thread1_count++;
             if (dc_.tc_shm_->shutdown)
                 break;
-            rcv_time_ = rd_.us_from_start_;
+            rcv_time_ = rd_.control_time_us_;
 
             auto t1 = std::chrono::steady_clock::now();
 
@@ -247,6 +247,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
             //     std::cout << rd_.control_time_ << "command duration over 350us , " << d2 << std::endl;
             // }
 
+            dc_.tcm_cnt = thread1_count;
             if (thread1_count % 2000 == 0)
             {
                 /*
@@ -260,14 +261,13 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
                 if (d1_over_cnt > 0)
                 {
-                    std::cout << cred << "Controller Thread1 calculation time over 500us.. : " << d1_over_cnt << "times" << creset << std::endl;
+                    std::cout << cred << "Controller Thread1 calculation time over 500us.. : " << d1_over_cnt << "times, stm cnt : " << dc_.tc_shm_->stloopCount << creset << std::endl;
                     d1_over_cnt = 0;
                 }
 
                 d1_total = 0;
                 d2_total = 0;
                 rd_.state_ctime_total_ = 0;
-                thread1_count = 0;
             }
             t_c_ = std::chrono::steady_clock::now();
 
