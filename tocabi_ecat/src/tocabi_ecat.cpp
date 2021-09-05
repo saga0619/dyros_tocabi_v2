@@ -250,6 +250,13 @@ bool initTocabiSystem(const TocabiInitArgs & args)
     int wait_cnt = 200;
 
     //ecdc
+
+    int64 toff, gl_delta;
+    unsigned long long cur_dc32 = 0;
+    unsigned long long pre_dc32 = 0;
+    long long diff_dc32 = 0;
+    long long cur_DCtime = 0, max_DCtime = 0;
+
     /* wait for all slaves to reach OP state */
     do
     {
@@ -300,7 +307,7 @@ bool initTocabiSystem(const TocabiInitArgs & args)
         ts.tv_sec++;
         ts.tv_nsec -= SEC_IN_NSEC;
     }
-    ts_global = ts;
+    // ts_global = ts;
 
     std::cout << "dc_remain_time : " << dc_remain_time << '\n';
 
