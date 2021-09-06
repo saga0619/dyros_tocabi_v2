@@ -55,19 +55,29 @@ void getErrorName(int err_register, char *err)
 void checkFault(const uint16_t statusWord, int slave)
 {
     char err_text[100] = {0};
+    const bool read_sdo = false;
+     
     if (statusWord & (1 << FAULT_BIT))
     {
-        char data1[128] = {0};
-        char data2[128] = {0};
-        int data_length = sizeof(data1) - 1;
-        printf("[Fault at slave %d] reading SDO...\n", slave);
-        ec_SDOread(slave, 0x1001, 0, false, &data_length, &data1, EC_TIMEOUTRXM);
-        ec_SDOread(slave, 0x603f, 0, false, &data_length, &data2, EC_TIMEOUTRXM);
-        int reg = *(uint8_t *)data1;
-        int errcode = *(uint16_t *)data2;
-        printf("[Err slave %d] Err code: %d Err register: %d", slave, reg, errcode);
-        getErrorName(reg, err_text);
-        printf("#%s#\n", err_text);
+        if (read_sdo)
+        {
+            char data1[128] = {0};
+            char data2[128] = {0};
+            int data_length = sizeof(data1) - 1;
+            printf("[Fault at slave %d] reading SDO...\n", slave);
+            ec_SDOread(slave, 0x1001, 0, false, &data_length, &data1, EC_TIMEOUTRXM);
+            ec_SDOread(slave, 0x603f, 0, false, &data_length, &data2, EC_TIMEOUTRXM);
+            int reg = *(uint8_t *)data1;
+            int errcode = *(uint16_t *)data2;
+            printf("[Err slave %d] Err code: %d Err register: %d", slave, reg, errcode);
+            getErrorName(reg, err_text);
+            printf("#%s#\n", err_text);
+        }
+        else
+        {
+            printf("[Fault at slave %d] set safety lock but not reading SDO...\n", slave);
+            ElmoSafteyMode[slave] = 1;
+        }
     }
 }
 

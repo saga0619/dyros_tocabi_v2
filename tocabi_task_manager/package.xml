@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>tocabi_task_manager</name>
+  <version>0.0.0</version>
+  <description>The tocabi_task_manager package</description>
+
+  <maintainer email="psh117@snu.ac.kr">Suhan Park</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <exec_depend>rospy</exec_depend>
+
+  <build_depend>tocabi_msgs</build_depend>
+  <exec_depend>tocabi_msgs</exec_depend>
+</package>
