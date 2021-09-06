@@ -132,8 +132,9 @@ void *ethercatThread1(void *data)
     bool reachedInitial[ELMO_DOF] = {false};
 
     const char *ifname = soem_port.c_str();
+    char *ifname2 = (char*)soem_port2.c_str();
 
-    if (ec_init(ifname))
+    if (ec_init_redundant(ifname, ifname2))
     {
         printf("ELMO : ec_init on %s succeeded.\n", ifname);
         elmoInit();
@@ -783,6 +784,11 @@ void *ethercatThread1(void *data)
 
                     clock_gettime(CLOCK_MONOTONIC, &ts1);
 
+                    if(kill_send)
+                    {
+                        std::this_thread::sleep_for(std::chrono::microseconds(1000));
+                        kill_send=false;
+                    }
                     ec_send_processdata();
 #ifdef TIME_CHECK
 
@@ -793,7 +799,20 @@ void *ethercatThread1(void *data)
                     t_point[0] = std::chrono::steady_clock::now();
 #endif
                     /** PDO I/O refresh */
-                    wkc = ec_receive_processdata(250);
+                    // if (!kill_send)
+                    // {
+                        wkc = ec_receive_processdata(250);
+                    // }
+                    // else
+                    // {
+                        // std::cout<<"ignoring receiving... "<<std::endl;
+                        // kill_send = false;
+                        // std::this_thread::sleep_for(std::chrono::microseconds(2600));
+                        // wkc = ec_receive_processdata(250);
+                        // // ec_send_processdata();
+                        // // ec_send_processdata();
+                        // // wkc = ec_receive_processdata(250);
+                    // }
 #ifdef TIME_CHECK
                     t_point[1] = std::chrono::steady_clock::now();
 #endif
@@ -1268,6 +1287,11 @@ void *ethercatThread2(void *data)
                     std::cout << "log status end" << std::endl;
                 }
             }
+            else if ((ch % 256 == 'k'))
+            {
+                kill_send = true;
+                std::cout << "kill send" << std::endl;
+            }
         }
     }
 
@@ -1335,11 +1359,11 @@ bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord)
 }
 
 void getErrorName(int err_register, char *err)
-{   
+{
     // 3 characters
 
-    const char * codes[8] = {"ERR", 
-                            "CRT", 
+    const char *codes[8] = {"ERR",
+                            "CRT",
                             "VTG",
                             "TPR",
                             "COM",
@@ -1347,16 +1371,16 @@ void getErrorName(int err_register, char *err)
                             "RES",
                             "MAN"};
 
-    memset(err,' ', 4 * 8);
+    memset(err, ' ', 4 * 8);
     err[32] = 0; // ending word
-    for (int i = 0; i<8; ++i)
+    for (int i = 0; i < 8; ++i)
     {
         if (err_register & 1 << i)
         {
-            memcpy(err+i*4,codes[i],3);
+            memcpy(err + i * 4, codes[i], 3);
         }
     }
-} 
+}
 
 void checkFault(const uint16_t statusWord, int slave)
 {
@@ -1370,7 +1394,7 @@ void checkFault(const uint16_t statusWord, int slave)
         ec_SDOread(slave, 0x1001, 0, false, &data_length, &data1, EC_TIMEOUTRXM);
         ec_SDOread(slave, 0x603f, 0, false, &data_length, &data2, EC_TIMEOUTRXM);
         int reg = *(uint8_t *)data1;
-        int errcode =  *(uint16_t *)data2;
+        int errcode = *(uint16_t *)data2;
         printf("[Err info slave %d - decimal] Err register: %d / Err code: %d\n", slave, reg, errcode);
         getErrorName(reg, err_text);
         printf(" reg info: %s", err_text);

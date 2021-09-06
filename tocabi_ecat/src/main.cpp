@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     int ret = 0;
     int lock_core_ = 0;
 
-    if (argc != 6)
+    if (argc != 7)
     {
         std::cout << "usage : tocabi_ecat {port} {period_us} {ecat num} {starting num} {Core}" << std::endl;
 
@@ -52,10 +52,11 @@ int main(int argc, char *argv[])
     else
     {
         soem_port = argv[1];
-        int period_us = atoi(argv[2]);
-        expected_counter = atoi(argv[3]);
-        start_joint_ = atoi(argv[4]);
-        lock_core_ = atoi(argv[5]);
+        soem_port2 = argv[2];
+        int period_us = atoi(argv[3]);
+        expected_counter = atoi(argv[4]);
+        start_joint_ = atoi(argv[5]);
+        lock_core_ = atoi(argv[6]);
         period_ns = period_us * 1000;
 
         std::cout << " ecat port : " << soem_port << std::endl;

@@ -126,7 +126,7 @@ void checkFault(const uint16_t statusWord, int slave)
 {
     char err_text[100] = {0};
     const bool read_sdo = false;
-     
+
     if (statusWord & (1 << FAULT_BIT))
     {
         if (read_sdo)
@@ -200,7 +200,8 @@ void *ethercatThread1(void *data)
     shm_msgs_->ecatTimerSet = false;
 
     ts_us1.tv_nsec = 1000;
-    if (ec_init(ifname_upper))
+    //if (ec_init(ifname_upper))
+    if (ec_init_redundant(ifname_upper, ifname_upper2))
     {
         if (ecat_verbose)
             printf("ELMO 1 : ec_init on %s succeeded.\n", ifname_upper);

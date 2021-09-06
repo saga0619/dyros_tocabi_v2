@@ -273,6 +273,7 @@ atomic<bool> de_zp_lower_switch{false};
 atomic<int> de_debug_level{0};
 
 std::string soem_port;
+std::string soem_port2;
 bool force_control_mode = false;
 int soem_freq = 0;
 int expected_counter = 0;
@@ -334,6 +335,8 @@ bool saveZeroPoint();
 bool loadZeroPoint();
 
 bool status_log = false;
+
+volatile bool kill_send = false;
 
 void emergencyOff();
 
