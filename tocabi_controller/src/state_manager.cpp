@@ -97,7 +97,7 @@ void *StateManager::StateThread()
 
     //Check Coonnect Complete//
     rcv_tcnt = dc_.tc_shm_->statusCount;
-    //cout << "first packet " << rcv_tcnt << endl;
+    cout << "first packet from state manager " << rcv_tcnt << endl;
     int cycle_count_ = rcv_tcnt;
     int stm_count_ = 0;
 
@@ -118,12 +118,15 @@ void *StateManager::StateThread()
 
         dc_.tc_shm_->stloopCount.store(stm_count_);
 
-        while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
+        // while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
+        // std::cout<<"hello trigger:"<<std::endl;
+        while (!dc_.tc_shm_->triggerS1)
         {
             clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
             if (dc_.tc_shm_->shutdown)
                 break;
         }
+        // std::cout<<"hello2 trigger:"<<std::endl;
 
         rd_.tp_state_ = std::chrono::steady_clock::now();
         auto t1 = rd_.tp_state_;
@@ -551,11 +554,11 @@ void StateManager::InitYaw()
 
 void StateManager::GetJointData()
 {
-    while (dc_.tc_shm_->statusWriting.load(std::memory_order_acquire))
-    {
-        if (dc_.tc_shm_->shutdown)
-            break;
-    }
+    // while (dc_.tc_shm_->statusWriting.load(std::memory_order_acquire))
+    // {
+    //     if (dc_.tc_shm_->shutdown)
+    //         break;
+    // }
 
     memcpy(q_a_, dc_.tc_shm_->pos, sizeof(float) * MODEL_DOF);
     memcpy(q_dot_a_, dc_.tc_shm_->vel, sizeof(float) * MODEL_DOF);
@@ -1520,6 +1523,7 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "ecatinitlower")
     {
         dc_.tc_shm_->low_init_signal = true;
+        std::cout<<"set lower init"<<std::endl;
     }
     else if (msg->data == "ecatinitwaist")
     {

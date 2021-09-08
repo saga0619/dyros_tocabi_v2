@@ -33,10 +33,10 @@ int main()
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
     printf("\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r");
-    printf(" sm cnt %10d sm1 avg %6.3f max %6.3f min %6.3f dev %6.4f, sm2 avg %6.3f max %6.3f min %6.3f dev %6.4f\n", (int)shm_msgs_->t_cnt,
+    printf(" sm cnt %10d sm1 avg %6.3f max %6.3f min %6.3f dev %6.4f, sm2 avg %6.3f max %6.3f min %6.3f dev %6.4f\n", (int)shm_msgs_->statusCount,
            shm_msgs_->lat_avg / 1000.0, shm_msgs_->lat_max / 1000.0, shm_msgs_->lat_min / 1000.0, shm_msgs_->lat_dev / 1000.0,
            shm_msgs_->send_avg / 1000.0, shm_msgs_->send_max / 1000.0, shm_msgs_->send_min / 1000.0, shm_msgs_->send_dev / 1000.0);
-    printf(" tc cnt %10d tc1 avg %6.3f max %6.3f min %6.3f dev %6.4f, tc2 avg %6.3f max %6.3f min %6.3f dev %6.4f\n", (int)shm_msgs_->t_cnt2,
+    printf(" tc cnt %10d tc1 avg %6.3f max %6.3f min %6.3f dev %6.4f, tc2 avg %6.3f max %6.3f min %6.3f dev %6.4f\n", (int)shm_msgs_->statusCount2,
            shm_msgs_->lat_avg2 / 1000.0, shm_msgs_->lat_max2 / 1000.0, shm_msgs_->lat_min2 / 1000.0, shm_msgs_->lat_dev2 / 1000.0,
            shm_msgs_->send_avg2 / 1000.0, shm_msgs_->send_max2 / 1000.0, shm_msgs_->send_min2 / 1000.0, shm_msgs_->send_dev2 / 1000.0);
     int i = 0;

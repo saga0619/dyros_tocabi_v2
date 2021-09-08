@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tocabi_sensor)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++17 -Ofast)
+add_compile_options(-std=c++17 -O2)
 if(${FORCE_REALROBOT} MATCHES ON)
   message(" forces realrobot compile mode ")
   ADD_DEFINITIONS(-DCOMPILE_REALROBOT)
@@ -187,6 +187,8 @@ target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   mx5_lib
   -lmscl  
+  -L/usr/share/c++-mscl
+  -L/usr/share/c++-mscl/Boost/lib -lboost_system
 )
 add_dependencies(mx5_lib ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})

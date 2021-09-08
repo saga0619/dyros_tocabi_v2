@@ -23,7 +23,7 @@
 #include <iostream>
 
 
-std::atomic<bool> *prog_shutdown;
+volatile bool *prog_shutdown;
 
 void SIGINT_handler(int sig)
 {
@@ -38,8 +38,8 @@ static void set_latency_target(void)
 {
     struct stat s;
     int err;
-    int errno;
-    errno = 0;
+    // int errno;
+    // errno = 0;
     err = stat("/dev/cpu_dma_latency", &s);
     if (err == -1)
     {
@@ -47,7 +47,7 @@ static void set_latency_target(void)
         return;
     }
 
-    errno = 0;
+    // errno = 0;
     latency_target_fd = open("/dev/cpu_dma_latency", O_RDWR);
     if (latency_target_fd == -1)
     {
@@ -55,7 +55,7 @@ static void set_latency_target(void)
         return;
     }
 
-    errno = 0;
+    // errno = 0;
     err = write(latency_target_fd, &latency_target_value, 4);
     if (err < 1)
     {
@@ -68,7 +68,7 @@ static void set_latency_target(void)
 
 int main(int argc, char **argv)
 {
-    set_latency_target();
+    // set_latency_target();
     signal(SIGINT, SIGINT_handler);
     mlockall(MCL_CURRENT | MCL_FUTURE);
 
@@ -120,8 +120,8 @@ int main(int argc, char **argv)
         struct sched_param param;
         pthread_attr_t attrs[thread_number];
         pthread_t threads[thread_number];
-        param.sched_priority = 80;
-        param_st.sched_priority = 95;
+        param.sched_priority = 77;
+        param_st.sched_priority = 78;
         cpu_set_t cpusets[thread_number];
 
         if (dc_.simMode)
@@ -163,12 +163,12 @@ int main(int argc, char **argv)
                 printf("attr %d setschedparam failed ", 0);
             }
 
-            CPU_ZERO(&cpusets[0]);
-            CPU_SET(5, &cpusets[0]);
-            if (pthread_attr_setaffinity_np(&attrs[0], sizeof(cpu_set_t), &cpusets[0]))
-            {
-                printf("attr %d setaffinity failed ", 0);
-            }
+            // CPU_ZERO(&cpusets[0]);
+            // CPU_SET(5, &cpusets[0]);
+            // if (pthread_attr_setaffinity_np(&attrs[0], sizeof(cpu_set_t), &cpusets[0]))
+            // {
+            //     printf("attr %d setaffinity failed ", 0);
+            // }
         }
 
         if (pthread_create(&threads[0], &attrs[0], &StateManager::ThreadStarter, &stm))

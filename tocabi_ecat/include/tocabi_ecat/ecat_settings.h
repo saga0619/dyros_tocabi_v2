@@ -27,7 +27,7 @@
 #define UPPERBODY_DOF 21
 
 #define PERIOD_NS 500000
-#define SEC_IN_NSEC 1000000000
+#define SEC_IN_NSEC 1000000000UL
 
 #define FORCE_CONTROL_MODE false
 
@@ -116,8 +116,7 @@ namespace MODEL
     };
 
 }
-
-const std::string ELMO_NAME[ELMO_DOF] = {
+const char ELMO_NAME[ELMO_DOF][20] = {
     "Head_Joint", "Neck_Joint", "R_Wrist1_Joint", "R_Wrist2_Joint", "L_Wrist2_Joint", "L_Wrist1_Joint", "L_Shoulder3_Joint", "L_Armlink_Joint",
     "R_Armlink_Joint", "R_Shoulder3_Joint", "R_Elbow_Joint", "R_Forearm_Joint", "L_Forearm_Joint", "L_Elbow_Joint", "L_Shoulder1_Joint", "L_Shoulder2_Joint",
     "R_Shoulder2_Joint", "R_Shoulder1_Joint", "Upperbody_Joint", "Waist2_Joint", "R_HipYaw_Joint", "R_HipRoll_Joint", "R_HipPitch_Joint",
