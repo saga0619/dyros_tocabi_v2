@@ -118,6 +118,8 @@ void *StateManager::StateThread()
 
         dc_.tc_shm_->stloopCount.store(stm_count_);
 
+        SendCommand();
+
         while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
         {
             clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
@@ -129,8 +131,6 @@ void *StateManager::StateThread()
         auto t1 = rd_.tp_state_;
 
         dc_.tc_shm_->triggerS1 = false;
-        SendCommand();
-
         cycle_count_++;
         stm_count_++;
 
@@ -168,18 +168,13 @@ void *StateManager::StateThread()
         auto t3 = chrono::steady_clock::now();
         //dc_.tc_shm_->t_cnt2 = stm_count_;
         //dc_.tc_shm_->t_cnt2 = cnt3;
-        if (stm_count_ % 33 == 0)
-        {
-            cnt3++;
-            PublishData();
-        }
+
         if (dc_.inityawSwitch)
             dc_.inityawSwitch = false;
 
         auto d3 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
 
         auto t4 = chrono::steady_clock::now();
-        ros::spinOnce();
 
         auto d4 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
         rd_gl_.state_ctime_total_ += (d1 + d2 + d3 + d4);
@@ -194,10 +189,10 @@ void *StateManager::StateThread()
             printf("stm over 500, d1 : %ld, d2 : %ld, d3 : %ld, d4 : %ld\n", d1, d2, d3, d4);
         }
 
-        for(int i=0;i<MODEL_DOF;i++)
+        for (int i = 0; i < MODEL_DOF; i++)
         {
 
-        state_safety_before_[i] = state_safety_[i];
+            state_safety_before_[i] = state_safety_[i];
         }
         //printf("%d\n", rcv_tcnt);
         //printf("\x1b[A\x1b[A\33[2K\r");
@@ -213,6 +208,9 @@ void *StateManager::StateThread()
 
 void *StateManager::LoggerThread()
 {
+    bool activateLogger;
+
+    dc_.nh.getParam("/tocabi_controller/log", activateLogger);
 
     //wait for both ecat are in control mode !
     while (!dc_.tc_shm_->shutdown)
@@ -250,73 +248,82 @@ void *StateManager::LoggerThread()
 
     ofstream velLog;
     velLog.open(posLogFile);
+    int log_count = 0;
 
     while (!dc_.tc_shm_->shutdown)
     {
+        log_count++;
+        if (log_count % 33 == 0)
+        {
+            PublishData();
+        }
+        ros::spinOnce();
 
         std::this_thread::sleep_for(std::chrono::microseconds(500));
 
-        torqueLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
-        for (int i = 0; i < MODEL_DOF; i++)
+        if (activateLogger)
         {
-            torqueLog << std::setfill(' ') << std::setw(5) << (int)dc_.tc_shm_->elmo_torque[i] << " ";
-        }
-        torqueLog << std::endl;
-
-        torqueCommandLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
-        for (int i = 0; i < MODEL_DOF; i++)
-        {
-            torqueCommandLog << fixed << setprecision(4) << setw(8) << dc_.torque_command[i] << " ";
-        }
-        torqueCommandLog << std::endl;
-
-        posLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
-        for (int i = 0; i < MODEL_DOF; i++)
-        {
-            posLog << fixed << setprecision(4) << setw(8) << rd_gl_.q_[i] << " ";
-        }
-        posLog << std::endl;
-
-        velLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
-        for (int i = 0; i < MODEL_DOF; i++)
-        {
-            velLog << fixed << setprecision(4) << setw(8) << rd_gl_.q_dot_[i] << " ";
-        }
-        velLog << std::endl;
-
-        torqueActualLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
-        for (int i = 0; i < MODEL_DOF; i++)
-        {
-            torqueActualLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->torqueActual[i] << " ";
-        }
-        torqueActualLog << std::endl;
-
-        bool change = false;
-
-        static int elmoStatus_before[MODEL_DOF];
-        int elmoStatus_now[MODEL_DOF];
-
-        std::copy(dc_.tc_shm_->ecat_status, dc_.tc_shm_->ecat_status + MODEL_DOF, elmoStatus_now);
-
-        for (int i = 0; i < MODEL_DOF; i++)
-        {
-            if (elmoStatus_now[i] != elmoStatus_before[i])
-                change = true;
-        }
-
-        if (change)
-        {
-            ecatStatusLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+            torqueLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
-                ecatStatusLog << elmoStatus_now[i] << "  ";
+                torqueLog << std::setfill(' ') << std::setw(5) << (int)dc_.tc_shm_->elmo_torque[i] << " ";
             }
-            ecatStatusLog << std::endl;
+            torqueLog << std::endl;
+
+            torqueCommandLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                torqueCommandLog << fixed << setprecision(4) << setw(8) << dc_.torque_command[i] << " ";
+            }
+            torqueCommandLog << std::endl;
+
+            posLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                posLog << fixed << setprecision(4) << setw(8) << rd_gl_.q_[i] << " ";
+            }
+            posLog << std::endl;
+
+            velLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                velLog << fixed << setprecision(4) << setw(8) << rd_gl_.q_dot_[i] << " ";
+            }
+            velLog << std::endl;
+
+            torqueActualLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                torqueActualLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->torqueActual[i] << " ";
+            }
+            torqueActualLog << std::endl;
+
+            bool change = false;
+
+            static int elmoStatus_before[MODEL_DOF];
+            int elmoStatus_now[MODEL_DOF];
+
+            std::copy(dc_.tc_shm_->ecat_status, dc_.tc_shm_->ecat_status + MODEL_DOF, elmoStatus_now);
+
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                if (elmoStatus_now[i] != elmoStatus_before[i])
+                    change = true;
+            }
+
+            if (change)
+            {
+                ecatStatusLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+                for (int i = 0; i < MODEL_DOF; i++)
+                {
+                    ecatStatusLog << elmoStatus_now[i] << "  ";
+                }
+                ecatStatusLog << std::endl;
+            }
+
+            std::copy(elmoStatus_now, elmoStatus_now + MODEL_DOF, elmoStatus_before);
         }
-
-        std::copy(elmoStatus_now, elmoStatus_now + MODEL_DOF, elmoStatus_before);
     }
-
     ecatStatusLog.close();
     torqueLog.close();
 
@@ -632,15 +639,14 @@ void StateManager::GetJointData()
     memcpy(state_elmo_, dc_.tc_shm_->ecat_status, sizeof(int8_t) * MODEL_DOF);
     memcpy(state_safety_, dc_.tc_shm_->safety_status, sizeof(int8_t) * MODEL_DOF);
     memcpy(state_zp_, dc_.tc_shm_->zp_status, sizeof(int8_t) * MODEL_DOF);
-    for (int i = 0; i < MODEL_DOF;i++)
+    for (int i = 0; i < MODEL_DOF; i++)
     {
         if (state_safety_[i] != state_safety_before_[i])
         {
-            if(state_safety_[i] != 0)
+            if (state_safety_[i] != 0)
             {
                 dc_.positionControlSwitch = true;
                 std::cout << "Safety Activated ! To Position Hold" << std::endl;
-
             }
         }
     }
@@ -1388,8 +1394,8 @@ void StateManager::PublishData()
 
         elmo_status_msg_.data[i + 33] = state_zp_[i];
 
-        if(dc_.tc_shm_->safety_disable)
-        {   
+        if (dc_.tc_shm_->safety_disable)
+        {
             elmo_status_msg_.data[i + 66] = 9;
         }
         else

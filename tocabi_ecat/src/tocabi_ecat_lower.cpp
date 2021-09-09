@@ -52,6 +52,8 @@ void getErrorName(int err_register, char *err)
     }
 }
 
+double g_fault_last_error_time[40] = {};
+
 void checkFault(const uint16_t statusWord, int slave)
 {
     char err_text[100] = {0};
@@ -75,7 +77,11 @@ void checkFault(const uint16_t statusWord, int slave)
         }
         else
         {
-            printf("[Fault at slave %d] set safety lock but not reading SDO...\n", slave);
+            if (control_time_real_ > g_fault_last_error_time[slave] + 0.5)
+            {
+                printf("[Fault at slave %d] set safety lock but not reading SDO...\n", slave);
+                g_fault_last_error_time[slave] = control_time_real_;
+            }
             ElmoSafteyMode[slave] = 1;
         }
     }
@@ -425,7 +431,7 @@ void *ethercatThread1(void *data)
                         {
                             std::chrono::milliseconds commutation_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - st_start_time);
                             if (ecat_verbose)
-                                printf("ELMO 2 : All slaves Operational in %d ms \n", commutation_time.count());
+                                printf("ELMO 2 : All slaves Operational in %d ms \n", (int)commutation_time.count());
 
                             if (commutation_time.count() < 500)
                             {
@@ -715,7 +721,7 @@ void *ethercatThread1(void *data)
                         max_DCtime = cur_DCtime;
 #endif
                 }
-        
+
                 printf("%sELMO 2 : Control Mode Start ... %s \n", cgreen.c_str(), creset.c_str());
                 shm_msgs_->controlModeLower = true;
 
@@ -905,6 +911,11 @@ void *ethercatThread1(void *data)
                     //Ecat joint command
                     for (int i = 0; i < ec_slavecount; i++)
                     {
+                        int torque_c = (int)(torque_desired_elmo_[START_N + i] * NM2CNT[START_N + i] * elmo_axis_direction[START_N + i]);
+                        // if (torque_c > 500)
+                        // {
+                        //     printf("E DOWN %d TORQUE OVER WARNING\n", i);
+                        // }
                         // txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
                         // txPDO[i]->targetTorque = (int)(torque_desired_elmo_[START_N + i] * NM2CNT[START_N + i] * elmo_axis_direction[START_N + i]);
                         // txPDO[i]->maxTorque = (uint16)maxTorque;
@@ -917,7 +928,7 @@ void *ethercatThread1(void *data)
                         else if (ElmoMode[i] == EM_TORQUE)
                         {
                             txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
-                            txPDO[i]->targetTorque = (int)(torque_desired_elmo_[START_N + i] * NM2CNT[START_N + i] * elmo_axis_direction[START_N + i]);
+                            txPDO[i]->targetTorque = torque_c;
                             txPDO[i]->maxTorque = (uint16)maxTorque;
 
                             /*
@@ -1181,7 +1192,7 @@ void checkJointSafety()
 
             if ((joint_lower_limit[START_N + i] > q_elmo_[START_N + i]))
             {
-                printf("E2 safety lock : joint limit %d %s q : %f lim : %f\n", i, ELMO_NAME[i], q_elmo_[START_N + i], joint_lower_limit[START_N + i]);
+                printf("E2 safety lock : joint limit %d %s q : %f lim : %f\n", i, ELMO_NAME[i].c_str(), q_elmo_[START_N + i], joint_lower_limit[START_N + i]);
 
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
                 ElmoSafteyMode[i] = 1;
@@ -1189,15 +1200,15 @@ void checkJointSafety()
 
             if ((joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
             {
-                printf("E2 safety lock : joint limit %d %s q : %f lim : %f\n", i, ELMO_NAME[i], q_elmo_[START_N + i], joint_upper_limit[START_N + i]);
+                printf("E2 safety lock : joint limit %d %s q : %f lim : %f\n", i, ELMO_NAME[i].c_str(), q_elmo_[START_N + i], joint_upper_limit[START_N + i]);
 
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
                 ElmoSafteyMode[i] = 1;
             }
 
-            if (joint_velocity_limit[START_N + i] < abs(q_dot_elmo_[START_N + i]))
+            if (joint_velocity_limit[JointMap2[START_N + i]] < abs(q_dot_elmo_[START_N + i]))
             {
-                printf("E2 safety lock : velocity limit %d %s lim : %f\n", i, ELMO_NAME[i], joint_velocity_limit[START_N + i]);
+                printf("E2 safety lock : velocity limit %d %s lim : %f\n", i, ELMO_NAME[i].c_str(), joint_velocity_limit[START_N + i]);
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_VELOCITY_LIMIT;
                 ElmoSafteyMode[i] = 1;
             }
@@ -1321,10 +1332,12 @@ void getJointCommand()
         {
             if (commandCount <= commandCount_before) //shit
             {
-                errorTimes++;
                 if (stloop_check)
                 {
-                    printf("ELMO 2 : stloop same cnt,  commandCount Error current %d before %d \n", commandCount, commandCount_before);
+                    errorTimes++;
+
+                    if (errorTimes > 2)
+                        printf("ELMO 2 : stloop same cnt,  commandCount Error current %d before %d \n", commandCount, commandCount_before);
                 }
             }
         }
@@ -1343,7 +1356,7 @@ void getJointCommand()
                 {
                     if (errorCount != commandCount)
                     {
-                        printf("%s %ld ELMO 2 : commandCount Warn! SAFETY LOCK%s\n", cred, control_time_us_, creset);
+                        printf("%s %ld ELMO 2 : commandCount Warn! SAFETY LOCK%s\n", cred.c_str(), control_time_us_, creset.c_str());
 
                         std::fill(ElmoSafteyMode, ElmoSafteyMode + MODEL_DOF, 1);
 
@@ -1573,7 +1586,7 @@ void findZeroPointlow(int slv_number)
 
         if ((q_ext_elmo_[slv_number] > 3.14) || (q_ext_elmo_[slv_number < -3.14]))
         {
-            printf("%s %delmo reboot required %s\n", cred, slv_number, creset);
+            printf("%s %delmo reboot required %s\n", cred.c_str(), slv_number, creset.c_str());
         }
     }
 
@@ -1615,7 +1628,7 @@ void findZeroPoint(int slv_number)
         if (hommingElmo[slv_number])
         {
 
-            printf("Motor %d %s : init on \n",slv_number,ELMO_NAME[slv_number].c_str());
+            printf("Motor %d %s : init on \n", slv_number, ELMO_NAME[slv_number].c_str());
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGSTART;
             elmofz[slv_number].initTime = control_time_real_;
             elmofz[slv_number].initPos = q_elmo_[slv_number];
@@ -1624,7 +1637,7 @@ void findZeroPoint(int slv_number)
         else
         {
 
-            printf("Motor %d %s : init off \n",slv_number,ELMO_NAME[slv_number].c_str());
+            printf("Motor %d %s : init off \n", slv_number, ELMO_NAME[slv_number].c_str());
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMING;
             elmofz[slv_number].initTime = control_time_real_;
             elmofz[slv_number].initPos = q_elmo_[slv_number];
@@ -1639,7 +1652,7 @@ void findZeroPoint(int slv_number)
 
         if ((hommingElmo[slv_number] == 0) && (hommingElmo_before[slv_number] == 0))
         {
-            printf("Motor %d %s : homming off found! \n",slv_number,ELMO_NAME[slv_number].c_str());
+            printf("Motor %d %s : homming off found! \n", slv_number, ELMO_NAME[slv_number].c_str());
             hommingElmo_before[slv_number] = hommingElmo[slv_number];
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
             elmofz[slv_number].initTime = control_time_real_;
@@ -1649,7 +1662,7 @@ void findZeroPoint(int slv_number)
 
         if (control_time_real_ > elmofz[slv_number].initTime + fztime)
         {
-            printf("%s warn, %d prox sensor not turning off \n %s", cred, slv_number, creset);
+            printf("%s warn, %d prox sensor not turning off \n %s", cred.c_str(), slv_number, creset.c_str());
         }
     }
     else if (elmofz[slv_number].findZeroSequence == FZ_FINDHOMMINGEND)
@@ -1662,13 +1675,13 @@ void findZeroPoint(int slv_number)
         {
             if (abs(elmofz[slv_number].posStart - q_elmo_[slv_number]) > elmofz[slv_number].req_length)
             {
-                printf("Motor %d %s : homming off found! %f req : %f\n",slv_number,ELMO_NAME[slv_number].c_str(),abs(elmofz[slv_number].posStart - q_elmo_[slv_number]), elmofz[slv_number].req_length);
+                printf("Motor %d %s : homming off found! %f req : %f\n", slv_number, ELMO_NAME[slv_number].c_str(), abs(elmofz[slv_number].posStart - q_elmo_[slv_number]), elmofz[slv_number].req_length);
                 elmofz[slv_number].posEnd = q_elmo_[slv_number];
                 elmofz[slv_number].endFound = 1;
             }
             else
             {
-                printf("Joint %d %s Not enough length req : %f det : %f\n", slv_number, ELMO_NAME[slv_number], elmofz[slv_number].req_length, abs(elmofz[slv_number].posStart - q_elmo_[slv_number]));
+                printf("Joint %d %s Not enough length req : %f det : %f\n", slv_number, ELMO_NAME[slv_number].c_str(), elmofz[slv_number].req_length, abs(elmofz[slv_number].posStart - q_elmo_[slv_number]));
 
                 state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_NOT_ENOUGH_HOMMING;
                 elmofz[slv_number].findZeroSequence = 7;
@@ -1680,7 +1693,7 @@ void findZeroPoint(int slv_number)
         {
             if (elmofz[slv_number].endFound == 1)
             {
-                printf("Motor %d %s : homming off found goto zero! \n",slv_number,ELMO_NAME[slv_number].c_str());
+                printf("Motor %d %s : homming off found goto zero! \n", slv_number, ELMO_NAME[slv_number].c_str());
                 elmofz[slv_number].findZeroSequence = FZ_GOTOZEROPOINT;
                 state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_GOTO_ZERO;
 
@@ -1766,7 +1779,7 @@ void findZeroPoint(int slv_number)
         torque_desired_elmo_[slv_number] = 0.0;
         if (hommingElmo[slv_number] && hommingElmo_before[slv_number])
         {
-            printf("Motor %d %s : homming on \n",slv_number,ELMO_NAME[slv_number].c_str());
+            printf("Motor %d %s : homming on \n", slv_number, ELMO_NAME[slv_number].c_str());
             elmofz[slv_number].findZeroSequence = 1;
             elmofz[slv_number].initTime = control_time_real_;
             elmofz[slv_number].initPos = q_elmo_[slv_number];

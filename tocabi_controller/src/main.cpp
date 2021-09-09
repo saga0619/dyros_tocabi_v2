@@ -185,7 +185,7 @@ int main(int argc, char **argv)
         }
         pthread_t loggerThread;
         pthread_attr_t loggerattrs;
-        if (activateLogger)
+        if (true)
         {
             pthread_attr_init(&loggerattrs);
 
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 
         cout << "waiting cont..." << endl;
         /* Join the thread and wait until it is done */
-        if (activateLogger)
+        if (true)
         {
             pthread_join(loggerThread, NULL);
         }

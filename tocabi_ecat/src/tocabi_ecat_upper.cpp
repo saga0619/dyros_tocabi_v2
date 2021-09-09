@@ -122,6 +122,8 @@ void getErrorName(int err_register, char *err)
     }
 }
 
+double g_fault_last_error_time[40] = {};
+
 void checkFault(const uint16_t statusWord, int slave)
 {
     char err_text[100] = {0};
@@ -145,7 +147,11 @@ void checkFault(const uint16_t statusWord, int slave)
         }
         else
         {
-            printf("[Fault at slave %d] set safety lock but not reading SDO...\n", slave);
+            if (control_time_real_ > g_fault_last_error_time[slave] + 0.5)
+            {
+                printf("[Fault at slave %d] set safety lock but not reading SDO...\n", slave);
+                g_fault_last_error_time[slave] = control_time_real_;
+            }
             ElmoSafteyMode[slave] = 1;
         }
     }
@@ -167,7 +173,7 @@ void elmoInit()
 
     elmofz[L_Shoulder1_Joint].req_length = 0.18;
     elmofz[L_Shoulder2_Joint].req_length = 0.15;
-    elmofz[R_Shoulder2_Joint].req_length = 0.08;
+    elmofz[R_Shoulder2_Joint].req_length = 0.075;
 
     elmofz[R_Shoulder3_Joint].req_length = 0.03;
     elmofz[L_Shoulder3_Joint].req_length = 0.03;
@@ -953,22 +959,13 @@ void *ethercatThread1(void *data)
 
                     getJointCommand();
 
-                    //for (int i = 0; i < ec_slavecount; i++)
-                    //{
-                    // if (command_mode_elmo_[START_N + i] == 0)
-                    // {
-                    //     ElmoMode[i] = EM_TORQUE;
-                    //     torque_desired_elmo_[START_N + i] = 0;
-                    // }
-                    // else if (command_mode_elmo_[START_N + i] == 1)
-                    // {
-                    //ElmoMode[i] = EM_TORQUE;
-                    // }
-                    // else if (command_mode_elmo_[START_N + i] == 2)
-                    // {
-                    //     ElmoMode[i] = EM_POSITION;
-                    // }
-                    //}
+                    for (int i = 0; i < ec_slavecount; i++)
+                    {
+                        if (command_mode_elmo_[START_N + i] == 1)
+                        {
+                            ElmoMode[i] = EM_TORQUE;
+                        }
+                    }
 
                     //Safety reset switch ..
                     if (shm_msgs_->safety_reset_upper_signal)
@@ -989,36 +986,38 @@ void *ethercatThread1(void *data)
                     //ECAT JOINT COMMAND
                     for (int i = 0; i < ec_slavecount; i++)
                     {
-                        txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
-                        txPDO[i]->targetTorque = (int)(torque_desired_elmo_[i] * NM2CNT[i] * elmo_axis_direction[i]);
-                        txPDO[i]->maxTorque = (uint16)maxTorque;
+                        int torque_c = (int)(torque_desired_elmo_[START_N + i] * NM2CNT[START_N + i] * elmo_axis_direction[START_N + i]);
+                        // if (torque_c > 500)
+                        // {
+                        //     printf("E UP %d TORQUE OVER WARNING\n", i);
+                        // }
+                        if (ElmoMode[i] == EM_POSITION)
+                        {
+                            txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousPositionmode;
+                            txPDO[i]->targetPosition = (int)(elmo_axis_direction[START_N + i] * RAD2CNT[START_N + i] * (q_desired_elmo_[START_N + i] + q_zero_elmo_[START_N + i]));
+                            txPDO[i]->maxTorque = (uint16)maxTorque;
+                        }
+                        else if (ElmoMode[i] == EM_TORQUE)
+                        {
+                            txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
+                            txPDO[i]->targetTorque = torque_c;
+                            txPDO[i]->maxTorque = (uint16)maxTorque;
 
-                        // if (ElmoMode[i] == EM_POSITION)
-                        // {
-                        //     txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousPositionmode;
-                        //     txPDO[i]->targetPosition = (int)(elmo_axis_direction[i] * RAD2CNT[i] * (q_desired_elmo_[i] + q_zero_elmo_[i]));
-                        //     txPDO[i]->maxTorque = (uint16)500;
-                        // }
-                        // else if (ElmoMode[i] == EM_TORQUE)
-                        // {
-                        //     txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
-                        //     txPDO[i]->targetTorque = (int)(torque_desired_elmo_[i] * NM2CNT[i] * elmo_axis_direction[i]);
-                        //     txPDO[i]->maxTorque = (uint16)maxTorque;
-                        //     /*
-                        //     if (dc.customGain)
-                        //     {
-                        //         txPDO[i]->targetTorque = (int)(ELMO_torque[i] * CustomGain[i] * elmo_axis_direction[i]);
-                        //     }
-                        //     else
-                        //     {
-                        //         txPDO[i]->targetTorque = (roundtoint)(ELMO_torque[i] * ELMO_NM2CNT[i] * elmo_axis_direction[i]);
-                        //     }*/
-                        // }
-                        // else
-                        // {
-                        //     txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
-                        //     txPDO[i]->targetTorque = (int)0;
-                        // }
+                            /*
+                            if (dc.customGain)
+                            {
+                                txPDO[i]->targetTorque = (int)(ELMO_torque[i] * CustomGain[i] * elmo_axis_direction[i]);
+                            }
+                            else
+                            {
+                                txPDO[i]->targetTorque = (roundtoint)(ELMO_torque[i] * ELMO_NM2CNT[i] * elmo_axis_direction[i]);
+                            }*/
+                        }
+                        else
+                        {
+                            txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
+                            txPDO[i]->targetTorque = (int)0;
+                        }
                     }
 
                     // if (ec_slave[0].hasdc)
@@ -1294,7 +1293,7 @@ void checkJointSafety()
                 ElmoSafteyMode[i] = 1;
             }
 
-            if (joint_velocity_limit[START_N + i] < abs(q_dot_elmo_[START_N + i]))
+            if (joint_velocity_limit[JointMap2[START_N + i]] < abs(q_dot_elmo_[START_N + i]))
             {
                 std::cout << "safety lock : velocity limit " << i << ELMO_NAME[i] << std::endl;
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_VELOCITY_LIMIT;
@@ -1455,6 +1454,8 @@ void getJointCommand()
         // if (command_mode_[Q_UPPER_START + i] == 1)
         // {
         torque_desired_elmo_[JointMap[Q_UPPER_START + i]] = torque_desired_[Q_UPPER_START + i];
+
+        ElmoMode[i] = EM_TORQUE;
         // }
         // else if (command_mode_[Q_UPPER_START + i] == 2)
         // {
@@ -1474,18 +1475,21 @@ void getJointCommand()
         {
             if (commandCount <= commandCount_before) //shit
             {
-                errorTimes++;
 
                 if (stloop_check)
                 {
-                    std::cout << control_time_us_ << "ELMO_UPP : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
-                    std::cout << "stloop same cnt" << std::endl;
+                    errorTimes++;
+                    if (errorTimes > 2)
+                    {
+                        std::cout << control_time_us_ << "ELMO_UPP : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
+                    } 
+                    // std::cout << "stloop same cnt" << std::endl;
                 }
             }
         }
         else if (errorTimes > 0)
         {
-            if (commandCount_before < commandCount) // no problem
+            if (commandCount_before < commandCount) // no problem        // std::cout << "stloop same cnt" << std::endl;
             {
                 errorTimes = 0;
                 errorCount = 0;
@@ -1498,7 +1502,7 @@ void getJointCommand()
                 {
                     if (errorCount != commandCount)
                     {
-                        std::cout << cred << control_time_us_ << "ELMO_UPP : commandCount Warn! SAFETY LOCK" << creset << std::endl;
+                        printf("%s %ld ELMO 1 : commandCount Warn! SAFETY LOCK%s\n", cred.c_str(), control_time_us_, creset.c_str());
 
                         std::fill(ElmoSafteyMode, ElmoSafteyMode + MODEL_DOF, 1);
 
@@ -1824,7 +1828,7 @@ void findZeroPoint(int slv_number)
         }
         else
         {
-            printf("init homming off : %d\n",slv_number);
+            printf("init homming off : %d\n", slv_number);
             //std::cout << "motor " << slv_number << " init state : homming off" << std::endl;
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMING;
             elmofz[slv_number].initTime = control_time_real_;
@@ -1840,7 +1844,7 @@ void findZeroPoint(int slv_number)
 
         if ((hommingElmo[slv_number] == 0) && (hommingElmo_before[slv_number] == 0))
         {
-            printf("go to homming off : %d\n",slv_number);
+            printf("go to homming off : %d\n", slv_number);
             //std::cout << "motor " << slv_number << " seq 1 complete, wait 1 sec" << std::endl;
             hommingElmo_before[slv_number] = hommingElmo[slv_number];
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
@@ -1862,7 +1866,7 @@ void findZeroPoint(int slv_number)
         //go to -20deg until homming turn on, and turn off
         if ((hommingElmo_before[slv_number] == 1) && (hommingElmo[slv_number] == 0))
         {
-            printf("go to homming on : %d\n",slv_number);
+            printf("go to homming on : %d\n", slv_number);
             if (abs(elmofz[slv_number].posStart - q_elmo_[slv_number]) > elmofz[slv_number].req_length)
             {
                 elmofz[slv_number].posEnd = q_elmo_[slv_number];
