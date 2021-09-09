@@ -193,6 +193,12 @@ void *StateManager::StateThread()
         {
             printf("stm over 500, d1 : %ld, d2 : %ld, d3 : %ld, d4 : %ld\n", d1, d2, d3, d4);
         }
+
+        for(int i=0;i<MODEL_DOF;i++)
+        {
+
+        state_safety_before_[i] = state_safety_[i];
+        }
         //printf("%d\n", rcv_tcnt);
         //printf("\x1b[A\x1b[A\33[2K\r");
         // if (rcv_tcnt % 33 == 0)
@@ -327,7 +333,36 @@ void StateManager::SendCommand()
     }
     dc_.t_c_ = true;
     std::copy(dc_.torque_command, dc_.torque_command + MODEL_DOF, torque_command);
+    static int rcv_c_count = dc_.control_command_count;
+
     dc_.t_c_ = false;
+    static int rcv_c_count_before;
+    static int warning_cnt = 0;
+    if (rcv_c_count_before == rcv_c_count)
+    {
+        warning_cnt++;
+    }
+
+    if (warning_cnt > 0)
+    {
+        static int prob_cnt;
+        prob_cnt = rcv_c_count;
+
+        if (warning_cnt > 10)
+        {
+            if (prob_cnt != rcv_c_count)
+            {
+                std::cout << "Command not received for " << warning_cnt << "times " << std::endl;
+                warning_cnt = 0;
+            }
+        }
+        else if (prob_cnt != rcv_c_count)
+        {
+            warning_cnt = 0;
+        }
+    }
+
+    rcv_c_count_before = rcv_c_count;
 
     const double maxTorque = 1000.0;
     const double rTime = 5.0;
@@ -402,7 +437,7 @@ void StateManager::SendCommand()
     {
         maxTorqueCommand = 0;
     }
-    
+
     if (dc_.E1Switch) //Emergency stop
     {
         if (dc_.E1Status)
@@ -410,15 +445,13 @@ void StateManager::SendCommand()
             dc_.E1Status = false;
         }
         else
-        {   
-            std::cout<<"E1 : STOP"<<std::endl;
+        {
+            std::cout << "E1 : STOP" << std::endl;
             rd_.q_desired = rd_gl_.q_;
             rd_.q_dot_desired.setZero();
             dc_.E1Status = true;
             rd_gl_.tc_run = false;
             rd_gl_.pc_mode = false;
-
-            
         }
 
         dc_.E1Switch = false;
@@ -444,14 +477,13 @@ void StateManager::SendCommand()
     {
         dc_.emergencyStatus = true; //
         rd_gl_.tc_run = false;
-            rd_gl_.pc_mode = false;
+        rd_gl_.pc_mode = false;
     }
 
     if (dc_.E1Status)
     {
         for (int i = 0; i < MODEL_DOF; i++)
             torque_command[i] = rd_gl_.pos_kp_v[i] * (rd_.q_desired(i) - rd_gl_.q_(i)) + rd_gl_.pos_kv_v[i] * (rd_.q_dot_desired(i) - rd_gl_.q_dot_(i));
-        
     }
 
     if (dc_.E2Status)
@@ -597,10 +629,21 @@ void StateManager::GetJointData()
     q_virtual_local_(MODEL_DOF_VIRTUAL) = dc_.tc_shm_->pos_virtual[6];
 
     //memcpy(joint_state_, dc_.tc_shm_->status, sizeof(int) * MODEL_DOF);
-
     memcpy(state_elmo_, dc_.tc_shm_->ecat_status, sizeof(int8_t) * MODEL_DOF);
     memcpy(state_safety_, dc_.tc_shm_->safety_status, sizeof(int8_t) * MODEL_DOF);
     memcpy(state_zp_, dc_.tc_shm_->zp_status, sizeof(int8_t) * MODEL_DOF);
+    for (int i = 0; i < MODEL_DOF;i++)
+    {
+        if (state_safety_[i] != state_safety_before_[i])
+        {
+            if(state_safety_[i] != 0)
+            {
+                dc_.positionControlSwitch = true;
+                std::cout << "Safety Activated ! To Position Hold" << std::endl;
+
+            }
+        }
+    }
 
     //RF_CF_FT.setZ
 
@@ -1332,11 +1375,27 @@ void StateManager::PublishData()
 
     bool query_elmo_pub_ = false;
 
+    static int gui_pub_cnt = 0;
+    gui_pub_cnt++;
+    if (gui_pub_cnt % 6 == 0)
+    {
+        query_elmo_pub_ = true;
+    }
+
     for (int i = 0; i < MODEL_DOF; i++)
     {
         elmo_status_msg_.data[i] = state_elmo_[i];
+
         elmo_status_msg_.data[i + 33] = state_zp_[i];
-        elmo_status_msg_.data[i + 66] = state_safety_[i];
+
+        if(dc_.tc_shm_->safety_disable)
+        {   
+            elmo_status_msg_.data[i + 66] = 9;
+        }
+        else
+        {
+            elmo_status_msg_.data[i + 66] = state_safety_[i];
+        }
 
         if (state_elmo_[i] != state_elmo_before_[i])
         {
@@ -1354,7 +1413,6 @@ void StateManager::PublishData()
         }
 
         state_elmo_before_[i] = state_elmo_[i];
-        state_safety_before_[i] = state_safety_[i];
         state_zp_before_[i] = state_zp_[i];
     }
 

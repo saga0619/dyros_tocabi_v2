@@ -101,10 +101,10 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
                 std::cout << "position hold switch " << std::endl;
 
-                for (int i = 0; i < MODEL_DOF; i++)
-                {
-                    std::cout << rd_.pos_kp_v[i] << "  " << rd_.pos_kv_v[i] << std::endl;
-                }
+                // for (int i = 0; i < MODEL_DOF; i++)
+                // {
+                //     std::cout << rd_.pos_kp_v[i] << "  " << rd_.pos_kv_v[i] << std::endl;
+                // }
             }
 
             if (rd_.pc_mode)
@@ -423,6 +423,7 @@ void TocabiController::SendCommand(Eigen::VectorQd torque_command)
         std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
     dc_.t_c_ = true;
+    dc_.control_command_count++;
     std::copy(torque_command.data(), torque_command.data() + MODEL_DOF, dc_.torque_command);
     dc_.t_c_ = false;
 }

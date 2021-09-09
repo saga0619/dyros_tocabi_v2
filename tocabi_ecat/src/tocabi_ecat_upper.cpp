@@ -591,7 +591,7 @@ void *ethercatThread1(void *data)
                     {
                         if (!elmost[slave - 1].commutation_required)
                         {
-                            //checkFault(rxPDO[slave - 1]->statusWord, slave);
+                            // checkFault(rxPDO[slave - 1]->statusWord, slave);
                             if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
                             {
                                 reachedInitial[slave - 1] = true;
@@ -1824,6 +1824,7 @@ void findZeroPoint(int slv_number)
         }
         else
         {
+            printf("init homming off : %d\n",slv_number);
             //std::cout << "motor " << slv_number << " init state : homming off" << std::endl;
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMING;
             elmofz[slv_number].initTime = control_time_real_;
@@ -1839,6 +1840,7 @@ void findZeroPoint(int slv_number)
 
         if ((hommingElmo[slv_number] == 0) && (hommingElmo_before[slv_number] == 0))
         {
+            printf("go to homming off : %d\n",slv_number);
             //std::cout << "motor " << slv_number << " seq 1 complete, wait 1 sec" << std::endl;
             hommingElmo_before[slv_number] = hommingElmo[slv_number];
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
@@ -1860,6 +1862,7 @@ void findZeroPoint(int slv_number)
         //go to -20deg until homming turn on, and turn off
         if ((hommingElmo_before[slv_number] == 1) && (hommingElmo[slv_number] == 0))
         {
+            printf("go to homming on : %d\n",slv_number);
             if (abs(elmofz[slv_number].posStart - q_elmo_[slv_number]) > elmofz[slv_number].req_length)
             {
                 elmofz[slv_number].posEnd = q_elmo_[slv_number];

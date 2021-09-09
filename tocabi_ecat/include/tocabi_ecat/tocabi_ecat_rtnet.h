@@ -1,9 +1,115 @@
-#include "ecat_man.h"
+#include <iostream>
+#include <thread>
+#include <atomic>
+#include <chrono>
+#include <vector>
+
+#include <stdarg.h>
+#include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <fstream>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <cstring>
+#include <cmath>
+#include <sys/stat.h>
+
+#include <ethercat.h>
+#include "tocabi_ecat/ecat_settings.h"
+#include "shm_msgs.h"
 
 using namespace std;
 
+struct TocabiEcat
+{
+    
+}
 
 
+struct TocabiInitArgs
+{
+    std::string port1;
+    std::string port2;
+
+    int period_ns;
+    int lock_core;
+    int start_joint;
+    int expected_counter;
+};
+
+namespace EtherCAT_Elmo
+{
+    enum MODE_OF_OPERATION
+    {
+        ProfilePositionmode = 1,
+        ProfileVelocitymode = 3,
+        ProfileTorquemode = 4,
+        Homingmode = 6,
+        InterpolatedPositionmode = 7,
+        CyclicSynchronousPositionmode = 8,
+        CyclicSynchronousVelocitymode = 9,
+        CyclicSynchronousTorquemode = 10,
+        CyclicSynchronousTorquewithCommutationAngle = 11
+    };
+
+    struct ElmoGoldDevice
+    {
+        struct elmo_gold_tx
+        {
+            int32_t targetPosition;
+            int32_t targetVelocity;
+            int16_t targetTorque;
+            uint16_t maxTorque;
+            uint16_t controlWord;
+            int8_t modeOfOperation;
+        };
+        struct elmo_gold_rx
+        {
+            int32_t positionActualValue;
+            //int32_t positionFollowingErrrorValue;
+            uint32_t hommingSensor;
+            uint16_t statusWord;
+            //int8_t modeOfOperationDisplay;
+            int32_t velocityActualValue;
+            int16_t torqueActualValue;
+            //int16_t torqueDemandValue;
+            int32_t positionExternal;
+        };
+    };
+} // namespace EtherCAT_Elmo
+
+const int FAULT_BIT = 3;
+const int OPERATION_ENABLE_BIT = 2;
+const int SWITCHED_ON_BIT = 1;
+const int READY_TO_SWITCH_ON_BIT = 0;
+
+enum
+{
+    CW_SHUTDOWN = 6,
+    CW_SWITCHON = 7,
+    CW_ENABLEOP = 15,
+    CW_DISABLEOP = 7,
+};
+
+enum
+{
+    ELMO_FAULT = 0,
+    ELMO_NOTFAULT = 2,
+    ELMO_READY_TO_SWITCH_ON = 3,
+    ELMO_SWITCHED_ON = 4,
+    ELMO_OPERATION_ENABLE = 1,
+};
+
+namespace ElmoHommingStatus
+{
+    enum FZResult
+    {
+        SUCCESS = 1,
+        FAILURE = 0
+    };
+}; // namespace ElmoHommingStatus
 
 struct ElmoState
 {
@@ -37,9 +143,41 @@ struct ElmoHomming
     int result;
 };
 
+enum ElmoJointState
+{
+    MOTOR_COMMUTATION = 1,
+    MOTOR_OPERATION_READY = 2,
+    MOTOR_SEARChING_REQUIRED = 3,
+    MOTOR_SEARCHING_ZP = 4,
+    MOTOR_SEARCHING_MANUAL = 5,
+    MOTOR_SEARCHING_COMPLETE = 6,
+    MOTOR_SAFETY_LOCK = 7,
+    MOTOR_SAFETY_DISABLED = 8,
+};
+
+enum
+{
+    FZ_CHECKHOMMINGSTATUS,
+    FZ_FINDHOMMINGSTART,
+    FZ_FINDHOMMINGEND,
+    FZ_FINDHOMMING,
+    FZ_GOTOZEROPOINT,
+    FZ_HOLDZEROPOINT,
+    FZ_FAILEDANDRETURN,
+    FZ_MANUALDETECTION,
+    FZ_TORQUEZERO,
+};
+
 ElmoHomming elmofz[ELMO_DOF];
 ElmoState elmost[ELMO_DOF];
 int ElmoMode[ELMO_DOF];
+enum
+{
+    EM_POSITION = 11,
+    EM_TORQUE = 22,
+    EM_DEFAULT = 33,
+    EM_COMMUTATION = 44,
+};
 
 char IOmap[4096];
 OSAL_THREAD_HANDLE thread1;
@@ -49,8 +187,10 @@ volatile int wkc;
 boolean inOP;
 uint8 currentgroup = 0;
 
-char commutation_cache_file[] = "/home/dyros/.tocabi_bootlog/commutationlog_lower";
-char zeropoint_cache_file[] = "/home/dyros/.tocabi_bootlog/zeropointlog_lower";
+int start_joint_ = 0;
+
+char commutation_cache_file[] = "/home/dyros/.tocabi_bootlog/commutationlog";
+char zeropoint_cache_file[] = "/home/dyros/.tocabi_bootlog/zeropointlog";
 int stateElmo[ELMO_DOF];
 int stateElmo_before[ELMO_DOF];
 
@@ -59,16 +199,17 @@ double torqueCC_recvt;
 double torqueCC_comt;
 
 double control_time_real_;
-long control_time_us_;
-double torque_on_time_;
-double torque_off_time_;
-bool torque_switch_;
-bool torque_on_;
-bool torque_off_;
 
 bool hommingElmo[ELMO_DOF];
 bool hommingElmo_before[ELMO_DOF];
 
+enum SAFETY_PROTOCOL
+{
+    NORMAL,
+    LOCKED_BY_VEL,
+    LOCKED_BY_JOL,
+    DISABLED,
+};
 int ElmoSafteyMode[ELMO_DOF];
 
 EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_rx *rxPDO[ELMO_DOF];
@@ -92,11 +233,15 @@ int fz_group3[12] = {
 bool fz_group1_check = false;
 bool fz_group2_check = false;
 bool fz_group3_check = false;
-int fz_group = 1;
+int fz_group = 0;
 
 bool ConnectionUnstableBeforeStart = false;
 
 int bootseq = 0;
+//int bootseq
+const int firstbootseq[5] = {0, 33, 35, 8, 64};
+const int secondbootseq[4] = {0, 33, 35, 39};
+
 bool ecat_connection_ok = false;
 
 bool ecat_number_ok = false;
@@ -126,9 +271,6 @@ int wait_cnt = 0;
 
 int commutation_joint = 0;
 
-bool ecat_verbose = true;
-
-
 chrono::steady_clock::time_point st_start_time;
 std::chrono::duration<double> time_from_begin;
 std::chrono::nanoseconds cycletime(PERIOD_NS);
@@ -147,53 +289,47 @@ atomic<bool> de_zp_upper_switch{false};
 atomic<bool> de_zp_lower_switch{false};
 atomic<int> de_debug_level{0};
 
-int8_t state_elmo_[ELMO_DOF];
-int8_t state_zp_[ELMO_DOF];
-int8_t state_safety_[ELMO_DOF];
+std::string soem_port;
+bool force_control_mode = false;
+int soem_freq = 0;
+int expected_counter = 0;
+int period_ns = 0;
 
 int joint_state_elmo_[ELMO_DOF]; //sendstate
+int joint_state_[ELMO_DOF];      //sendstate
 
 float q_elmo_[ELMO_DOF];      //sendstate
 float q_dot_elmo_[ELMO_DOF];  //sendstate
 float torque_elmo_[ELMO_DOF]; //sendstate
 float q_ext_elmo_[ELMO_DOF];
 
-int command_mode_elmo_[ELMO_DOF];       //0 off 1 torque 2 position 
-float torque_desired_elmo_[ELMO_DOF];   //get torque command
-float q_desired_elmo_[ELMO_DOF];        //get joint command
-
-//int command_mode_[ELMO_DOF];
-
-int joint_state_[ELMO_DOF]; //sendstate
-float q_[ELMO_DOF];         //sendstate
-float q_dot_[ELMO_DOF];     //sendstate
-float torque_[ELMO_DOF];    //sendstate
+float q_[ELMO_DOF];      //sendstate
+float q_dot_[ELMO_DOF];  //sendstate
+float torque_[ELMO_DOF]; //sendstate
 float q_ext_[ELMO_DOF];
 
 int command_mode_[ELMO_DOF];
-float torque_desired_[ELMO_DOF]; //get torque command
-float q_desired_[ELMO_DOF];      //get joint command
-
-int maxTorque = 0;
+float torque_desired_elmo_[ELMO_DOF]; //get torque command
+float q_desired_elmo_[ELMO_DOF];      //get joint command
+float torque_desired_[ELMO_DOF];      //get torque command
+float q_desired_[ELMO_DOF];           //get joint command
 
 double q_zero_point[ELMO_DOF];
 
 double q_zero_elmo_[ELMO_DOF];
 double q_zero_mod_elmo_[ELMO_DOF];
 
-//from param
-// std::vector<double> NM2CNT;
-// std::vector<double> joint_velocity_limit;
-// std::vector<double> joint_upper_limit;
-// std::vector<double> joint_lower_limit;
-
-
-void *ethercatThread1(void *data);
-void *ethercatThread2(void *data);
+void * ethercatThread1(void *data);
+void * ethercatThread2(void *data);
 void ethercatCheck();
 
 double elmoJointMove(double init, double angle, double start_time, double traj_time);
+
 bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord);
+void checkFault(const uint16_t statusWord, int slave);
+
+bool initTocabiSystem(const TocabiInitArgs & args);
+void cleanupTocabiSystem();
 
 void elmoInit();
 
@@ -204,17 +340,20 @@ void checkJointStatus();
 void sendJointStatus();
 void getJointCommand();
 
+int shm_id_;
+SHMmsgs *shm_msgs_;
+
 bool saveCommutationLog();
 bool loadCommutationLog();
 
-int shm_id_;
-SHMmsgs* shm_msgs_;
 //bool commutation_time_loaded = false;
 
 chrono::system_clock::time_point commutation_save_time_;
 
 bool saveZeroPoint();
-bool loadZeroPoint(bool force = false);
+bool loadZeroPoint();
+
+bool status_log = false;
 
 void emergencyOff();
 
@@ -232,6 +371,23 @@ const std::string cblue("\033[0;34m");
 const std::string cgreen("\033[0;32m");
 const std::string cyellow("\033[0;33m");
 
+float lat_avg, lat_min, lat_max, lat_dev;
+float send_avg, send_min, send_max, send_dev;
 
-// bool emlockTriggered = false;
-// void EmergencyPositionLock();
+float lat_avg2, lat_min2, lat_max2, lat_dev2;
+float send_avg2, send_min2, send_max2, send_dev2;
+
+int low_rcv_ovf, low_mid_ovf, low_snd_ovf;
+int low_rcv_us, low_mid_us, low_snd_us;
+float low_rcv_avg, low_rcv_max;
+float low_mid_avg, low_mid_max;
+float low_snd_avg, low_snd_max;
+
+
+unsigned long long g_cur_dc32 = 0;
+unsigned long long g_pre_dc32 = 0;
+long long g_diff_dc32 = 0;
+long long g_cur_DCtime = 0, g_max_DCtime = 0;
+int g_PRNS = period_ns;
+struct timespec g_ts;
+int64 g_toff;//, gl_delta;

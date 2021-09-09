@@ -200,6 +200,7 @@ struct RobotData
     int count_for_inverse = 0;
     int count_for_inverse_total = 0;
 
+
     ///////////////////
 };
 
@@ -209,6 +210,7 @@ struct DataContainer
     ros::NodeHandle nh;
     RobotData rd_;
 
+    std::atomic<int> control_command_count = 0;
     std::vector<float> Kps;
     std::vector<float> Kvs;
 

@@ -1,4 +1,5 @@
 #include "tocabi_ecat/tocabi_ecat_lower.h"
+#include "ros/ros.h"
 #include <cstring>
 
 static int latency_target_fd = -1;
