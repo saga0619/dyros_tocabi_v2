@@ -1,40 +1,25 @@
-#pragma once
 
-// #include <atomic>
-#include <stdio.h>
-#include <string.h>
+#include <iostream>
+#include <thread>
+#include <atomic>
+#include <chrono>
+#include <vector>
+
 #include <stdarg.h>
+#include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <fstream>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-// #include <cstring>
+#include <cstring>
+#include <cmath>
 #include <sys/stat.h>
-#include <math.h>
+
 #include <ethercat.h>
-#include "tocabi_ecat/ecat_settings.h"
+#include "ecat_settings.h"
 #include "shm_msgs.h"
-
-struct TocabiInitArgs
-{
-    char port1[20];
-    char port2[20];
-
-    int period_ns;
-    int lock_core;
-
-    int ecat_device; // ELMO 1, ELMO 2
-    int ecat_slave_num;
-    int ecat_slave_start_num;
-
-    bool is_main;
-
-    bool verbose;
-
-    char commutation_cache_file[100]; // = "/home/dyros/.tocabi_bootlog/commutationlog";
-    char zeropoint_cache_file[100];   // = "/home/dyros/.tocabi_bootlog/zeropointlog";
-};
 
 namespace EtherCAT_Elmo
 {
@@ -77,6 +62,12 @@ namespace EtherCAT_Elmo
     };
 } // namespace EtherCAT_Elmo
 
+const int FAULT_BIT = 3;
+const int OPERATION_ENABLE_BIT = 2;
+const int SWITCHED_ON_BIT = 1;
+const int READY_TO_SWITCH_ON_BIT = 0;
+
+
 enum
 {
     CW_SHUTDOWN = 6,
@@ -103,38 +94,6 @@ namespace ElmoHommingStatus
     };
 }; // namespace ElmoHommingStatus
 
-struct ElmoState
-{
-    int boot_sequence = 0;
-    int state = 0;
-    int state_before = 0;
-    uint16_t check_value = 0;
-    uint16_t check_value_before = 0;
-
-    bool commutation_ok = false;
-    bool commutation_required = false;
-    bool commutation_not_required = false;
-    bool first_check = true;
-};
-
-struct ElmoHomming
-{
-    bool hommingElmo;
-    bool hommingElmo_before;
-    bool startFound = false;
-    bool endFound = false;
-    int findZeroSequence = 0;
-    double initTime;
-    double initPos;
-    double desPos;
-    double posStart;
-    double posEnd;
-    double req_length = 0.2;
-    double firstPos;
-    double init_direction = 1;
-    int status;
-    int result;
-};
 
 enum ElmoJointState
 {
@@ -176,46 +135,3 @@ enum SAFETY_PROTOCOL
     LOCKED_BY_JOL,
     DISABLED,
 };
-
-void *ethercatThread1(void *data);
-void *ethercatThread2(void *data);
-void ethercatCheck();
-
-double elmoJointMove(double init, double angle, double start_time, double traj_time);
-
-bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord);
-void checkFault(const uint16_t statusWord, int slave);
-
-bool initTocabiSystem(const TocabiInitArgs &args);
-void cleanupTocabiSystem();
-
-void elmoInit();
-
-void checkJointSafety();
-void checkJointStatus();
-
-//void initSharedMemory();
-void sendJointStatus();
-void getJointCommand();
-
-bool saveCommutationLog();
-bool loadCommutationLog(struct timespec &commutation_time);
-
-bool saveZeroPoint();
-bool loadZeroPoint(bool force = false);
-
-
-void emergencyOff();
-
-int kbhit(void);
-
-int getElmoState(uint16_t state_bit);
-
-void findzeroLeg();
-void findZeroPointlow(int slv_number, double time_real_);
-void findZeroPoint(int slv_number, double time_real_);
-
-void getErrorName(int err_register, char *err);
-
-long getTimeDiff(struct timespec &from, struct timespec &to);
-long getTimeDiff(struct timespec &a);

@@ -11,7 +11,7 @@ if(${FORCE_REALROBOT} MATCHES ON)
 else()
 
 ADD_DEFINITIONS(-DTIME_CHECK)
-# ADD_DEFINITIONS(-DCATOMIC)
+ADD_DEFINITIONS(-DECAT_DC)
 
 execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RES OUTPUT_STRIP_TRAILING_WHITESPACE)
 message("-- kernel version : " ${UNAME_RES})
@@ -19,7 +19,7 @@ execute_process(COMMAND xeno-config --posix --cflags OUTPUT_VARIABLE XENO_CFLAGS
 
 execute_process(COMMAND xeno-config --posix --ldflags OUTPUT_VARIABLE XENO_LDFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 message(" xeno flags : " ${XENO_CFLAGS})
-string(FIND ${UNAME_RES} "xenomai" wsloc)
+string(FIND ${UNAME_RES} "Sxenomai" wsloc)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")

@@ -582,7 +582,6 @@ bool initTocabiSystem(const TocabiInitArgs &args)
     g_cur_DCtime = cur_DCtime;
     g_PRNS = PRNS;
     g_ts = ts;
-
     return true;
 }
 
