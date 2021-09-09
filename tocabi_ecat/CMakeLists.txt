@@ -21,8 +21,8 @@ execute_process(COMMAND xeno-config --posix --ldflags OUTPUT_VARIABLE XENO_LDFLA
 message(" xeno flags : " ${XENO_CFLAGS})
 string(FIND ${UNAME_RES} "xenomai" wsloc)
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
-# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
 
 
 if(${wsloc} EQUAL -1 )
@@ -116,17 +116,8 @@ link_directories(
 #   ${catkin_LIBRARIES}
 # )
 
-add_library(tocabi_ecat_lower_lib
-  src/tocabi_ecat_rtnet.cpp
-  ${catkin_LIBRARIES}
-)
 
-add_library(tocabi_ecat_upper_lib
-  src/tocabi_ecat_rtnet.cpp
-  ${catkin_LIBRARIES}
-)
-
-add_library(tocabi_ecat_rtnet_lib
+add_library(tocabi_ecat_rtnet_lib STATIC
   src/tocabi_ecat_rtnet.cpp
   ${catkin_LIBRARIES}
 )
@@ -140,9 +131,9 @@ add_library(tocabi_ecat_rtnet_lib
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(tocabi_ecat src/main.cpp)
-add_executable(tocabi_ecat_rtnet src/main_rt.cpp)
-add_executable(tocabi_ecat_lower src/ecat_lower.cpp)
-add_executable(tocabi_ecat_upper src/ecat_upper.cpp)
+add_executable(tocabi_ecat_rtnet src/main_rt.cpp src/tocabi_ecat_rtnet.cpp  src/ecat_settings.cpp)
+add_executable(tocabi_ecat_lower src/ecat_lower.cpp src/tocabi_ecat_rtnet.cpp src/ecat_settings.cpp)
+add_executable(tocabi_ecat_upper src/ecat_upper.cpp src/tocabi_ecat_rtnet.cpp src/ecat_settings.cpp)
 
 add_executable(watcher src/watcher.cpp)
 
@@ -167,24 +158,23 @@ add_executable(watcher src/watcher.cpp)
 #   -lsoem
 #   -pthread
 # )
-target_link_libraries(tocabi_ecat_lower
-  tocabi_ecat_lower_lib
-  -lsoem
-  ${XENO_CFLAGS}
-  ${XENO_LDFLAGS}
-)
-target_link_libraries(tocabi_ecat_upper
-  tocabi_ecat_upper_lib
-  -lsoem
-  ${XENO_CFLAGS}
-  ${XENO_LDFLAGS}
-)
-
 target_link_libraries(tocabi_ecat_rtnet
 tocabi_ecat_rtnet_lib
 -lsoem
-${XENO_CFLAGS}
-${XENO_LDFLAGS})
+# ${XENO_CFLAGS}
+# ${XENO_LDFLAGS}
+)
+target_link_libraries(tocabi_ecat_lower
+  -lsoem
+  # ${XENO_CFLAGS}
+  # ${XENO_LDFLAGS}
+)
+target_link_libraries(tocabi_ecat_upper
+  -lsoem
+  # ${XENO_CFLAGS}
+  # ${XENO_LDFLAGS}
+)
+
 
 #############
 ## Install ##

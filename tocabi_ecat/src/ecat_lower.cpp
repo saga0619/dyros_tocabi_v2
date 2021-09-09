@@ -99,16 +99,16 @@ int main(int argc, char **argv)
         return ret;
     }
 
-    // cpu_set_t cpuset;
-    // CPU_ZERO(&cpuset);
-    // CPU_SET(6, &cpuset);
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(6, &cpuset);
 
-    // ret = pthread_attr_setaffinity_np(&attr, sizeof(cpuset), &cpuset);
-    // if (ret)
-    // {
-    //     printf("pthread setaffinity failed\n");
-    //     return ret;
-    // }
+    ret = pthread_attr_setaffinity_np(&attr, sizeof(cpuset), &cpuset);
+    if (ret)
+    {
+        printf("pthread setaffinity failed\n");
+        return ret;
+    }
 
     /* Use scheduling parameters of attr */
     ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
@@ -117,6 +117,16 @@ int main(int argc, char **argv)
         printf("pthread setinheritsched failed\n");
         return ret;
     }
+
+    printf("[ECAT - INFO] start init process\n");
+    bool init_result = initTocabiSystem(init_args);
+    if (!init_result)
+    {
+        printf("[ECAT - ERRO] init failed\n");
+        return -1;
+    }
+
+    printf("[ECAT - INFO] init process has been done\n");
 
     // /* Create a pthread with specified attributes */
     ret = pthread_create(&thread1, &attr, ethercatThread1, &init_args);
@@ -131,16 +141,6 @@ int main(int argc, char **argv)
         printf("create pthread 2 failed\n");
         return ret;
     }
-
-    printf("[ECAT - INFO] start init process\n");
-    bool init_result = initTocabiSystem(init_args);
-    if (!init_result)
-    {
-        printf("[ECAT - ERRO] init failed\n");
-        return -1;
-    }
-
-    printf("[ECAT - INFO] init process has been done\n");
 
     pthread_attr_destroy(&attr);
     pthread_attr_destroy(&attr2);

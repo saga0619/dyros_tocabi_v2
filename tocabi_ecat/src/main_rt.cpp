@@ -57,13 +57,13 @@ int main(int argc, char *argv[])
     // soem_port = argv[1];
     int period_us = atoi(argv[3]);
     init_args.period_ns = period_us * 1000;
-    expected_counter = atoi(argv[4]);
+    int expected_counter = atoi(argv[4]);
     init_args.ecat_slave_num = expected_counter;
-    start_joint_ = atoi(argv[5]);
+    int start_joint_ = atoi(argv[5]);
     init_args.ecat_slave_start_num = start_joint_;
     lock_core_ = atoi(argv[6]);
     init_args.lock_core = lock_core_;
-    period_ns = period_us * 1000;
+    int period_ns = period_us * 1000;
 
     // std::cout << " ecat port : " << soem_port << std::endl;
     // std::cout << " period_ns  : " << period_ns << std::endl;

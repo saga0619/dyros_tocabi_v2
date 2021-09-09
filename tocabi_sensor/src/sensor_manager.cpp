@@ -169,7 +169,7 @@ int main(int argc, char **argv)
     pthread_attr_t attr;
     pthread_t thread;
 
-    param.sched_priority = 80;
+    param.sched_priority = 70;
     // cpu_set_t cpusets[thread_number];
 
     //set_latency_target();

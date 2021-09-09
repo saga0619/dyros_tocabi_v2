@@ -454,13 +454,21 @@ void TocabiController::PositionCommandCallback(const tocabi_msgs::positionComman
 {
     rd_.pc_traj_time_ = msg->traj_time;
 
+    if(msg->relative)
+    {
+        rd_.pc_pos_init = rd_.pc_pos_des;
+    }
+
     rd_.pc_time_ = rd_.control_time_;
+    rd_.pc_pos_init = rd_.q_;
+    
+
+
 
     for (int i = 0; i < MODEL_DOF; i++)
     {
         rd_.pc_pos_des(i) = msg->position[i];
     }
-    rd_.pc_pos_init = rd_.q_;
     rd_.pc_mode = true;
     rd_.pc_gravity = msg->gravity;
     rd_.positionHoldSwitch = false;
