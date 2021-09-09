@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tocabi_ecat)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-O2)
+add_compile_options(-O0)
 
 if(${FORCE_REALROBOT} MATCHES ON)
   message(" forces realrobot compile mode ")
@@ -10,8 +10,8 @@ if(${FORCE_REALROBOT} MATCHES ON)
   set(COMPILE_REAL TRUE)
 else()
 
-ADD_DEFINITIONS(-DTIME_CHECK)
-ADD_DEFINITIONS(-DECAT_DC)
+# ADD_DEFINITIONS(-DTIME_CHECK)
+# ADD_DEFINITIONS(-DECAT_DC)
 
 execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RES OUTPUT_STRIP_TRAILING_WHITESPACE)
 message("-- kernel version : " ${UNAME_RES})
@@ -21,8 +21,8 @@ execute_process(COMMAND xeno-config --posix --ldflags OUTPUT_VARIABLE XENO_LDFLA
 message(" xeno flags : " ${XENO_CFLAGS})
 string(FIND ${UNAME_RES} "Sxenomai" wsloc)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
 
 
 if(${wsloc} EQUAL -1 )
@@ -166,13 +166,13 @@ tocabi_ecat_rtnet_lib
 )
 target_link_libraries(tocabi_ecat_lower
   -lsoem
-  # ${XENO_CFLAGS}
-  # ${XENO_LDFLAGS}
+  ${XENO_CFLAGS}
+  ${XENO_LDFLAGS}
 )
 target_link_libraries(tocabi_ecat_upper
   -lsoem
-  # ${XENO_CFLAGS}
-  # ${XENO_LDFLAGS}
+  ${XENO_CFLAGS}
+  ${XENO_LDFLAGS}
 )
 
 
