@@ -41,6 +41,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "tocabi_ecat_upper");
     ros::NodeHandle nh_;
     nh_.param("/tocabi_ecat_upper/verbose", ecat_verbose, true);
+    nh_.param("/tocabi_ecat_upper/minrcv", min_rcv, false);
 
     // nh_.getParam("/tocabi_controller/vellimit", joint_velocity_limit);
     // nh_.getParam("/tocabi_controller/jointlimit_u", joint_upper_limit);

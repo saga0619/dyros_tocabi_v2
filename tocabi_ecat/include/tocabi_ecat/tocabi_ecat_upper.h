@@ -256,6 +256,7 @@ bool query_check_state = false;
 bool zp_lower_calc = true;
 
 bool ecat_verbose = true;
+bool min_rcv = false;
 
 int wait_cnt = 0;
 

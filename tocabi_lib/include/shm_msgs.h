@@ -87,6 +87,9 @@ typedef struct SHMmsgs
     std::atomic<bool> upperTimerSet;
     std::atomic<bool> lowerTimerSet;
 
+    int lat_ovf, lat_ovf2;
+    int send_ovf, send_ovf2;
+
     float lat_avg, lat_min, lat_max, lat_dev;
     float send_avg, send_min, send_max, send_dev;
 

@@ -1,6 +1,7 @@
 <launch>
     <arg name="hand" default="false"/>
     <arg name="log" default="false"/>
+    <arg name="init" default="true"/>
 
     <group if="$(arg hand)">
         <param name="tocabi_controller/urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi_with_redhands.urdf"/>
@@ -24,9 +25,11 @@
 
     <node name="tocabi_ecat_lower" pkg="tocabi_ecat" type="tocabi_ecat_lower" output="screen">
         <param name="verbose" value="false"/>
+        <param name="minrcv" value="$(arg init)"/>
     </node>
 
     <node name="tocabi_ecat_upper" pkg="tocabi_ecat" type="tocabi_ecat_upper" output="screen">
         <param name="verbose" value="false"/>
+        <param name="minrcv" value="$(arg init)"/>
     </node>
 </launch>

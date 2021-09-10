@@ -181,7 +181,8 @@ void *StateManager::StateThread()
         rd_gl_.state_ctime_avg_ = rd_gl_.state_ctime_total_ / stm_count_;
         if (stm_count_ % 2000 == 0)
         {
-            printf("%f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d \n", control_time_, (int)dc_.tc_shm_->statusCount, stm_count_, (int)dc_.tcm_cnt);
+            int e_cnt = dc_.tc_shm_->statusCount;
+            printf("%7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d \n", control_time_, e_cnt, stm_count_-e_cnt, (int)dc_.tcm_cnt-e_cnt);
         }
 
         if (d2 > 500)
@@ -213,15 +214,15 @@ void *StateManager::LoggerThread()
     dc_.nh.getParam("/tocabi_controller/log", activateLogger);
 
     //wait for both ecat are in control mode !
-    while (!dc_.tc_shm_->shutdown)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        if (dc_.tc_shm_->controlModeLower && dc_.tc_shm_->controlModeUpper)
-        {
-            std::cout << "Logger : Both ECAT is now on CONTROL MODE! Logging start..." << std::endl;
-            break;
-        }
-    }
+    // while (!dc_.tc_shm_->shutdown)
+    // {
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    //     if (dc_.tc_shm_->controlModeLower && dc_.tc_shm_->controlModeUpper)
+    //     {
+    //         std::cout << "Logger : Both ECAT is now on CONTROL MODE! Logging start..." << std::endl;
+    //         break;
+    //     }
+    // }
 
     char torqueLogFile[] = "/home/dyros/tocabi_log/torque_elmo_log";
     char ecatStatusFile[] = "/home/dyros/tocabi_log/ecat_status_log";

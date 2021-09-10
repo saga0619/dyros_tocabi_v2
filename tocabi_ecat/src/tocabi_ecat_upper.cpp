@@ -254,12 +254,23 @@ void *ethercatThread1(void *data)
                 //0x1a13 :  Torque actual value         16bit
                 //0x1a1e :  Auxiliary position value    32bit
                 uint16 map_1c13[5] = {0x0004, 0x1a00, 0x1a11, 0x1a13, 0x1a1e}; //, 0x1a12};
+                uint16 map_1c13_2[4] = {0x0003, 0x1a0a, 0x1a0e, 0x1a11};
                 //uint16 map_1c13[6] = {0x0005, 0x1a04, 0x1a11, 0x1a12, 0x1a1e, 0X1a1c};
+
                 int os;
                 os = sizeof(map_1c12);
                 ec_SDOwrite(slave, 0x1c12, 0, TRUE, os, map_1c12, EC_TIMEOUTRXM);
-                os = sizeof(map_1c13);
-                ec_SDOwrite(slave, 0x1c13, 0, TRUE, os, map_1c13, EC_TIMEOUTRXM);
+
+                if (min_rcv)
+                {
+                    os = sizeof(map_1c13_2);
+                    ec_SDOwrite(slave, 0x1c13, 0, TRUE, os, map_1c13_2, EC_TIMEOUTRXM);
+                }
+                else
+                {
+                    os = sizeof(map_1c13);
+                    ec_SDOwrite(slave, 0x1c13, 0, TRUE, os, map_1c13, EC_TIMEOUTRXM);
+                }
             }
             /** if CA disable => automapping works */
             ec_config_map(&IOmap);
@@ -387,7 +398,7 @@ void *ethercatThread1(void *data)
                     //std::this_thread::sleep_until(st_start_time + cycle_count * cycletime);
                     cycle_count++;
                     ec_send_processdata();
-                    wkc = ec_receive_processdata(200);
+                    wkc = ec_receive_processdata(350);
                     control_time_us_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count();
                     control_time_real_ = control_time_us_ / 1000000.0;
 
@@ -827,6 +838,7 @@ void *ethercatThread1(void *data)
                 int64_t total_dev1, total_dev2;
                 float lmax, lmin, ldev, lavg, lat;
                 float smax, smin, sdev, savg, sat;
+                int lovf, sovf;
 
                 total1 = 0;
                 total2 = 0;
@@ -861,16 +873,19 @@ void *ethercatThread1(void *data)
 
                 struct timespec ts1, ts2;
 
+                chrono::steady_clock::time_point rcv_;
+                chrono::steady_clock::time_point rcv2_;
+
                 while (!shm_msgs_->shutdown)
                 {
 
                     //shm_msgs_->t_cnt++;
-                    chrono::steady_clock::time_point rcv_ = chrono::steady_clock::now();
+                    rcv_ = chrono::steady_clock::now();
 
                     control_time_real_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count() / 1000000.0;
 
                     ts.tv_nsec += PERIOD_NS + toff;
-                    while (ts.tv_nsec >= SEC_IN_NSEC)
+                    if (ts.tv_nsec >= SEC_IN_NSEC)
                     {
                         ts.tv_sec++;
                         ts.tv_nsec -= SEC_IN_NSEC;
@@ -885,12 +900,12 @@ void *ethercatThread1(void *data)
 
                     lat = (ts1.tv_sec - ts.tv_sec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec;
 
-                    chrono::steady_clock::time_point rcv2_ = chrono::steady_clock::now();
+                    rcv2_ = chrono::steady_clock::now();
                     //std::this_thread::sleep_for(std::chrono::microseconds(30));
 
                     /** PDO I/O refresh */
                     ec_send_processdata();
-                    wkc = ec_receive_processdata(200);
+                    wkc = ec_receive_processdata(350);
 
                     // while (EcatError)
                     //     printf("%f %s", control_time_real_, ec_elist2string());
@@ -1067,13 +1082,16 @@ void *ethercatThread1(void *data)
                     {
                         lmin = lat;
                     }
+                    if (lat > 150)
+                    {
+                        lovf++;
+                    }
                     total_dev1 += sqrt(((lat - lavg) * (lat - lavg)));
                     ldev = total_dev1 / cycle_count;
 
                     shm_msgs_->lat_avg = lavg;
                     shm_msgs_->lat_max = lmax;
-                    shm_msgs_->lat_min = lmin;
-                    shm_msgs_->lat_dev = ldev;
+                    shm_msgs_->lat_ovf = lovf;
 
                     //sat = latency2.count();
                     total2 += sat;
@@ -1086,10 +1104,9 @@ void *ethercatThread1(void *data)
                     {
                         smin = sat;
                     }
-
-                    if (sat > 200000)
+                    if (sat > 350000)
                     {
-                        shm_msgs_->low_mid_ovf++;
+                        sovf++;
                     }
                     // int sdev = (sat - savg)
                     total_dev2 += sqrt(((sat - savg) * (sat - savg)));
@@ -1097,8 +1114,7 @@ void *ethercatThread1(void *data)
 
                     shm_msgs_->send_avg = savg;
                     shm_msgs_->send_max = smax;
-                    shm_msgs_->send_min = smin;
-                    shm_msgs_->send_dev = sdev;
+                    shm_msgs_->send_ovf = sovf;
 
                     cycle_count++;
                 }
@@ -1482,7 +1498,7 @@ void getJointCommand()
                     if (errorTimes > 2)
                     {
                         std::cout << control_time_us_ << "ELMO_UPP : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::endl;
-                    } 
+                    }
                     // std::cout << "stloop same cnt" << std::endl;
                 }
             }

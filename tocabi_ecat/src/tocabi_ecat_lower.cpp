@@ -250,12 +250,22 @@ void *ethercatThread1(void *data)
                 //0x1a13 :  Torque actual value         16bit
                 //0x1a1e :  Auxiliary position value    32bit
                 uint16 map_1c13[5] = {0x0004, 0x1a00, 0x1a11, 0x1a13, 0x1a1e}; //, 0x1a12};
+                uint16 map_1c13_2[4] = {0x0003, 0x1a0a, 0x1a0e, 0x1a11};
                 //uint16 map_1c13[6] = {0x0005, 0x1a04, 0x1a11, 0x1a12, 0x1a1e, 0X1a1c};
+
                 int os;
                 os = sizeof(map_1c12);
                 ec_SDOwrite(slave, 0x1c12, 0, TRUE, os, map_1c12, EC_TIMEOUTRXM);
-                os = sizeof(map_1c13);
-                ec_SDOwrite(slave, 0x1c13, 0, TRUE, os, map_1c13, EC_TIMEOUTRXM);
+                if (min_rcv)
+                {
+                    os = sizeof(map_1c13_2);
+                    ec_SDOwrite(slave, 0x1c13, 0, TRUE, os, map_1c13_2, EC_TIMEOUTRXM);
+                }
+                else
+                {
+                    os = sizeof(map_1c13);
+                    ec_SDOwrite(slave, 0x1c13, 0, TRUE, os, map_1c13, EC_TIMEOUTRXM);
+                }
             }
             /** if CA disable => automapping works */
             ec_config_map(&IOmap);
@@ -736,6 +746,7 @@ void *ethercatThread1(void *data)
                 int64_t total_dev1, total_dev2;
                 float lmax, lmin, ldev, lavg, lat;
                 float smax, smin, sdev, savg, sat;
+                int lovf, sovf;
 
                 total1 = 0;
                 total2 = 0;
@@ -784,7 +795,7 @@ void *ethercatThread1(void *data)
 
                     //
                     ts.tv_nsec += PERIOD_NS + toff;
-                    while (ts.tv_nsec >= SEC_IN_NSEC)
+                    if (ts.tv_nsec >= SEC_IN_NSEC)
                     {
                         ts.tv_sec++;
                         ts.tv_nsec -= SEC_IN_NSEC;
@@ -1002,10 +1013,10 @@ void *ethercatThread1(void *data)
                     sat = chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - rcv2_).count();
 
                     static int total_timeout_count_ = 0;
-                    if (sat > 350000)
-                    {
-                        printf("ELMO 2 : ec_receive TIMEOUT at, %f cnt : %d total : %d\n", control_time_real_, cycle_count, ++total_timeout_count_);
-                    }
+                    // if (sat > 350000)
+                    // {
+                    //     printf("ELMO 2 : ec_receive TIMEOUT at, %f cnt : %d total : %d\n", control_time_real_, cycle_count, ++total_timeout_count_);
+                    // }
 
                     for (int i = 0; i < ec_slavecount; i++)
                     {
@@ -1024,13 +1035,17 @@ void *ethercatThread1(void *data)
                     {
                         lmin = lat;
                     }
+
+                    if (lat > 150)
+                    {
+                        lovf++;
+                    }
                     total_dev1 += sqrt(((lat - lavg) * (lat - lavg)));
                     ldev = total_dev1 / cycle_count;
 
                     shm_msgs_->lat_avg2 = lavg;
                     shm_msgs_->lat_max2 = lmax;
-                    shm_msgs_->lat_min2 = lmin;
-                    shm_msgs_->lat_dev2 = ldev;
+                    shm_msgs_->lat_ovf2 = lovf;
 
                     //sat = latency2.count();
                     total2 += sat;
@@ -1043,14 +1058,18 @@ void *ethercatThread1(void *data)
                     {
                         smin = sat;
                     }
+
+                    if(sat > 350000)
+                    {
+                        sovf++;
+                    }
                     // int sdev = (sat - savg)
                     total_dev2 += sqrt(((sat - savg) * (sat - savg)));
                     sdev = total_dev2 / cycle_count;
 
                     shm_msgs_->send_avg2 = savg;
                     shm_msgs_->send_max2 = smax;
-                    shm_msgs_->send_min2 = smin;
-                    shm_msgs_->send_dev2 = sdev;
+                    shm_msgs_->send_ovf2 = sovf;
 
                     cycle_count++;
                 }

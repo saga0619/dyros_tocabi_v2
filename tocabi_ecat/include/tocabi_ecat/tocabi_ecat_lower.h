@@ -127,6 +127,7 @@ int wait_cnt = 0;
 int commutation_joint = 0;
 
 bool ecat_verbose = true;
+bool min_rcv = false;
 
 
 chrono::steady_clock::time_point st_start_time;
