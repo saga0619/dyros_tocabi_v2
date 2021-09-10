@@ -182,7 +182,7 @@ void *StateManager::StateThread()
         if (stm_count_ % 2000 == 0)
         {
             int e_cnt = dc_.tc_shm_->statusCount;
-            printf("%7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d \n", control_time_, e_cnt, stm_count_-e_cnt, (int)dc_.tcm_cnt-e_cnt);
+            printf("%7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d \n", control_time_, e_cnt, stm_count_ - e_cnt, (int)dc_.tcm_cnt - e_cnt);
         }
 
         if (d2 > 500)
@@ -1581,6 +1581,18 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "ecatinit")
     {
         dc_.tc_shm_->upper_init_signal = true;
+    }
+    else if (msg->data == "disablelower")
+    {
+        dc_.tc_shm_->lower_disabled = !dc_.tc_shm_->lower_disabled;
+        if (dc_.tc_shm_->lower_disabled)
+        {
+            std::cout << "lowerbody disable" << std::endl;
+        }
+        else
+        {
+            std::cout << "lowerbody activate" << std::endl;
+        }
     }
     else if (msg->data == "ecatinitlower")
     {

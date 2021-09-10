@@ -980,12 +980,13 @@ void *ethercatThread1(void *data)
                                 if (min_rcv)
                                 {
                                     q_elmo_[slave - 1] = rxPDO2[slave - 1]->positionActualValue * CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1] - q_zero_elmo_[slave - 1];
-                                    q_dot_elmo_[slave - 1] =
-                                        (((int32_t)ec_slave[slave].inputs[4]) +
-                                         ((int32_t)ec_slave[slave].inputs[5] << 8) +
-                                         ((int32_t)ec_slave[slave].inputs[6] << 16) +
-                                         ((int32_t)ec_slave[slave].inputs[7] << 24)) *
-                                        CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1];
+                                    q_dot_elmo_[START_N + slave - 1] = rxPDO2[slave -1]->velocityActualValue*CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
+                                    // q_dot_elmo_[slave - 1] =
+                                    //     (((int32_t)ec_slave[slave].inputs[4]) +
+                                    //      ((int32_t)ec_slave[slave].inputs[5] << 8) +
+                                    //      ((int32_t)ec_slave[slave].inputs[6] << 16) +
+                                    //      ((int32_t)ec_slave[slave].inputs[7] << 24)) *
+                                    //     CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1];
                                 }
                                 else
                                 {q_elmo_[slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1] - q_zero_elmo_[slave - 1];

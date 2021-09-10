@@ -1,7 +1,7 @@
 <launch>
     <arg name="hand" default="false"/>
     <arg name="log" default="false"/>
-    <arg name="init" default="true"/>
+    <arg name="init" default="false"/>
 
     <group if="$(arg hand)">
         <param name="tocabi_controller/urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi_with_redhands.urdf"/>

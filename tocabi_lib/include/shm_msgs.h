@@ -71,16 +71,17 @@ typedef struct SHMmsgs
     std::atomic<int64_t> control_time_us_;
 
     
-    std::atomic<int> t_cnt;
-    std::atomic<int> t_cnt2;
+    volatile int t_cnt;
+    volatile int t_cnt2;
     std::atomic<bool> controllerReady;
     std::atomic<bool> reading;
     std::atomic<int> process_num;
-    std::atomic<bool> shutdown; //true for exit
+    volatile bool shutdown; //true for exit
     std::atomic<bool> emergencyOff;
-    std::atomic<bool> controlModeLower;
-    std::atomic<bool> controlModeUpper;
-    std::atomic<bool> safety_disable;
+    volatile bool controlModeLower;
+    volatile bool controlModeUpper;
+    volatile bool safety_disable;
+    volatile bool lower_disabled;
 
     int64_t std_timer_ns;
 

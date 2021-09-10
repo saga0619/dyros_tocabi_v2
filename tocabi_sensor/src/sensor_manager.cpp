@@ -3,7 +3,7 @@
 #include <chrono>
 #include <signal.h>
 
-std::atomic<bool> *prog_shutdown;
+volatile bool *prog_shutdown;
 
 void SIGINT_handler(int sig)
 {

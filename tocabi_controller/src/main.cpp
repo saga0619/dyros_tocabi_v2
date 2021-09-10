@@ -23,7 +23,7 @@
 #include <iostream>
 
 
-std::atomic<bool> *prog_shutdown;
+volatile bool *prog_shutdown;
 
 void SIGINT_handler(int sig)
 {
@@ -68,7 +68,7 @@ static void set_latency_target(void)
 
 int main(int argc, char **argv)
 {
-    set_latency_target();
+    // set_latency_target();
     signal(SIGINT, SIGINT_handler);
     mlockall(MCL_CURRENT | MCL_FUTURE);
 
