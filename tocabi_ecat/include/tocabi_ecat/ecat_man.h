@@ -59,6 +59,13 @@ namespace EtherCAT_Elmo
             //int16_t torqueDemandValue;
             int32_t positionExternal;
         };
+        struct elmo_gold_rx2
+        {
+            int32_t positionActualValue;
+            int32_t velocityActualValue;
+            uint16_t statusWord;
+        };
+    // };
     };
 } // namespace EtherCAT_Elmo
 

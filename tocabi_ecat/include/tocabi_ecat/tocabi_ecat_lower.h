@@ -72,6 +72,7 @@ bool hommingElmo_before[ELMO_DOF];
 int ElmoSafteyMode[ELMO_DOF];
 
 EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_rx *rxPDO[ELMO_DOF];
+EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_rx2 *rxPDO2[ELMO_DOF];
 EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_tx *txPDO[ELMO_DOF];
 
 bool ElmoConnected = false;

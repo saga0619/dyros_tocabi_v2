@@ -61,6 +61,12 @@ namespace EtherCAT_Elmo
             //int16_t torqueDemandValue;
             int32_t positionExternal;
         };
+        struct elmo_gold_rx2
+        {
+            int32_t positionActualValue;
+            int32_t velocityActualValue;
+            uint16_t statusWord;
+        };
     };
 } // namespace EtherCAT_Elmo
 
@@ -201,6 +207,7 @@ enum SAFETY_PROTOCOL
 int ElmoSafteyMode[ELMO_DOF];
 
 EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_rx *rxPDO[ELMO_DOF];
+EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_rx2 *rxPDO2[ELMO_DOF];
 EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_tx *txPDO[ELMO_DOF];
 
 bool ElmoConnected = false;
