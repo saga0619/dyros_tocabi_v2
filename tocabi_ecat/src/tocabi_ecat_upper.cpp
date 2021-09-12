@@ -167,13 +167,13 @@ void elmoInit()
     elmofz[Waist2_Joint].init_direction = -1.0;
 
     elmofz[R_Elbow_Joint].req_length = 0.06;
-    elmofz[L_Elbow_Joint].req_length = 0.06;
+    elmofz[L_Elbow_Joint].req_length = 0.05;
     elmofz[L_Forearm_Joint].req_length = 0.08;
     elmofz[R_Forearm_Joint].req_length = 0.14;
 
     elmofz[L_Shoulder1_Joint].req_length = 0.18;
     elmofz[L_Shoulder2_Joint].req_length = 0.15;
-    elmofz[R_Shoulder2_Joint].req_length = 0.075;
+    elmofz[R_Shoulder2_Joint].req_length = 0.07;
 
     elmofz[R_Shoulder3_Joint].req_length = 0.03;
     elmofz[L_Shoulder3_Joint].req_length = 0.03;
@@ -337,8 +337,8 @@ void *ethercatThread1(void *data)
                 ec_send_processdata();
 
                 wkc = ec_receive_processdata(EC_TIMEOUTRET);
-                while (EcatError)
-                    printf("%f %s", control_time_real_, ec_elist2string());
+                // while (EcatError)
+                //     printf("%f %s", control_time_real_, ec_elist2string());
 
                 cur_dc32 = (uint32_t)(ec_DCtime & 0xffffffff);
 
@@ -647,12 +647,7 @@ void *ethercatThread1(void *data)
                                 if (min_rcv)
                                 {
                                     q_elmo_[slave - 1] = rxPDO2[slave - 1]->positionActualValue * CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1];
-                                    q_dot_elmo_[slave - 1] =
-                                        (((int32_t)ec_slave[slave].inputs[4]) +
-                                         ((int32_t)ec_slave[slave].inputs[5] << 8) +
-                                         ((int32_t)ec_slave[slave].inputs[6] << 16) +
-                                         ((int32_t)ec_slave[slave].inputs[7] << 24)) *
-                                        CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1];
+                                    q_dot_elmo_[START_N + slave - 1] = rxPDO2[slave - 1]->velocityActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
                                 }
                                 else
                                 {
@@ -862,8 +857,16 @@ void *ethercatThread1(void *data)
                 // shm_msgs_->ecatTimerSet = true;
 
                 // cout << "ELMO 1 : Timer Set " << endl;
+                if (shm_msgs_->shutdown)
+                {
 
-                cout << cgreen << "ELMO 1 : Control Mode Start ... " << ts.tv_nsec << creset << endl;
+                    printf("%sELMO 1 : Shutting Down ... %s \n", cgreen.c_str(), creset.c_str());
+                }
+                else
+                {
+
+                    printf("%sELMO 1 : Control Mode Start ... %s \n", cgreen.c_str(), creset.c_str());
+                }
 
                 //shm_msgs_->t_cnt = 0;
 
@@ -918,8 +921,12 @@ void *ethercatThread1(void *data)
                 chrono::steady_clock::time_point rcv2_;
                 uint16_t statusWord[ELMO_DOF];
 
-                while (!shm_msgs_->shutdown)
+                while (true)
                 {
+                    if(shm_msgs_->shutdown)
+                    {
+                        break;
+                    }
                     rcv_ = chrono::steady_clock::now();
 
                     control_time_real_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count() / 1000000.0;
@@ -970,8 +977,8 @@ void *ethercatThread1(void *data)
                     {
                         for (int slave = 1; slave <= ec_slavecount; slave++)
                         {
-                            checkFault(statusWord[slave -1], slave);
-                            if (controlWordGenerate(statusWord[slave -1], txPDO[slave - 1]->controlWord))
+                            checkFault(statusWord[slave - 1], slave);
+                            if (controlWordGenerate(statusWord[slave - 1], txPDO[slave - 1]->controlWord))
                             {
                                 reachedInitial[slave - 1] = true;
                             }
@@ -980,7 +987,7 @@ void *ethercatThread1(void *data)
                                 if (min_rcv)
                                 {
                                     q_elmo_[slave - 1] = rxPDO2[slave - 1]->positionActualValue * CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1] - q_zero_elmo_[slave - 1];
-                                    q_dot_elmo_[START_N + slave - 1] = rxPDO2[slave -1]->velocityActualValue*CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
+                                    q_dot_elmo_[START_N + slave - 1] = rxPDO2[slave - 1]->velocityActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
                                     // q_dot_elmo_[slave - 1] =
                                     //     (((int32_t)ec_slave[slave].inputs[4]) +
                                     //      ((int32_t)ec_slave[slave].inputs[5] << 8) +
@@ -989,7 +996,8 @@ void *ethercatThread1(void *data)
                                     //     CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1];
                                 }
                                 else
-                                {q_elmo_[slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1] - q_zero_elmo_[slave - 1];
+                                {
+                                    q_elmo_[slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[slave - 1] * elmo_axis_direction[slave - 1] - q_zero_elmo_[slave - 1];
                                     hommingElmo[slave - 1] =
                                         (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
                                     q_dot_elmo_[slave - 1] =
@@ -1902,7 +1910,7 @@ void findZeroPoint(int slv_number)
         }
         else
         {
-            printf("init homming off : %d\n", slv_number);
+            // printf("init homming off : %d\n", slv_number);
             //std::cout << "motor " << slv_number << " init state : homming off" << std::endl;
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMING;
             elmofz[slv_number].initTime = control_time_real_;
@@ -1918,7 +1926,7 @@ void findZeroPoint(int slv_number)
 
         if ((hommingElmo[slv_number] == 0) && (hommingElmo_before[slv_number] == 0))
         {
-            printf("go to homming off : %d\n", slv_number);
+            // printf("go to homming off : %d\n", slv_number);
             //std::cout << "motor " << slv_number << " seq 1 complete, wait 1 sec" << std::endl;
             hommingElmo_before[slv_number] = hommingElmo[slv_number];
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
@@ -1940,7 +1948,7 @@ void findZeroPoint(int slv_number)
         //go to -20deg until homming turn on, and turn off
         if ((hommingElmo_before[slv_number] == 1) && (hommingElmo[slv_number] == 0))
         {
-            printf("go to homming on : %d\n", slv_number);
+            // printf("go to homming on : %d\n", slv_number);
             if (abs(elmofz[slv_number].posStart - q_elmo_[slv_number]) > elmofz[slv_number].req_length)
             {
                 elmofz[slv_number].posEnd = q_elmo_[slv_number];

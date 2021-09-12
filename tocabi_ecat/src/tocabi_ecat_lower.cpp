@@ -329,8 +329,8 @@ void *ethercatThread1(void *data)
                 ec_send_processdata();
                 wkc = ec_receive_processdata(EC_TIMEOUTRET);
 
-                while (EcatError)
-                    printf("%f %s", control_time_real_, ec_elist2string());
+                // while (EcatError)
+                //     printf("%f %s", control_time_real_, ec_elist2string());
 
                 cur_dc32 = (uint32_t)(ec_DCtime & 0xffffffff);
 
@@ -580,17 +580,12 @@ void *ethercatThread1(void *data)
 
                                 if (min_rcv)
                                 {
-                                    q_elmo_[START_N + slave - 1] = rxPDO2[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1] - q_zero_elmo_[START_N + slave - 1];
-                                    q_dot_elmo_[slave - 1] =
-                                        (((int32_t)ec_slave[slave].inputs[4]) +
-                                         ((int32_t)ec_slave[slave].inputs[5] << 8) +
-                                         ((int32_t)ec_slave[slave].inputs[6] << 16) +
-                                         ((int32_t)ec_slave[slave].inputs[7] << 24)) *
-                                        CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
+                                    q_elmo_[START_N + slave - 1] = rxPDO2[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
+                                    q_dot_elmo_[START_N + slave - 1] = rxPDO2[slave - 1]->velocityActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
                                 }
                                 else
                                 {
-                                    q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1] - q_zero_elmo_[START_N + slave - 1];
+                                    q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
                                     hommingElmo[START_N + slave - 1] =
                                         (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
                                     q_dot_elmo_[START_N + slave - 1] =
@@ -775,7 +770,16 @@ void *ethercatThread1(void *data)
 #endif
                 }
 
-                printf("%sELMO 2 : Control Mode Start ... %s \n", cgreen.c_str(), creset.c_str());
+                if (shm_msgs_->shutdown)
+                {
+
+                    printf("%sELMO 2 : Shutting Down ... %s \n", cgreen.c_str(), creset.c_str());
+                }
+                else
+                {
+
+                    printf("%sELMO 2 : Control Mode Start ... %s \n", cgreen.c_str(), creset.c_str());
+                }
                 shm_msgs_->controlModeLower = true;
 
                 //memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ELMO_DOF);
@@ -831,8 +835,12 @@ void *ethercatThread1(void *data)
                 chrono::steady_clock::time_point rcv2_;
                 uint16_t statusWord[ELMO_DOF];
                 int t_l = 100;
-                while (!shm_msgs_->shutdown)
+                while (true)
                 {
+                    if(shm_msgs_->shutdown)
+                    {
+                        break;
+                    }
                     rcv_ = chrono::steady_clock::now();
 
                     //
@@ -898,7 +906,7 @@ void *ethercatThread1(void *data)
                                 if (min_rcv)
                                 {
                                     q_elmo_[START_N + slave - 1] = rxPDO2[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1] - q_zero_elmo_[START_N + slave - 1];
-                                    q_dot_elmo_[START_N + slave - 1] = rxPDO2[slave -1]->velocityActualValue*CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
+                                    q_dot_elmo_[START_N + slave - 1] = rxPDO2[slave - 1]->velocityActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
                                     // q_dot_elmo_[slave - 1] =
                                     //     (((int32_t)ec_slave[slave].inputs[4]) +
                                     //      ((int32_t)ec_slave[slave].inputs[5] << 8) +
@@ -1028,8 +1036,8 @@ void *ethercatThread1(void *data)
                     {
                         for (int i = 0; i < 6; i++)
                         {
-                            txPDO[i + R_HipYaw_Joint-START_N]->targetTorque = 0;
-                            txPDO[i + L_HipYaw_Joint-START_N]->targetTorque = 0;
+                            txPDO[i + R_HipYaw_Joint - START_N]->targetTorque = 0;
+                            txPDO[i + L_HipYaw_Joint - START_N]->targetTorque = 0;
                         }
                     }
 

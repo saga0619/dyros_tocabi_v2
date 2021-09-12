@@ -43,6 +43,8 @@ int main(int argc, char **argv)
     nh_.param("/tocabi_ecat_lower/verbose", ecat_verbose, true);
     nh_.param("/tocabi_ecat_lower/minrcv", min_rcv, false);
 
+    min_rcv = !min_rcv;
+
     // nh_.getParam("/tocabi_controller/vellimit", joint_velocity_limit);
     // nh_.getParam("/tocabi_controller/jointlimit_u", joint_upper_limit);
     // nh_.getParam("/tocabi_controller/jointlimit_l", joint_lower_limit);
@@ -73,7 +75,7 @@ int main(int argc, char **argv)
         printf("pthread setschedpolicy failed\n");
         goto out;
     }
-    param.sched_priority = 95;
+    param.sched_priority = 94;
     ret = pthread_attr_setschedparam(&attr, &param);
     if (ret)
     {

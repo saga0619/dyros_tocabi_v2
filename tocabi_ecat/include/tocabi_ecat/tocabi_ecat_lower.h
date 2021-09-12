@@ -137,8 +137,8 @@ std::chrono::nanoseconds cycletime(PERIOD_NS);
 int cycle_count = 0;
 
 atomic<bool> de_operation_ready{false};
-atomic<bool> de_emergency_off{false};
-atomic<bool> de_shutdown{false};
+volatile bool de_emergency_off{false};
+volatile bool de_shutdown{false};
 atomic<bool> de_ecat_lost{false};
 atomic<bool> de_ecat_lost_before{false};
 atomic<bool> de_ecat_recovered{false};

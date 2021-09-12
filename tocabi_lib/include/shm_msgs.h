@@ -38,7 +38,7 @@ typedef struct SHMmsgs
     float vel[MODEL_DOF];
     float pos[MODEL_DOF];
     float posExt[MODEL_DOF];
-    std::atomic_int16_t elmo_torque[MODEL_DOF];
+    volatile int16_t elmo_torque[MODEL_DOF];
 
     float sim_time_;
 
@@ -110,8 +110,8 @@ typedef struct SHMmsgs
     bool waist_init_signal = false;
     bool upper_init_signal = false;
 
-    std::atomic<bool> safety_reset_lower_signal;
-    std::atomic<bool> safety_reset_upper_signal;
+    volatile bool safety_reset_lower_signal;
+    volatile bool safety_reset_upper_signal;
     bool force_load_saved_signal = false;
 
 } SHMmsgs;

@@ -465,15 +465,17 @@ void TocabiController::PositionCommandCallback(const tocabi_msgs::positionComman
     rd_.pc_mode = true;
     rd_.pc_gravity = msg->gravity;
     rd_.positionHoldSwitch = false;
-
+    
+    stm_.StatusPub("%f Position Control", (float)rd_.control_time_);
     std::cout << "position command received" << std::endl;
 }
 
 void TocabiController::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg)
 {
-    std::cout << "task signal received mode :" << rd_.tc_.mode << std::endl;
     rd_.pc_mode = false;
     rd_.tc_ = *msg;
+    std::cout << "task signal received mode :" << rd_.tc_.mode << std::endl;
+    stm_.StatusPub("%f task Control mode : %d", (float)rd_.control_time_, rd_.tc_.mode);
     rd_.tc_time_ = rd_.control_time_;
     rd_.tc_run = true;
     rd_.tc_init = true;

@@ -121,7 +121,7 @@ int main(int argc, char **argv)
         pthread_attr_t attrs[thread_number];
         pthread_t threads[thread_number];
         param.sched_priority = 80;
-        param_st.sched_priority = 95;
+        param_st.sched_priority = 90;
         cpu_set_t cpusets[thread_number];
 
         if (dc_.simMode)

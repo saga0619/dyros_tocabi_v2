@@ -108,10 +108,12 @@ void *StateManager::StateThread()
 
     timespec tv_us1;
     tv_us1.tv_sec = 0;
-    tv_us1.tv_nsec = 1000;
+    tv_us1.tv_nsec = 10000;
 
-    while (!dc_.tc_shm_->shutdown)
+    while (true)
     {
+        if(dc_.tc_shm_->shutdown)
+        break;
         //////////////////////////////
         //////////State Loop//////////
         //////////////////////////////
@@ -372,7 +374,7 @@ void StateManager::SendCommand()
 
     rcv_c_count_before = rcv_c_count;
 
-    const double maxTorque = 350.0;
+    const double maxTorque = 1000.0;
     const double rTime = 5.0;
 
     int maxTorqueCommand;
@@ -418,6 +420,7 @@ void StateManager::SendCommand()
             if (rd_gl_.control_time_ > dc_.torqueOnTime + rTime)
             {
                 std::cout << "torque 100% ! " << std::endl;
+                StatusPub("%f Torque 100%", control_time_);
 
                 dc_.torqueRisingSeq = false;
             }
@@ -432,6 +435,7 @@ void StateManager::SendCommand()
                 dc_.toruqeDecreaseSeq = false;
 
                 std::cout << "torque 0% .. torque Off " << std::endl;
+                StatusPub("%f Torque 0%", control_time_);
 
                 dc_.torqueOn = false;
             }
@@ -593,6 +597,7 @@ void StateManager::GetJointData()
 {
     while (dc_.tc_shm_->statusWriting.load(std::memory_order_acquire))
     {
+        usleep(10);
         if (dc_.tc_shm_->shutdown)
             break;
     }
@@ -1500,10 +1505,12 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
 
     if (msg->data == "torqueon")
     {
+        StatusPub("%f Torque ON", control_time_);
         dc_.torqueOnSwitch = true;
     }
     else if (msg->data == "torqueoff")
     {
+        StatusPub("%f Torque Off", control_time_);
         dc_.torqueOffSwitch = true;
     }
     else if (msg->data == "E0")
@@ -1524,11 +1531,13 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     }
     else if (msg->data == "gravity")
     {
+        StatusPub("%f Gravity Control", control_time_);
         rd_gl_.tc_run = false;
         rd_gl_.pc_mode = false;
     }
     else if (msg->data == "inityaw")
     {
+        StatusPub("%f Init Yaw", control_time_);
         dc_.inityawSwitch = true;
     }
     else if (msg->data == "ftcalib")
@@ -1544,11 +1553,13 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
         if (rd_gl_.semode)
         {
             std::cout << "stateestimation off" << std::endl;
+            StatusPub("%f StateEstimate Off", control_time_);
             rd_gl_.semode = false;
         }
         else
         {
             std::cout << "stateestimation on" << std::endl;
+            StatusPub("%f StateEstimate ON", control_time_);
             dc_.inityawSwitch = true;
 
             dc_.stateEstimateSwitch = true;
@@ -1569,17 +1580,20 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
         if (dc_.tc_shm_->safety_disable)
         {
             std::cout << "safety checking disabled!" << std::endl;
+            StatusPub("%f safety disabled", control_time_);
             dc_.tc_shm_->safety_reset_lower_signal = true;
             dc_.tc_shm_->safety_reset_upper_signal = true;
         }
         else
         {
 
+            StatusPub("%f safety enabled", control_time_);
             std::cout << "safety checking enabled!" << std::endl;
         }
     }
     else if (msg->data == "ecatinit")
     {
+        StatusPub("%f Initialize upper", control_time_);
         dc_.tc_shm_->upper_init_signal = true;
     }
     else if (msg->data == "disablelower")
@@ -1596,10 +1610,12 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     }
     else if (msg->data == "ecatinitlower")
     {
+        StatusPub("%f Initialize lower", control_time_);
         dc_.tc_shm_->low_init_signal = true;
     }
     else if (msg->data == "ecatinitwaist")
     {
+        StatusPub("%f Initialize Waist", control_time_);
         dc_.tc_shm_->waist_init_signal = true;
     }
     else if (msg->data == "simvirtualjoint")
@@ -1613,6 +1629,7 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     }
     else if (msg->data == "positioncontrol")
     {
+        StatusPub("%f Position Control Activate", control_time_);
         dc_.positionControlSwitch = true;
     }
     else if (msg->data == "forceload")
