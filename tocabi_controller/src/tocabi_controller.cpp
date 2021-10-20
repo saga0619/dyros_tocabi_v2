@@ -33,7 +33,7 @@ TocabiController::~TocabiController()
 // Thread1 : running
 void *TocabiController::Thread1() //Thread1, running with 2Khz.
 {
-    std::cout << "thread1_entered" << std::endl;
+    // std::cout << "thread1_entered" << std::endl;
 
     volatile int rcv_time_ = 0;
     //cout << "shm_msgs:" << dc_.tc_shm_->t_cnt << endl;
@@ -54,7 +54,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
         }
     }
 
-    std::cout << "thread1 Proceeding ... " << endl;
+    // std::cout << "thread1 Proceeding ... " << endl;
 
     WBC::SetContactInit(rd_);
 
@@ -63,7 +63,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
     //std::cout<<"21"<<std::endl;
 
-    std::cout << "entering thread1 loop" << endl;
+    // std::cout << "entering thread1 loop" << endl;
 
     signalThread1 = true;
     int thread1_count = 0;

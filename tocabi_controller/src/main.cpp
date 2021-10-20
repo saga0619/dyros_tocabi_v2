@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 
     std::cout << "process num : " << (int)dc_.tc_shm_->process_num << std::endl;
 
-    std::cout << "shm initialized" << std::endl;
+    // std::cout << "shm initialized" << std::endl;
 
     if (dc_.tc_shm_->shutdown)
     {
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
             pthread_attr_destroy(&attrs[i]);
         }
 
-        cout << "waiting cont..." << endl;
+        // cout << "waiting cont..." << endl;
         /* Join the thread and wait until it is done */
         if (true)
         {
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
             pthread_join(threads[i], NULL);
         }
 
-        cout << "waiting cont..." << endl;
+        // cout << "waiting cont..." << endl;
 
         deleteSharedMemory(shm_id_, dc_.tc_shm_);
     }
