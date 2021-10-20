@@ -7,3 +7,9 @@
 [submodule "tocabi_avatar"]
 	path = tocabi_avatar
 	url = https://github.com/saga0619/tocabi_avatar
+[submodule "tocabi_ecat"]
+	path = tocabi_ecat
+	url = https://github.com/saga0619/tocabi_ecat
+[submodule "tocabi_lib"]
+	path = tocabi_lib
+	url = https://github.com/saga0619/tocabi_lib
