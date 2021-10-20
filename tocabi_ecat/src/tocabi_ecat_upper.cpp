@@ -1,7 +1,7 @@
 #include "tocabi_ecat/tocabi_ecat_upper.h"
 #include <chrono>
 #include <sys/mman.h>
-
+#include <ctime>
 const int PART_ELMO_DOF = ELMO_DOF_UPPER;
 const int START_N = 0;
 const int Q_UPPER_START = ELMO_DOF_LOWER;
@@ -136,7 +136,7 @@ void checkFault(const uint16_t statusWord, int slave)
             char data1[128] = {0};
             char data2[128] = {0};
             int data_length = sizeof(data1) - 1;
-            printf("[Fault at slave %d] reading SDO...\n", slave);
+            printf("[Fault at slave %d] reading SDO... \n", slave);
             ec_SDOread(slave, 0x1001, 0, false, &data_length, &data1, EC_TIMEOUTRXM);
             ec_SDOread(slave, 0x603f, 0, false, &data_length, &data2, EC_TIMEOUTRXM);
             int reg = *(uint8_t *)data1;
@@ -149,7 +149,18 @@ void checkFault(const uint16_t statusWord, int slave)
         {
             if (control_time_real_ > g_fault_last_error_time[slave] + 1.0)
             {
-                printf("[Fault at slave %d] set safety lock but not reading SDO...\n", slave);
+                struct timespec ts;
+                timespec_get(&ts, TIME_UTC);
+                char buff[100];
+                strftime(buff, sizeof buff, "%D %T", gmtime(&ts.tv_sec));
+                printf("Current time: %s.%09ld UTC\n", buff, ts.tv_nsec);
+                printf("%d UPP : [Fault at slave %d] set safety lock but not reading SDO... %d:%d:%f\n", cycle_count, slave);
+
+                // uint16 data;
+                // int datat_l  = sizeof(data) - 1;
+                // ec_SDOread(slave, 0x603f, 0, false, &datat_l, &data, EC_TIMEOUTRXM);
+                // printf("0x%4.4x %u", data, data);
+
                 g_fault_last_error_time[slave] = control_time_real_;
             }
             ElmoSafteyMode[slave] = 1;
@@ -366,8 +377,12 @@ void *ethercatThread1(void *data)
 
                 //Commutation Checking
                 st_start_time = std::chrono::steady_clock::now();
-                if (ecat_verbose)
-                    cout << "ELMO 1 : Initialization Mode" << endl;
+
+                struct timespec ts_tt;
+                timespec_get(&ts_tt, TIME_UTC);
+                char buff[100];
+                strftime(buff, sizeof buff, "%D %T", gmtime(&ts_tt.tv_sec));
+                printf("ELMO 1 : Initialization Mode ... Current time: %s.%09ld UTC\n", buff, ts_tt.tv_nsec);
 
                 query_check_state = true;
 
@@ -921,9 +936,12 @@ void *ethercatThread1(void *data)
                 chrono::steady_clock::time_point rcv2_;
                 uint16_t statusWord[ELMO_DOF];
 
+                uint16_t statusWord_before[ELMO_DOF];
+
+                bool status_first = true;
                 while (true)
                 {
-                    if(shm_msgs_->shutdown)
+                    if (shm_msgs_->shutdown)
                     {
                         break;
                     }
@@ -959,6 +977,16 @@ void *ethercatThread1(void *data)
                         else
                             statusWord[i] = rxPDO[i]->statusWord;
                     }
+
+                    if (status_first)
+                    {
+                        for (int i = 0; i < ec_slavecount; i++)
+                            statusWord_before[i] = statusWord[i];
+                        status_first = false;
+                    }
+
+                    bool stword_changed = false;
+
                     // while (EcatError)
                     //     printf("%f %s", control_time_real_, ec_elist2string());
                     for (int i = 0; i < ec_slavecount; i++)
@@ -970,7 +998,22 @@ void *ethercatThread1(void *data)
                             state_elmo_[JointMap2[i]] = elmost[i].state;
                         }
 
+                        if (statusWord_before[i] != statusWord[i])
+                        {
+                            stword_changed = true;
+
+                            printf("ELMO 1 : slave %d state word changed : %d -> %d \n", i, statusWord_before[i], statusWord[i]);
+                        }
+
+                        statusWord_before[i] = statusWord[i];
                         elmost[i].state_before = elmost[i].state;
+                    }
+
+                    if (stword_changed)
+                    {
+                        timespec_get(&ts_tt, TIME_UTC);
+                        strftime(buff, sizeof buff, "%D %T", gmtime(&ts_tt.tv_sec));
+                        printf("ELMO 1 : %d Status Word Changed ... Current time: %s.%09ld UTC\n", cycle_count, buff, ts_tt.tv_nsec);
                     }
 
                     if (wkc >= expectedWKC)
@@ -1150,6 +1193,7 @@ void *ethercatThread1(void *data)
                     }
                     if (lat > 150000)
                     {
+
                         lovf++;
                     }
                     total_dev1 += sqrt(((lat - lavg) * (lat - lavg)));
@@ -1173,6 +1217,9 @@ void *ethercatThread1(void *data)
                     if (sat > 350000)
                     {
                         sovf++;
+                        timespec_get(&ts_tt, TIME_UTC);
+                        strftime(buff, sizeof buff, "%D %T", gmtime(&ts_tt.tv_sec));
+                        printf("ELMO 1 : %d TIMEOUT %d ... Current time: %s.%09ld UTC\n", cycle_count, sovf, buff, ts_tt.tv_nsec);
                     }
                     // int sdev = (sat - savg)
                     total_dev2 += sqrt(((sat - savg) * (sat - savg)));

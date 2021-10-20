@@ -79,7 +79,13 @@ void checkFault(const uint16_t statusWord, int slave)
         {
             if (control_time_real_ > g_fault_last_error_time[slave] + 1.0)
             {
-                printf("[Fault at slave %d] set safety lock but not reading SDO...\n", slave);
+                struct timespec ts;
+                timespec_get(&ts, TIME_UTC);
+                char buff[100];
+                strftime(buff, sizeof buff, "%D %T", gmtime(&ts.tv_sec));
+                printf("Current time: %s.%09ld UTC\n", buff, ts.tv_nsec);
+                printf("%d LOW : [Fault at slave %d] set safety lock but not reading SDO... %d:%d:%f\n", cycle_count, slave);
+
                 g_fault_last_error_time[slave] = control_time_real_;
             }
             ElmoSafteyMode[slave] = 1;
@@ -359,6 +365,12 @@ void *ethercatThread1(void *data)
                 //Commutation Checking
                 st_start_time = std::chrono::steady_clock::now();
                 query_check_state = true;
+
+                struct timespec ts_tt;
+                timespec_get(&ts_tt, TIME_UTC);
+                char buff[100];
+                strftime(buff, sizeof buff, "%D %T", gmtime(&ts_tt.tv_sec));
+                printf("ELMO 2 : Initialization Mode ... Current time: %s.%09ld UTC\n", buff, ts_tt.tv_nsec);
 
                 while (!shm_msgs_->shutdown)
                 {
@@ -834,10 +846,12 @@ void *ethercatThread1(void *data)
                 chrono::steady_clock::time_point rcv_;
                 chrono::steady_clock::time_point rcv2_;
                 uint16_t statusWord[ELMO_DOF];
+                uint16_t statusWord_before[ELMO_DOF];
+                bool status_first = true;
                 int t_l = 100;
                 while (true)
                 {
-                    if(shm_msgs_->shutdown)
+                    if (shm_msgs_->shutdown)
                     {
                         break;
                     }
@@ -880,6 +894,14 @@ void *ethercatThread1(void *data)
                             statusWord[i] = rxPDO[i]->statusWord;
                     }
 
+                    if (status_first)
+                    {
+                        for (int i = 0; i < ec_slavecount; i++)
+                            statusWord_before[i] = statusWord[i];
+                    }
+
+                    bool stword_changed = false;
+
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         elmost[i].state = getElmoState(statusWord[i]);
@@ -888,7 +910,21 @@ void *ethercatThread1(void *data)
                         {
                             state_elmo_[JointMap2[START_N + i]] = elmost[i].state;
                         }
+                        if (statusWord_before[i] != statusWord[i])
+                        {
+                            stword_changed = true;
+                            printf("ELMO 2 : slave %d state word changed : %d -> %d \n", i, statusWord_before[i], statusWord[i]);
+                        }
+
+                        statusWord_before[i] = statusWord[i];
                         elmost[i].state_before = elmost[i].state;
+                    }
+
+                    if (stword_changed)
+                    {
+                        timespec_get(&ts_tt, TIME_UTC);
+                        strftime(buff, sizeof buff, "%D %T", gmtime(&ts_tt.tv_sec));
+                        printf("ELMO 2 : %d Status Word Changed ... Current time: %s.%09ld UTC\n", cycle_count, buff, ts_tt.tv_nsec);
                     }
 
                     if (wkc >= expectedWKC)
@@ -1144,6 +1180,9 @@ void *ethercatThread1(void *data)
                     if (sat > 350000)
                     {
                         sovf++;
+                        timespec_get(&ts_tt, TIME_UTC);
+                        strftime(buff, sizeof buff, "%D %T", gmtime(&ts_tt.tv_sec));
+                        printf("ELMO 2 : %d TIMEOUT %d ... Current time: %s.%09ld UTC\n", cycle_count, sovf, buff, ts_tt.tv_nsec);
                     }
                     // int sdev = (sat - savg)
                     total_dev2 += sqrt(((sat - savg) * (sat - savg)));

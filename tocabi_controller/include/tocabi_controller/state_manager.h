@@ -19,6 +19,7 @@
 #include <geometry_msgs/PolygonStamped.h>
 #include <geometry_msgs/Pose.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Int8MultiArray.h>
 #include <sensor_msgs/JointState.h>
 
@@ -145,6 +146,9 @@ public:
 
     ros::Publisher elmo_status_pub_;
     std_msgs::Int8MultiArray elmo_status_msg_;
+
+    ros::Publisher com_status_pub_;
+    std_msgs::Float32MultiArray com_status_msg_;
 
     void SimCommandCallback(const std_msgs::StringConstPtr &msg);
     //void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);

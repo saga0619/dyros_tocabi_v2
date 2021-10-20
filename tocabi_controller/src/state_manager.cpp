@@ -77,6 +77,10 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
 
     elmo_status_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/ecatstates", 100);
 
+    com_status_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/comstates",100);
+
+    com_status_msg_.data.resize(10);
+
     point_pub_msg_.polygon.points.resize(13);
     syspub_msg.data.resize(8);
     elmo_status_msg_.data.resize(MODEL_DOF * 3);
@@ -184,7 +188,7 @@ void *StateManager::StateThread()
         if (stm_count_ % 2000 == 0)
         {
             int e_cnt = dc_.tc_shm_->statusCount;
-            printf("%7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d \n", control_time_, e_cnt, stm_count_ - e_cnt, (int)dc_.tcm_cnt - e_cnt);
+            StatusPub("%7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d", control_time_, e_cnt, stm_count_ - e_cnt, (int)dc_.tcm_cnt - e_cnt);
         }
 
         if (d2 > 500)
@@ -1458,6 +1462,22 @@ void StateManager::PublishData()
     }
 
     gui_state_pub_.publish(syspub_msg);
+
+    
+    com_status_msg_.data[0] = dc_.tc_shm_->lat_avg /1000.0;
+    com_status_msg_.data[1] = dc_.tc_shm_->lat_max /1000.0;
+    com_status_msg_.data[2] = dc_.tc_shm_->send_avg /1000.0;
+    com_status_msg_.data[3] = dc_.tc_shm_->send_max /1000.0;
+    com_status_msg_.data[4] = dc_.tc_shm_->send_ovf;
+
+
+    com_status_msg_.data[5] = dc_.tc_shm_->lat_avg2 /1000.0;
+    com_status_msg_.data[6] = dc_.tc_shm_->lat_max2 /1000.0;
+    com_status_msg_.data[7] = dc_.tc_shm_->send_avg2 /1000.0;
+    com_status_msg_.data[8] = dc_.tc_shm_->send_max2 /1000.0;
+    com_status_msg_.data[9] = dc_.tc_shm_->send_ovf2;
+
+    com_status_pub_.publish(com_status_msg_);
     //
     //memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
 }

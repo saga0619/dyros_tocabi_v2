@@ -5,7 +5,7 @@ from tocabi_msgs.msg import positionCommand
 
 rospy.init_node('test_motion_generator')
 
-traj_time = 2.5
+traj_time = 1.0
 wait_time = traj_time*1.05
 
 pub = rospy.Publisher('/tocabi/positioncommand', positionCommand, queue_size=1)
