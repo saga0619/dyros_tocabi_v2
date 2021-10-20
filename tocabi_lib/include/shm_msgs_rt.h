@@ -2,12 +2,6 @@
 #define SHM_MSGS_H
 
 #include <pthread.h>
-#ifdef CATOMIC
-#include <stdatomic.h>
-#else
-#include <atomic>
-#define _Atomic(X) std::atomic<X>
-#endif
 #include <sys/shm.h>
 #include <sys/ipc.h>
 #include <time.h>
@@ -27,15 +21,14 @@ typedef struct SHMmsgs
 
     int64_t tv_sec;
     int64_t tv_nsec;
-    _Atomic(bool) lowerReady;
-    _Atomic(bool) ecatTimerSet;
+    volatile bool lowerReady;
+    volatile bool ecatTimerSet;
 
     volatile int statusCount;
     volatile int statusCount2;
-    volatile float control_time_real_;
-    _Atomic(int) avatarCount;
+    volatile int avatarCount;
 
-    _Atomic(int) statusWriting;
+    volatile int statusWriting;
     volatile bool triggerS1;
 
     struct timespec ts;
@@ -45,7 +38,7 @@ typedef struct SHMmsgs
     float vel[MODEL_DOF];
     float pos[MODEL_DOF];
     float posExt[MODEL_DOF];
-    _Atomic(int) elmo_torque[MODEL_DOF];
+    volatile int elmo_torque[MODEL_DOF];
 
     float sim_time_;
 
@@ -53,10 +46,10 @@ typedef struct SHMmsgs
     float vel_virtual[6]; //virtual vel(3) + virtual twist(3)
     float imu_acc[3];
 
-    _Atomic(bool) imuWriting;
+    volatile bool imuWriting;
     float imuRaw[6];
 
-    _Atomic(bool) ftWriting;
+    volatile bool ftWriting;
     float ftSensor[12];
 
     int imu_state;
@@ -64,9 +57,9 @@ typedef struct SHMmsgs
 
     //command val
 
-    _Atomic(bool) commanding;
-    _Atomic(int) commandCount;
-    _Atomic(int) stloopCount;
+    volatile bool commanding;
+    volatile int commandCount;
+    volatile int stloopCount;
     int commandMode[MODEL_DOF]; //command mode 0 -> off 1 -> torque 2 -> position
     float torqueCommand[MODEL_DOF];
     float positionCommand[MODEL_DOF];
@@ -75,23 +68,23 @@ typedef struct SHMmsgs
 
     float timeCommand;
 
-    _Atomic(int64_t) control_time_us_;
+    // _Atomic(int64_t) control_time_us_;
 
-    _Atomic(int) t_cnt;
-    _Atomic(int) t_cnt2;
-    _Atomic(bool) controllerReady;
-    _Atomic(bool) reading;
-    _Atomic(int) process_num;
+    volatile int t_cnt;
+    volatile int t_cnt2;
+    volatile bool controllerReady;
+    volatile bool reading;
+    volatile int process_num;
     volatile bool shutdown; //true for exit
-    _Atomic(bool) emergencyOff;
-    _Atomic(bool) controlModeLower;
-    _Atomic(bool) controlModeUpper;
+    volatile bool emergencyOff;
+    volatile bool controlModeLower;
+    volatile bool controlModeUpper;
     volatile bool safety_disable;
 
-    int64_t std_timer_ns;
+    long std_timer_ns;
 
-    _Atomic(bool) upperTimerSet;
-    _Atomic(bool) lowerTimerSet;
+    volatile bool upperTimerSet;
+    volatile bool lowerTimerSet;
 
     float lat_avg, lat_min, lat_max, lat_dev;
     float send_avg, send_min, send_max, send_dev;
@@ -120,8 +113,8 @@ typedef struct SHMmsgs
 
 //static SHMmsgs *shm_msgs_;
 
-static const key_t shm_msg_key = 10561;
-static const key_t shm_rd_key = 10334;
+static const key_t shm_msg_key = 10562;
+static const key_t shm_rd_key = 10335;
 
 // const std::string cred("\033[0;31m");
 // const std::string creset("\033[0m");
@@ -161,7 +154,6 @@ enum SSTATE
     SAFETY_VELOCITY_LIMIT,
     SAFETY_TORQUE_LIMIT,
     SAFETY_COMMAND_LOCK,
-    SAFETY_ECAT_FAULT,
 };
 
 enum ZSTATE
@@ -186,13 +178,15 @@ static void init_shm(int shm_key, int &shm_id_, SHMmsgs **shm_ref)
 {
     if ((shm_id_ = shmget(shm_key, sizeof(SHMmsgs), IPC_CREAT | 0666)) == -1)
     {
+        printf("shm mtx fail\n");
         // std::cout << "shm mtx failed " << std::endl;
-        exit(0);
+        // exit(0);
     }
     if ((*shm_ref = (SHMmsgs *)shmat(shm_id_, NULL, 0)) == (SHMmsgs *)-1)
     {
+        printf("shmtx fail\n");
         // std::cout << "shmat failed " << std::endl;
-        exit(0);
+        // exit(0);
     }
 
     if ((*shm_ref)->process_num == 0)

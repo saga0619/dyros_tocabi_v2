@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tocabi_ecat)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11 -Ofast)
+add_compile_options(-O0)
 
 if(${FORCE_REALROBOT} MATCHES ON)
   message(" forces realrobot compile mode ")
@@ -10,12 +10,20 @@ if(${FORCE_REALROBOT} MATCHES ON)
   set(COMPILE_REAL TRUE)
 else()
 
-ADD_DEFINITIONS(-DTIME_CHECK)
+# ADD_DEFINITIONS(-DTIME_CHECK)
+# ADD_DEFINITIONS(-DECAT_DC)
 
 execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RES OUTPUT_STRIP_TRAILING_WHITESPACE)
 message("-- kernel version : " ${UNAME_RES})
+execute_process(COMMAND xeno-config --posix --cflags OUTPUT_VARIABLE XENO_CFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-string(FIND ${UNAME_RES} "xenomai" wsloc)
+execute_process(COMMAND xeno-config --posix --ldflags OUTPUT_VARIABLE XENO_LDFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
+message(" xeno flags : " ${XENO_CFLAGS})
+string(FIND ${UNAME_RES} "Sxenomai" wsloc)
+
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
+
 
 if(${wsloc} EQUAL -1 )
   message(" simulation only compile mode ")
@@ -31,7 +39,7 @@ endif()
 
 if(${COMPILE_REAL})
 
-##set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
+##set(CMAKE_BUILD_TYPE RELEASE)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -93,23 +101,24 @@ catkin_package(
 include_directories(
   include
   /usr/local/include/soem
-  ${catkin_INCLUDE_DIRS}
   ${tocabi_lib_INCLUDE_DIRS}
+  /usr/xenomai/include
+  /usr/xenomai/include/cobalt
+)
+
+link_directories(
+  /usr/xenomai/lib
 )
 
 ## Declare a C++ library
-add_library(tocabi_ecat_lib
-  src/tocabi_ecat.cpp
-  ${catkin_LIBRARIES}
-)
+# add_library(tocabi_ecat_lib
+#   src/tocabi_ecat.cpp
+#   ${catkin_LIBRARIES}
+# )
 
-add_library(tocabi_ecat_lower_lib
-  src/tocabi_ecat_lower.cpp
-  ${catkin_LIBRARIES}
-)
 
-add_library(tocabi_ecat_upper_lib
-  src/tocabi_ecat_upper.cpp
+add_library(tocabi_ecat_rtnet_lib STATIC
+  src/tocabi_ecat_rtnet.cpp
   ${catkin_LIBRARIES}
 )
 
@@ -121,15 +130,14 @@ add_library(tocabi_ecat_upper_lib
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(tocabi_ecat src/main.cpp)
-
-add_executable(tocabi_ecat_lower src/ecat_lower.cpp)
-
-add_executable(tocabi_ecat_upper src/ecat_upper.cpp)
+# add_executable(tocabi_ecat src/main.cpp)
+add_executable(tocabi_ecat_rtnet src/main_rt.cpp src/tocabi_ecat_rtnet.cpp  src/ecat_settings.cpp)
+add_executable(tocabi_ecat_lower src/ecat_lower.cpp src/tocabi_ecat_rtnet.cpp src/ecat_settings.cpp)
+add_executable(tocabi_ecat_upper src/ecat_upper.cpp src/tocabi_ecat_rtnet.cpp src/ecat_settings.cpp)
 
 add_executable(watcher src/watcher.cpp)
 
-add_executable(watcher2 src/watcher_status.cpp)
+# add_executable(watcher2 src/watcher_status.cpp)
 
 
 
@@ -144,24 +152,29 @@ add_executable(watcher2 src/watcher_status.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(tocabi_ecat
-  tocabi_ecat_lib
-  ${catkin_LIBRARIES}
-  -lsoem
-  -pthread
+# target_link_libraries(tocabi_ecat
+#   tocabi_ecat_lib
+#   ${catkin_LIBRARIES}
+#   -lsoem
+#   -pthread
+# )
+target_link_libraries(tocabi_ecat_rtnet
+tocabi_ecat_rtnet_lib
+-lsoem
+# ${XENO_CFLAGS}
+# ${XENO_LDFLAGS}
 )
 target_link_libraries(tocabi_ecat_lower
-  tocabi_ecat_lower_lib
-  ${catkin_LIBRARIES}
   -lsoem
-  -pthread
+  ${XENO_CFLAGS}
+  ${XENO_LDFLAGS}
 )
 target_link_libraries(tocabi_ecat_upper
-  tocabi_ecat_upper_lib
-  ${catkin_LIBRARIES}
   -lsoem
-  -pthread
+  ${XENO_CFLAGS}
+  ${XENO_LDFLAGS}
 )
+
 
 #############
 ## Install ##
@@ -219,6 +232,6 @@ install(DIRECTORY include/${PROJECT_NAME}/
 # catkin_add_nosetests(test)
 
 
-add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 
 endif()

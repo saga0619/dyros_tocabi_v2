@@ -75,7 +75,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
             thread1_count++;
             if (dc_.tc_shm_->shutdown)
                 break;
-            rcv_time_ = rd_.us_from_start_;
+            rcv_time_ = rd_.control_time_us_;
 
             auto t1 = std::chrono::steady_clock::now();
 
@@ -101,10 +101,10 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
                 std::cout << "position hold switch " << std::endl;
 
-                for (int i = 0; i < MODEL_DOF; i++)
-                {
-                    std::cout << rd_.pos_kp_v[i] << "  " << rd_.pos_kv_v[i] << std::endl;
-                }
+                // for (int i = 0; i < MODEL_DOF; i++)
+                // {
+                //     std::cout << rd_.pos_kp_v[i] << "  " << rd_.pos_kv_v[i] << std::endl;
+                // }
             }
 
             if (rd_.pc_mode)
@@ -247,6 +247,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
             //     std::cout << rd_.control_time_ << "command duration over 350us , " << d2 << std::endl;
             // }
 
+            dc_.tcm_cnt = thread1_count;
             if (thread1_count % 2000 == 0)
             {
                 /*
@@ -260,14 +261,13 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
                 if (d1_over_cnt > 0)
                 {
-                    std::cout << cred << "Controller Thread1 calculation time over 500us.. : " << d1_over_cnt << "times" << creset << std::endl;
+                    std::cout << cred << "Controller Thread1 calculation time over 500us.. : " << d1_over_cnt << "times, stm cnt : " << dc_.tc_shm_->stloopCount << creset << std::endl;
                     d1_over_cnt = 0;
                 }
 
                 d1_total = 0;
                 d2_total = 0;
                 rd_.state_ctime_total_ = 0;
-                thread1_count = 0;
             }
             t_c_ = std::chrono::steady_clock::now();
 
@@ -423,6 +423,7 @@ void TocabiController::SendCommand(Eigen::VectorQd torque_command)
         std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
     dc_.t_c_ = true;
+    dc_.control_command_count++;
     std::copy(torque_command.data(), torque_command.data() + MODEL_DOF, dc_.torque_command);
     dc_.t_c_ = false;
 }
@@ -454,13 +455,21 @@ void TocabiController::PositionCommandCallback(const tocabi_msgs::positionComman
 {
     rd_.pc_traj_time_ = msg->traj_time;
 
+    if(msg->relative)
+    {
+        rd_.pc_pos_init = rd_.pc_pos_des;
+    }
+
     rd_.pc_time_ = rd_.control_time_;
+    rd_.pc_pos_init = rd_.q_;
+    
+
+
 
     for (int i = 0; i < MODEL_DOF; i++)
     {
         rd_.pc_pos_des(i) = msg->position[i];
     }
-    rd_.pc_pos_init = rd_.q_;
     rd_.pc_mode = true;
     rd_.pc_gravity = msg->gravity;
     rd_.positionHoldSwitch = false;

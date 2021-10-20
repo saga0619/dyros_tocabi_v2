@@ -97,7 +97,7 @@ void *StateManager::StateThread()
 
     //Check Coonnect Complete//
     rcv_tcnt = dc_.tc_shm_->statusCount;
-    //cout << "first packet " << rcv_tcnt << endl;
+    cout << "first packet from state manager " << rcv_tcnt << endl;
     int cycle_count_ = rcv_tcnt;
     int stm_count_ = 0;
 
@@ -116,16 +116,21 @@ void *StateManager::StateThread()
         //////////State Loop//////////
         //////////////////////////////
 
-        ros::spinOnce();
-
         dc_.tc_shm_->stloopCount.store(stm_count_);
 
-        while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
+        // while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
+        // std::cout<<"hello trigger:"<<std::endl;
+        while (!dc_.tc_shm_->triggerS1)
         {
             clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
             if (dc_.tc_shm_->shutdown)
                 break;
         }
+        // std::cout<<"hello2 trigger:"<<std::endl;
+
+        rd_.tp_state_ = std::chrono::steady_clock::now();
+        auto t1 = rd_.tp_state_;
+
         dc_.tc_shm_->triggerS1 = false;
         SendCommand();
 
@@ -133,8 +138,6 @@ void *StateManager::StateThread()
         stm_count_++;
 
         rcv_tcnt = dc_.tc_shm_->statusCount;
-        rd_.tp_state_ = std::chrono::steady_clock::now();
-        auto t1 = rd_.tp_state_;
 
         GetJointData(); //0.246 us //w/o march native 0.226
         GetSensorData();
@@ -148,6 +151,7 @@ void *StateManager::StateThread()
         UpdateKinematics_local(model_local_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
 
         auto d1 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t1).count();
+
         auto t2 = chrono::steady_clock::now();
         StateEstimate();
 
@@ -156,25 +160,48 @@ void *StateManager::StateThread()
 
         StoreState(rd_gl_); //6.2 us //w/o march native 8us
 
-        auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
         //MeasureTime(stm_count_, d1, d2);
 
-        rd_gl_.state_ctime_total_ += (d1 + d2);
-        rd_gl_.state_ctime_avg_ = rd_gl_.state_ctime_total_ / stm_count_;
-        rd_gl_.us_from_start_ = dur_start_;
+        rd_gl_.control_time_ = dur_start_ / 1000000.0;
+        rd_gl_.control_time_us_ = dur_start_;
         dc_.tc_shm_->control_time_us_ = dur_start_;
 
+        auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
+
+        auto t3 = chrono::steady_clock::now();
+        //dc_.tc_shm_->t_cnt2 = stm_count_;
+        //dc_.tc_shm_->t_cnt2 = cnt3;
         if (stm_count_ % 33 == 0)
         {
             cnt3++;
             PublishData();
         }
-        //dc_.tc_shm_->t_cnt2 = stm_count_;
-        dc_.tc_shm_->t_cnt2 = cnt3;
-
         if (dc_.inityawSwitch)
             dc_.inityawSwitch = false;
 
+        auto d3 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
+
+        auto t4 = chrono::steady_clock::now();
+        ros::spinOnce();
+
+        auto d4 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
+        rd_gl_.state_ctime_total_ += (d1 + d2 + d3 + d4);
+        rd_gl_.state_ctime_avg_ = rd_gl_.state_ctime_total_ / stm_count_;
+        if (stm_count_ % 2000 == 0)
+        {
+            printf("%f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d \n", control_time_, (int)dc_.tc_shm_->statusCount, stm_count_, (int)dc_.tcm_cnt);
+        }
+
+        if (d2 > 500)
+        {
+            printf("stm over 500, d1 : %ld, d2 : %ld, d3 : %ld, d4 : %ld\n", d1, d2, d3, d4);
+        }
+
+        for(int i=0;i<MODEL_DOF;i++)
+        {
+
+        state_safety_before_[i] = state_safety_[i];
+        }
         //printf("%d\n", rcv_tcnt);
         //printf("\x1b[A\x1b[A\33[2K\r");
         // if (rcv_tcnt % 33 == 0)
@@ -229,37 +256,38 @@ void *StateManager::LoggerThread()
 
     while (!dc_.tc_shm_->shutdown)
     {
+
         std::this_thread::sleep_for(std::chrono::microseconds(500));
 
-        torqueLog << (float)rd_gl_.us_from_start_ / 1000000.0 << "\t ";
+        torqueLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
             torqueLog << std::setfill(' ') << std::setw(5) << (int)dc_.tc_shm_->elmo_torque[i] << " ";
         }
         torqueLog << std::endl;
 
-        torqueCommandLog << (float)rd_gl_.us_from_start_ / 1000000.0 << "\t ";
+        torqueCommandLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
             torqueCommandLog << fixed << setprecision(4) << setw(8) << dc_.torque_command[i] << " ";
         }
         torqueCommandLog << std::endl;
 
-        posLog << (float)rd_gl_.us_from_start_ / 1000000.0 << "\t ";
+        posLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
             posLog << fixed << setprecision(4) << setw(8) << rd_gl_.q_[i] << " ";
         }
         posLog << std::endl;
 
-        velLog << (float)rd_gl_.us_from_start_ / 1000000.0 << "\t ";
+        velLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
             velLog << fixed << setprecision(4) << setw(8) << rd_gl_.q_dot_[i] << " ";
         }
         velLog << std::endl;
 
-        torqueActualLog << (float)rd_gl_.us_from_start_ / 1000000.0 << "\t ";
+        torqueActualLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
         for (int i = 0; i < MODEL_DOF; i++)
         {
             torqueActualLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->torqueActual[i] << " ";
@@ -281,7 +309,7 @@ void *StateManager::LoggerThread()
 
         if (change)
         {
-            ecatStatusLog << (float)rd_gl_.us_from_start_ / 1000000.0 << "\t ";
+            ecatStatusLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
                 ecatStatusLog << elmoStatus_now[i] << "  ";
@@ -308,7 +336,36 @@ void StateManager::SendCommand()
     }
     dc_.t_c_ = true;
     std::copy(dc_.torque_command, dc_.torque_command + MODEL_DOF, torque_command);
+    static int rcv_c_count = dc_.control_command_count;
+
     dc_.t_c_ = false;
+    static int rcv_c_count_before;
+    static int warning_cnt = 0;
+    if (rcv_c_count_before == rcv_c_count)
+    {
+        warning_cnt++;
+    }
+
+    if (warning_cnt > 0)
+    {
+        static int prob_cnt;
+        prob_cnt = rcv_c_count;
+
+        if (warning_cnt > 10)
+        {
+            if (prob_cnt != rcv_c_count)
+            {
+                std::cout << "Command not received for " << warning_cnt << "times " << std::endl;
+                warning_cnt = 0;
+            }
+        }
+        else if (prob_cnt != rcv_c_count)
+        {
+            warning_cnt = 0;
+        }
+    }
+
+    rcv_c_count_before = rcv_c_count;
 
     const double maxTorque = 1000.0;
     const double rTime = 5.0;
@@ -392,10 +449,12 @@ void StateManager::SendCommand()
         }
         else
         {
-            rd_.q_desired = rd_.q_;
+            std::cout << "E1 : STOP" << std::endl;
+            rd_.q_desired = rd_gl_.q_;
             rd_.q_dot_desired.setZero();
             dc_.E1Status = true;
             rd_gl_.tc_run = false;
+            rd_gl_.pc_mode = false;
         }
 
         dc_.E1Switch = false;
@@ -410,6 +469,7 @@ void StateManager::SendCommand()
         {
             dc_.E2Status = true;
             rd_gl_.tc_run = false;
+            rd_gl_.pc_mode = false;
 
             //Damping mode = true!
         }
@@ -420,20 +480,19 @@ void StateManager::SendCommand()
     {
         dc_.emergencyStatus = true; //
         rd_gl_.tc_run = false;
+        rd_gl_.pc_mode = false;
     }
 
     if (dc_.E1Status)
     {
         for (int i = 0; i < MODEL_DOF; i++)
-        {
-            torque_command[i] = dc_.Kps[i] * (rd_gl_.q_desired(i) - rd_gl_.q_(i)) + dc_.Kvs[i] * (rd_gl_.q_dot_desired(i) - rd_gl_.q_dot_(i));
-        }
+            torque_command[i] = rd_gl_.pos_kp_v[i] * (rd_.q_desired(i) - rd_gl_.q_(i)) + rd_gl_.pos_kv_v[i] * (rd_.q_dot_desired(i) - rd_gl_.q_dot_(i));
     }
 
     if (dc_.E2Status)
     {
         for (int i = 0; i < MODEL_DOF; i++)
-            torque_command[i] = dc_.Kvs[i] * rd_gl_.q_dot_(i);
+            torque_command[i] = rd_gl_.pos_kv_v[i] * (-rd_.q_dot_(i));
     }
 
     if (dc_.emergencyStatus)
@@ -443,15 +502,15 @@ void StateManager::SendCommand()
     }
 
     dc_.tc_shm_->commanding = true;
-    dc_.tc_shm_->commanding.store(true, std::memory_order_acquire);
+    dc_.tc_shm_->commanding.store(true);
 
-    std::fill(dc_.tc_shm_->commandMode, dc_.tc_shm_->commandMode + MODEL_DOF, 1);
+    //std::fill(dc_.tc_shm_->commandMode, dc_.tc_shm_->commandMode + MODEL_DOF, 1);
     std::copy(torque_command, torque_command + MODEL_DOF, dc_.tc_shm_->torqueCommand);
     dc_.tc_shm_->maxTorque = maxTorqueCommand;
     static int cCount = 0;
     cCount++;
-    dc_.tc_shm_->commandCount.store(cCount, std::memory_order_release);
-    dc_.tc_shm_->commanding.store(false, std::memory_order_release);
+    dc_.tc_shm_->commandCount.store(cCount);
+    dc_.tc_shm_->commanding.store(false);
 
     // dc_.tc_shm_->commandCount++;
     // dc_.tc_shm_->commanding = false;
@@ -527,11 +586,11 @@ void StateManager::InitYaw()
 
 void StateManager::GetJointData()
 {
-    while (dc_.tc_shm_->statusWriting.load(std::memory_order_acquire))
-    {
-        if (dc_.tc_shm_->shutdown)
-            break;
-    }
+    // while (dc_.tc_shm_->statusWriting.load(std::memory_order_acquire))
+    // {
+    //     if (dc_.tc_shm_->shutdown)
+    //         break;
+    // }
 
     memcpy(q_a_, dc_.tc_shm_->pos, sizeof(float) * MODEL_DOF);
     memcpy(q_dot_a_, dc_.tc_shm_->vel, sizeof(float) * MODEL_DOF);
@@ -573,10 +632,21 @@ void StateManager::GetJointData()
     q_virtual_local_(MODEL_DOF_VIRTUAL) = dc_.tc_shm_->pos_virtual[6];
 
     //memcpy(joint_state_, dc_.tc_shm_->status, sizeof(int) * MODEL_DOF);
-
     memcpy(state_elmo_, dc_.tc_shm_->ecat_status, sizeof(int8_t) * MODEL_DOF);
     memcpy(state_safety_, dc_.tc_shm_->safety_status, sizeof(int8_t) * MODEL_DOF);
     memcpy(state_zp_, dc_.tc_shm_->zp_status, sizeof(int8_t) * MODEL_DOF);
+    for (int i = 0; i < MODEL_DOF;i++)
+    {
+        if (state_safety_[i] != state_safety_before_[i])
+        {
+            if(state_safety_[i] != 0)
+            {
+                dc_.positionControlSwitch = true;
+                std::cout << "Safety Activated ! To Position Hold" << std::endl;
+
+            }
+        }
+    }
 
     //RF_CF_FT.setZ
 
@@ -1308,11 +1378,27 @@ void StateManager::PublishData()
 
     bool query_elmo_pub_ = false;
 
+    static int gui_pub_cnt = 0;
+    gui_pub_cnt++;
+    if (gui_pub_cnt % 6 == 0)
+    {
+        query_elmo_pub_ = true;
+    }
+
     for (int i = 0; i < MODEL_DOF; i++)
     {
         elmo_status_msg_.data[i] = state_elmo_[i];
+
         elmo_status_msg_.data[i + 33] = state_zp_[i];
-        elmo_status_msg_.data[i + 66] = state_safety_[i];
+
+        if(dc_.tc_shm_->safety_disable)
+        {   
+            elmo_status_msg_.data[i + 66] = 9;
+        }
+        else
+        {
+            elmo_status_msg_.data[i + 66] = state_safety_[i];
+        }
 
         if (state_elmo_[i] != state_elmo_before_[i])
         {
@@ -1330,7 +1416,6 @@ void StateManager::PublishData()
         }
 
         state_elmo_before_[i] = state_elmo_[i];
-        state_safety_before_[i] = state_safety_[i];
         state_zp_before_[i] = state_zp_[i];
     }
 
@@ -1496,6 +1581,7 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "ecatinitlower")
     {
         dc_.tc_shm_->low_init_signal = true;
+        std::cout<<"set lower init"<<std::endl;
     }
     else if (msg->data == "ecatinitwaist")
     {
