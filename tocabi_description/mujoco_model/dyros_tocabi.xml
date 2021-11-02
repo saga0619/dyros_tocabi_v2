@@ -182,7 +182,7 @@
                     <geom class="cls" size="0.05 0.05 0.03" pos="0.02 0 0" type="box"/>
                     <geom class="cls" size="0.045 0.05 0.0455" pos="-0.02 0 0" type="box"/>
                     <body name="Upperbody_Link" pos="0 0 0">
-                        <inertial pos="-0.04294 0 0.16798" quat="0.999909 -0.000268355 -0.0135223 5.11667e-05" mass="18.1338" diaginertia="0.563198 0.563198 0.563198" />
+                        <inertial pos="-0.07294 0 0.16798" quat="0.999909 -0.000268355 -0.0135223 5.11667e-05" mass="18.1338" diaginertia="0.563198 0.563198 0.563198" />
                         <joint name="Upperbody_Joint" pos="0 0 0" axis="-1 0 0" limited="true" range="-2.094 2.094" class="Waist"/>
                         <geom class="viz" rgba="0.85938 0.07813 0.23438 1" mesh="upperbody" />
                         <geom class="viz" size="0.105 0.11 0.05" pos="-0.03 0 0.2" type="box" rgba="0.20313 0.20313 0.20313 1" />
