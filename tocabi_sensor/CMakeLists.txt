@@ -187,7 +187,9 @@ target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   mx5_lib
   -lmscl  
+  /usr/share/c++-mscl/Boost/lib/libboost_system.so.1.68.0
 )
+
 add_dependencies(mx5_lib ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 
