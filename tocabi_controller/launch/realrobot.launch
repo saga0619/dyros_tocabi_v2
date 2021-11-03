@@ -14,7 +14,6 @@
 
     <node name="tocabi_controller" pkg="tocabi_controller" type="tocabi_controller" output="screen" required="true">
         <param name="sim_mode" value="false"/>
-
         <rosparam command="load" file="$(find tocabi_description)/setting/setting_realrobot_positionPDgain.yaml"/>
         <rosparam command="load" file="$(find tocabi_description)/setting/setting_realrobot_parameters.yaml"/>
     </node>

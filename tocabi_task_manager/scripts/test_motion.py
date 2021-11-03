@@ -1,12 +1,21 @@
 #!/usr/bin/env python
 from __future__ import division, print_function
 import rospy
+import argparse
 from tocabi_msgs.msg import positionCommand
 
 rospy.init_node('test_motion_generator')
 
-traj_time = 1.0
+
+parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('--traj_time', help='trajectory time', type=float, default=5.0)
+
+args = parser.parse_args()
+
+traj_time = args.traj_time
 wait_time = traj_time*1.05
+
+print('traj_time',traj_time)
 
 pub = rospy.Publisher('/tocabi/positioncommand', positionCommand, queue_size=1)
 msg= positionCommand()
