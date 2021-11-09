@@ -77,7 +77,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
 
     elmo_status_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/ecatstates", 100);
 
-    com_status_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/comstates",100);
+    com_status_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/comstates", 100);
 
     com_status_msg_.data.resize(10);
 
@@ -116,8 +116,8 @@ void *StateManager::StateThread()
 
     while (true)
     {
-        if(dc_.tc_shm_->shutdown)
-        break;
+        if (dc_.tc_shm_->shutdown)
+            break;
         //////////////////////////////
         //////////State Loop//////////
         //////////////////////////////
@@ -126,12 +126,22 @@ void *StateManager::StateThread()
 
         SendCommand();
 
-        while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
-        {
-            clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
-            if (dc_.tc_shm_->shutdown)
-                break;
-        }
+        pthread_mutex_lock(&dc_.tc_shm_->si_mutex);
+
+        pthread_cond_wait(&dc_.tc_shm_->si_cond_, &dc_.tc_shm_->si_mutex);
+
+        // pthread_mutex_unlock(&dc_.tc_shm_->si_mutex);
+
+        // while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
+        // {
+        //     clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
+        //     if (dc_.tc_shm_->shutdown)
+        //         break;
+        // }
+
+        // dc_.tc_shm_->statusSent.wait(false);
+
+        // dc_.tc_shm_->statusSent.store(false);
 
         rd_.tp_state_ = std::chrono::steady_clock::now();
         auto t1 = rd_.tp_state_;
@@ -211,6 +221,7 @@ void *StateManager::StateThread()
         // }
     }
     cout << "StateManager Thread END" << endl;
+    return (void *)NULL;
 }
 
 void *StateManager::LoggerThread()
@@ -335,21 +346,28 @@ void *StateManager::LoggerThread()
     torqueLog.close();
 
     std::cout << "Logger : END!" << std::endl;
+    return (void *)NULL;
 }
 
 void StateManager::SendCommand()
 {
 
     static double torque_command[MODEL_DOF];
-    while (dc_.t_c_)
-    {
-        std::this_thread::sleep_for(std::chrono::microseconds(1));
-    }
-    dc_.t_c_ = true;
+    // while (dc_.t_c_)
+    // {
+    //     std::this_thread::sleep_for(std::chrono::microseconds(1));
+    // }
+    // dc_.t_c_ = true;
+    
+    pthread_mutex_lock(&cmd_mtx);
+    // pthread_spin_lock(&cmd_spl);
     std::copy(dc_.torque_command, dc_.torque_command + MODEL_DOF, torque_command);
+    // pthread_spin_unlock(&cmd_spl);
+
+    pthread_mutex_unlock(&cmd_mtx);
     static int rcv_c_count = dc_.control_command_count;
 
-    dc_.t_c_ = false;
+    // dc_.t_c_ = false;
     static int rcv_c_count_before;
     static int warning_cnt = 0;
     if (rcv_c_count_before == rcv_c_count)
@@ -378,7 +396,7 @@ void StateManager::SendCommand()
 
     rcv_c_count_before = rcv_c_count;
 
-    const double maxTorque = 1000.0;
+    const double maxTorque = 1500.0;
     const double rTime = 5.0;
 
     int maxTorqueCommand;
@@ -514,16 +532,34 @@ void StateManager::SendCommand()
             torque_command[i] = 0.0;
     }
 
-    dc_.tc_shm_->commanding = true;
-    dc_.tc_shm_->commanding.store(true);
+    // dc_.tc_shm_->commanding = true;
+    // dc_.tc_shm_->commanding.store(true);
 
     //std::fill(dc_.tc_shm_->commandMode, dc_.tc_shm_->commandMode + MODEL_DOF, 1);
-    std::copy(torque_command, torque_command + MODEL_DOF, dc_.tc_shm_->torqueCommand);
+
+    pthread_mutex_lock(&dc_.tc_shm_->emtx_1);
+    // pthread_spin_lock(&dc_.tc_shm_->espl_1);
+
+    std::copy(torque_command + 15, torque_command + MODEL_DOF, dc_.tc_shm_->torqueCommand + 15);
+
+    // pthread_spin_unlock(&dc_.tc_shm_->espl_2);
+    pthread_mutex_unlock(&dc_.tc_shm_->emtx_1);
+
+    // pthread_spin_lock(&dc_.tc_shm_->espl_2);
+    pthread_mutex_lock(&dc_.tc_shm_->emtx_2);
+
+    std::copy(torque_command, torque_command + 15, dc_.tc_shm_->torqueCommand);
+
+    // pthread_spin_unlock(&dc_.tc_shm_->espl_2);
+
+    pthread_mutex_unlock(&dc_.tc_shm_->emtx_2);
+
     dc_.tc_shm_->maxTorque = maxTorqueCommand;
     static int cCount = 0;
     cCount++;
-    dc_.tc_shm_->commandCount.store(cCount);
-    dc_.tc_shm_->commanding.store(false);
+
+    // dc_.tc_shm_->commandCount.store(cCount);
+    // dc_.tc_shm_->commanding.store(false);
 
     // dc_.tc_shm_->commandCount++;
     // dc_.tc_shm_->commanding = false;
@@ -1463,18 +1499,16 @@ void StateManager::PublishData()
 
     gui_state_pub_.publish(syspub_msg);
 
-    
-    com_status_msg_.data[0] = dc_.tc_shm_->lat_avg /1000.0;
-    com_status_msg_.data[1] = dc_.tc_shm_->lat_max /1000.0;
-    com_status_msg_.data[2] = dc_.tc_shm_->send_avg /1000.0;
-    com_status_msg_.data[3] = dc_.tc_shm_->send_max /1000.0;
+    com_status_msg_.data[0] = dc_.tc_shm_->lat_avg / 1000.0;
+    com_status_msg_.data[1] = dc_.tc_shm_->lat_max / 1000.0;
+    com_status_msg_.data[2] = dc_.tc_shm_->send_avg / 1000.0;
+    com_status_msg_.data[3] = dc_.tc_shm_->send_max / 1000.0;
     com_status_msg_.data[4] = dc_.tc_shm_->send_ovf;
 
-
-    com_status_msg_.data[5] = dc_.tc_shm_->lat_avg2 /1000.0;
-    com_status_msg_.data[6] = dc_.tc_shm_->lat_max2 /1000.0;
-    com_status_msg_.data[7] = dc_.tc_shm_->send_avg2 /1000.0;
-    com_status_msg_.data[8] = dc_.tc_shm_->send_max2 /1000.0;
+    com_status_msg_.data[5] = dc_.tc_shm_->lat_avg2 / 1000.0;
+    com_status_msg_.data[6] = dc_.tc_shm_->lat_max2 / 1000.0;
+    com_status_msg_.data[7] = dc_.tc_shm_->send_avg2 / 1000.0;
+    com_status_msg_.data[8] = dc_.tc_shm_->send_max2 / 1000.0;
     com_status_msg_.data[9] = dc_.tc_shm_->send_ovf2;
 
     com_status_pub_.publish(com_status_msg_);

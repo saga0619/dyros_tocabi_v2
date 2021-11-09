@@ -8,7 +8,6 @@
 #include "tocabi_controller/tocabi_controller.h"
 #include <signal.h>
 
-
 #include <limits.h>
 #include <pthread.h>
 #include <sched.h>
@@ -22,7 +21,6 @@
 #include <unistd.h>
 #include <iostream>
 
-
 volatile bool *prog_shutdown;
 
 void SIGINT_handler(int sig)
@@ -30,7 +28,6 @@ void SIGINT_handler(int sig)
     cout << "shutdown Signal" << endl;
     *prog_shutdown = true;
 }
-
 
 static int latency_target_fd = -1;
 static int32_t latency_target_value = 0;
@@ -43,7 +40,7 @@ static void set_latency_target(void)
     err = stat("/dev/cpu_dma_latency", &s);
     if (err == -1)
     {
-        std::cout<<"WARN: stat /dev/cpu_dma_latency failed"<<std::endl;
+        std::cout << "WARN: stat /dev/cpu_dma_latency failed" << std::endl;
         return;
     }
 
@@ -51,7 +48,7 @@ static void set_latency_target(void)
     latency_target_fd = open("/dev/cpu_dma_latency", O_RDWR);
     if (latency_target_fd == -1)
     {
-        std::cout<<"WARN: open /dev/cpu_dma_latency"<<std::endl;
+        std::cout << "WARN: open /dev/cpu_dma_latency" << std::endl;
         return;
     }
 
@@ -59,7 +56,7 @@ static void set_latency_target(void)
     err = write(latency_target_fd, &latency_target_value, 4);
     if (err < 1)
     {
-        std::cout<<"# error setting cpu_dma_latency to %d!"<<latency_target_value<<std::endl;
+        std::cout << "# error setting cpu_dma_latency to %d!" << latency_target_value << std::endl;
         close(latency_target_fd);
         return;
     }
@@ -125,8 +122,37 @@ int main(int argc, char **argv)
         cpu_set_t cpusets[thread_number];
 
         if (dc_.simMode)
+        {
             cout << "Simulation Mode" << endl;
+        }
+        else
+        {
 
+            pthread_condattr_t cat;
+            pthread_condattr_init(&cat);
+            pthread_condattr_setpshared(&cat, PTHREAD_PROCESS_SHARED);
+
+            pthread_mutexattr_t mat;
+            pthread_mutexattr_init(&mat);
+            pthread_mutexattr_setpshared(&mat, PTHREAD_PROCESS_SHARED);
+
+            pthread_cond_init(&dc_.tc_shm_->si_cond_, &cat);
+            pthread_mutex_init(&dc_.tc_shm_->si_mutex, &mat);
+
+
+
+            pthread_mutex_init(&dc_.tc_shm_->emtx_1, &mat);
+            pthread_mutex_init(&dc_.tc_shm_->emtx_2, &mat);
+
+            pthread_spin_init(&dc_.tc_shm_->espl_1, PTHREAD_PROCESS_SHARED);
+            pthread_spin_init(&dc_.tc_shm_->espl_2, PTHREAD_PROCESS_SHARED);
+
+
+
+        }
+
+        pthread_mutex_init(&stm.cmd_mtx, NULL);
+        pthread_spin_init(&stm.cmd_spl, 0);
         //set_latency_target();
 
         /* Initialize pthread attributes (default values) */

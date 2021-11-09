@@ -114,6 +114,10 @@ public:
     double total_mass_ = 0;
     tf2_ros::TransformBroadcaster br;
 
+    pthread_mutex_t cmd_mtx;
+
+    pthread_spinlock_t cmd_spl;
+
     //Calc performance measuring...
 
     void MeasureTime(int currentCount, int nanoseconds1, int nanoseconds2 = 0);
