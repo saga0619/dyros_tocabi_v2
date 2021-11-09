@@ -114,6 +114,8 @@ void *StateManager::StateThread()
     tv_us1.tv_sec = 0;
     tv_us1.tv_nsec = 10000;
 
+    timespec ts_cond_;
+
     while (true)
     {
         if (dc_.tc_shm_->shutdown)
@@ -128,9 +130,21 @@ void *StateManager::StateThread()
 
         pthread_mutex_lock(&dc_.tc_shm_->si_mutex);
 
+        clock_gettime(CLOCK_MONOTONIC, &ts_cond_);
+
+        ts_cond_.tv_nsec += 10*1000*1000;
+
+        if(ts_cond_.tv_nsec > 1000000000)
+        {
+            ts_cond_.tv_nsec -= 1000000000;
+            ts_cond_.tv_sec += 1;
+        }
+
+        // pthread_cond_timedwait(&dc_.tc_shm_->si_cond_, &dc_.tc_shm_->si_mutex, &ts_cond_);
+
         pthread_cond_wait(&dc_.tc_shm_->si_cond_, &dc_.tc_shm_->si_mutex);
 
-        // pthread_mutex_unlock(&dc_.tc_shm_->si_mutex);
+        pthread_mutex_unlock(&dc_.tc_shm_->si_mutex);
 
         // while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
         // {
@@ -358,7 +372,7 @@ void StateManager::SendCommand()
     //     std::this_thread::sleep_for(std::chrono::microseconds(1));
     // }
     // dc_.t_c_ = true;
-    
+
     pthread_mutex_lock(&cmd_mtx);
     // pthread_spin_lock(&cmd_spl);
     std::copy(dc_.torque_command, dc_.torque_command + MODEL_DOF, torque_command);
