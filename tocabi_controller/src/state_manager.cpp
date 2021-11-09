@@ -77,7 +77,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
 
     elmo_status_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/ecatstates", 100);
 
-    com_status_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/comstates",100);
+    com_status_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/comstates", 100);
 
     com_status_msg_.data.resize(10);
 
@@ -116,8 +116,8 @@ void *StateManager::StateThread()
 
     while (true)
     {
-        if(dc_.tc_shm_->shutdown)
-        break;
+        if (dc_.tc_shm_->shutdown)
+            break;
         //////////////////////////////
         //////////State Loop//////////
         //////////////////////////////
@@ -343,7 +343,6 @@ void StateManager::SendCommand()
     static double torque_command[MODEL_DOF];
     while (dc_.t_c_)
     {
-        std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
     dc_.t_c_ = true;
     std::copy(dc_.torque_command, dc_.torque_command + MODEL_DOF, torque_command);
@@ -515,15 +514,32 @@ void StateManager::SendCommand()
     }
 
     dc_.tc_shm_->commanding = true;
-    dc_.tc_shm_->commanding.store(true);
 
+    //UpperBody
+    while(dc_.tc_shm_->cmd_upper)
+    {
+    }
+    dc_.tc_shm_->cmd_upper = true;
     //std::fill(dc_.tc_shm_->commandMode, dc_.tc_shm_->commandMode + MODEL_DOF, 1);
-    std::copy(torque_command, torque_command + MODEL_DOF, dc_.tc_shm_->torqueCommand);
+    std::copy(torque_command + 15, torque_command + MODEL_DOF, dc_.tc_shm_->torqueCommand + 15);
     dc_.tc_shm_->maxTorque = maxTorqueCommand;
     static int cCount = 0;
     cCount++;
     dc_.tc_shm_->commandCount.store(cCount);
+
     dc_.tc_shm_->commanding.store(false);
+
+    dc_.tc_shm_->cmd_upper = false;
+    //LowerBody
+
+
+    while(dc_.tc_shm_->cmd_lower)
+    {
+    }
+
+    dc_.tc_shm_->cmd_lower = true;
+    std::copy(torque_command, torque_command + 15, dc_.tc_shm_->torqueCommand);
+    dc_.tc_shm_->cmd_lower = false;
 
     // dc_.tc_shm_->commandCount++;
     // dc_.tc_shm_->commanding = false;
@@ -1463,18 +1479,16 @@ void StateManager::PublishData()
 
     gui_state_pub_.publish(syspub_msg);
 
-    
-    com_status_msg_.data[0] = dc_.tc_shm_->lat_avg /1000.0;
-    com_status_msg_.data[1] = dc_.tc_shm_->lat_max /1000.0;
-    com_status_msg_.data[2] = dc_.tc_shm_->send_avg /1000.0;
-    com_status_msg_.data[3] = dc_.tc_shm_->send_max /1000.0;
+    com_status_msg_.data[0] = dc_.tc_shm_->lat_avg / 1000.0;
+    com_status_msg_.data[1] = dc_.tc_shm_->lat_max / 1000.0;
+    com_status_msg_.data[2] = dc_.tc_shm_->send_avg / 1000.0;
+    com_status_msg_.data[3] = dc_.tc_shm_->send_max / 1000.0;
     com_status_msg_.data[4] = dc_.tc_shm_->send_ovf;
 
-
-    com_status_msg_.data[5] = dc_.tc_shm_->lat_avg2 /1000.0;
-    com_status_msg_.data[6] = dc_.tc_shm_->lat_max2 /1000.0;
-    com_status_msg_.data[7] = dc_.tc_shm_->send_avg2 /1000.0;
-    com_status_msg_.data[8] = dc_.tc_shm_->send_max2 /1000.0;
+    com_status_msg_.data[5] = dc_.tc_shm_->lat_avg2 / 1000.0;
+    com_status_msg_.data[6] = dc_.tc_shm_->lat_max2 / 1000.0;
+    com_status_msg_.data[7] = dc_.tc_shm_->send_avg2 / 1000.0;
+    com_status_msg_.data[8] = dc_.tc_shm_->send_max2 / 1000.0;
     com_status_msg_.data[9] = dc_.tc_shm_->send_ovf2;
 
     com_status_pub_.publish(com_status_msg_);
