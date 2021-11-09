@@ -95,6 +95,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
             if (dc_.positionControlSwitch)
             {
                 dc_.positionControlSwitch = false;
+
                 rd_.q_desired = rd_.q_;
                 rd_.positionHoldSwitch = true;
                 rd_.pc_mode = true;
@@ -114,7 +115,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
                 }
                 else
                 {
-                    rd_.q_desired = DyrosMath::cubicVector(rd_.control_time_, rd_.pc_time_, rd_.pc_time_ + rd_.pc_traj_time_, rd_.pc_pos_init, rd_.pc_pos_des, zero_m, zero_m);
+                    rd_.q_desired = DyrosMath::cubicVector(rd_.control_time_, rd_.pc_time_, rd_.pc_time_ + rd_.pc_traj_time_, rd_.pc_pos_init, rd_.pc_pos_des, rd_.pc_vel_init, zero_m);
                 }
 
                 for (int i = 0; i < MODEL_DOF; i++)
@@ -280,6 +281,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
     }
 
     cout << "thread1 terminate" << endl;
+    return (void *)NULL;
 }
 
 //Thread2 : running with request
@@ -331,6 +333,7 @@ void *TocabiController::Thread2()
     }
 
     std::cout << "thread2 terminate" << std::endl;
+    return (void *)NULL;
 }
 
 //Thread3 : running with request
@@ -369,6 +372,7 @@ void *TocabiController::Thread3()
     }
 
     std::cout << "thread3 terminate" << std::endl;
+    return (void *)NULL;
 }
 
 void TocabiController::MeasureTime(int currentCount, int nanoseconds1, int nanoseconds2)
@@ -453,20 +457,31 @@ void TocabiController::GetTaskCommand(tocabi_msgs::TaskCommand &msg)
 
 void TocabiController::PositionCommandCallback(const tocabi_msgs::positionCommandConstPtr &msg)
 {
+    static bool position_command = false;
+
     rd_.pc_traj_time_ = msg->traj_time;
 
     rd_.pc_time_ = rd_.control_time_;
+
+    rd_.pc_pos_init = rd_.q_;
+    rd_.pc_vel_init = rd_.q_dot_;
+
+    if (position_command && msg->relative)
+    {
+        rd_.pc_pos_init = rd_.q_desired;
+        std::cout << "pos init with prev des" << std::endl;
+    }
 
     for (int i = 0; i < MODEL_DOF; i++)
     {
         rd_.pc_pos_des(i) = msg->position[i];
     }
-    rd_.pc_pos_init = rd_.q_;
     rd_.pc_mode = true;
     rd_.pc_gravity = msg->gravity;
     rd_.positionHoldSwitch = false;
     
     stm_.StatusPub("%f Position Control", (float)rd_.control_time_);
+    position_command = true;
     std::cout << "position command received" << std::endl;
 }
 

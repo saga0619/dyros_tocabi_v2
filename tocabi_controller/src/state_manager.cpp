@@ -211,6 +211,7 @@ void *StateManager::StateThread()
         // }
     }
     cout << "StateManager Thread END" << endl;
+    return (void *)NULL;
 }
 
 void *StateManager::LoggerThread()
@@ -335,6 +336,7 @@ void *StateManager::LoggerThread()
     torqueLog.close();
 
     std::cout << "Logger : END!" << std::endl;
+    return (void *)NULL;
 }
 
 void StateManager::SendCommand()
@@ -377,7 +379,7 @@ void StateManager::SendCommand()
 
     rcv_c_count_before = rcv_c_count;
 
-    const double maxTorque = 1000.0;
+    const double maxTorque = 1500.0;
     const double rTime = 5.0;
 
     int maxTorqueCommand;
