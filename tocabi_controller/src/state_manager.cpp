@@ -2,6 +2,7 @@
 #include "fstream"
 #include "algorithm"
 
+
 using namespace std;
 using namespace TOCABI;
 
@@ -129,6 +130,8 @@ void *StateManager::StateThread()
         while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
         {
             clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
+
+            __asm__("pause":::"memory");
             if (dc_.tc_shm_->shutdown)
                 break;
         }
@@ -667,17 +670,20 @@ void StateManager::GetJointData()
     memcpy(state_elmo_, dc_.tc_shm_->ecat_status, sizeof(int8_t) * MODEL_DOF);
     memcpy(state_safety_, dc_.tc_shm_->safety_status, sizeof(int8_t) * MODEL_DOF);
     memcpy(state_zp_, dc_.tc_shm_->zp_status, sizeof(int8_t) * MODEL_DOF);
-    for (int i = 0; i < MODEL_DOF; i++)
-    {
-        if (state_safety_[i] != state_safety_before_[i])
-        {
-            if (state_safety_[i] != 0)
-            {
-                dc_.positionControlSwitch = true;
-                std::cout << "Safety Activated ! To Position Hold" << std::endl;
-            }
-        }
-    }
+    
+
+    //Position Hold On Safety
+    // for (int i = 0; i < MODEL_DOF; i++)
+    // {
+    //     if (state_safety_[i] != state_safety_before_[i])
+    //     {
+    //         if (state_safety_[i] != 0)
+    //         {
+    //             dc_.positionControlSwitch = true;
+    //             std::cout << "Safety Activated ! To Position Hold" << std::endl;
+    //         }
+    //     }
+    // }
 
     //RF_CF_FT.setZ
 
