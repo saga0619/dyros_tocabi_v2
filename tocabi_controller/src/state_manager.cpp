@@ -49,6 +49,15 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
         link_[Left_Hand].contact_point << 0, 0.0, -0.035;
         link_[Left_Hand].sensor_point << 0.0, 0.0, 0.0;
 
+        Eigen::Matrix3d i_com_;
+        i_com_.setZero();
+        for (int i = 0; i < LINK_NUMBER; i++)
+        {
+            i_com_ += link_p[i].inertia * link_p[i].mass / total_mass_;
+        }
+
+        link_[COM_id].inertia = i_com_;
+
         memcpy(link_local_, link_, sizeof(LinkData) * LINK_NUMBER);
     }
 
@@ -132,7 +141,8 @@ void *StateManager::StateThread()
         {
             // clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
 
-            __asm__("pause" ::: "memory");
+            __asm__("pause" ::
+                        : "memory");
             if (dc_.tc_shm_->shutdown)
                 break;
         }
@@ -922,10 +932,16 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
 
     // sector 4 start : com calculation
     Eigen::Matrix3Vf jacobian_com;
+    Eigen::Matrix3Vf jacobian_com_r;
+    jacobian_com_r.setZero();
+
     jacobian_com.setZero();
+
     for (int i = 0; i < LINK_NUMBER; i++)
     {
         jacobian_com += link_p[i].jac_com.topRows(3) * link_p[i].mass / total_mass_;
+
+        jacobian_com_r += link_p[i].jac_com.bottomRows(3) * link_p[i].mass / total_mass_;
     }
     link_p[COM_id].mass = total_mass_;
     link_p[COM_id].xpos.setZero();
@@ -941,6 +957,9 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
     link_p[COM_id].jac.block(3, 0, 3, MODEL_DOF_VIRTUAL) = link_p[Pelvis].jac.block(3, 0, 3, MODEL_DOF_VIRTUAL);
 
     link_p[COM_id].jac_com.block(0, 0, 3, MODEL_DOF_VIRTUAL) = jacobian_com;
+
+    link_p[COM_id].jac_com.block(3, 0, 3, MODEL_DOF_VIRTUAL) = jacobian_com_r;
+
     //link_p[COM_id].xpos(2) = link_p[Pelvis].xpos(2);
     // sector 4 end : 3 us
 }
