@@ -53,7 +53,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
         i_com_.setZero();
         for (int i = 0; i < LINK_NUMBER; i++)
         {
-            i_com_ += link_p[i].inertia * link_p[i].mass / total_mass_;
+            i_com_ += link_[i].inertia * link_[i].mass / total_mass_;
         }
 
         link_[COM_id].inertia = i_com_;
