@@ -148,6 +148,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   /usr/share/c++-mscl/source
   /usr/share/c++-mscl/Boost/include
+  include/sensoray826/
 )
 
 link_directories(
