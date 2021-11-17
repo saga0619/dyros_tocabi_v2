@@ -2,7 +2,6 @@
 #include "fstream"
 #include "algorithm"
 
-
 using namespace std;
 using namespace TOCABI;
 
@@ -127,17 +126,24 @@ void *StateManager::StateThread()
 
         SendCommand();
 
-        while (!dc_.tc_shm_->triggerS1.load(std::memory_order_acquire))
-        {
-            clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
+        auto t0 = std::chrono::steady_clock::now();
 
-            __asm__("pause":::"memory");
+        while (!dc_.tc_shm_->triggerS1)
+        {
+            // clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
+
+            __asm__("pause" ::: "memory");
             if (dc_.tc_shm_->shutdown)
                 break;
         }
 
         rd_.tp_state_ = std::chrono::steady_clock::now();
         auto t1 = rd_.tp_state_;
+
+        if (chrono::duration_cast<chrono::microseconds>(t1 - t0).count() > 500)
+        {
+            std::cout << control_time_ << " STATE : Waiting for signal for over 500us, " << chrono::duration_cast<chrono::microseconds>(t1 - t0).count() << std::endl;
+        }
 
         dc_.tc_shm_->triggerS1 = false;
         cycle_count_++;
@@ -521,7 +527,7 @@ void StateManager::SendCommand()
     dc_.tc_shm_->commanding = true;
 
     //UpperBody
-    while(dc_.tc_shm_->cmd_upper)
+    while (dc_.tc_shm_->cmd_upper)
     {
     }
     dc_.tc_shm_->cmd_upper = true;
@@ -537,8 +543,7 @@ void StateManager::SendCommand()
     dc_.tc_shm_->cmd_upper = false;
     //LowerBody
 
-
-    while(dc_.tc_shm_->cmd_lower)
+    while (dc_.tc_shm_->cmd_lower)
     {
     }
 
@@ -670,7 +675,6 @@ void StateManager::GetJointData()
     memcpy(state_elmo_, dc_.tc_shm_->ecat_status, sizeof(int8_t) * MODEL_DOF);
     memcpy(state_safety_, dc_.tc_shm_->safety_status, sizeof(int8_t) * MODEL_DOF);
     memcpy(state_zp_, dc_.tc_shm_->zp_status, sizeof(int8_t) * MODEL_DOF);
-    
 
     //Position Hold On Safety
     // for (int i = 0; i < MODEL_DOF; i++)
