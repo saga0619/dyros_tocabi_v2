@@ -868,7 +868,7 @@ void StateManager::StoreState(RobotData &rd_dst)
 
     rd_dst.LF_FT = LF_FT;
 
-    rd_dst.RF_FT = FT_FT;
+    rd_dst.RF_FT = RF_FT;
 
     
     dc_.triggerThread1 = true;

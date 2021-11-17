@@ -59,6 +59,7 @@ link_directories(
 add_library(mx5_lib
   src/mx5_imu.cpp  
 )
+add_executable(${PROJECT_NAME} src/sensor_manager.cpp)
 
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
