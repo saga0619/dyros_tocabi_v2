@@ -716,6 +716,8 @@ void StateManager::GetSensorData()
         RF_FT(i) = dc_.tc_shm_->ftSensor[i + 6];
     }
 
+
+
     double foot_plate_mass = 2.326;
 
     Matrix6d adt;
@@ -862,6 +864,13 @@ void StateManager::StoreState(RobotData &rd_dst)
     rd_dst.control_time_ = control_time_;
 
     rd_dst.tp_state_ = rd_.tp_state_;
+
+
+    rd_dst.LF_FT = LF_FT;
+
+    rd_dst.RF_FT = FT_FT;
+
+    
     dc_.triggerThread1 = true;
 }
 
