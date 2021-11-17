@@ -1,7 +1,9 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Int8MultiArray.h>
 
+#include "tocabi_sensor/sensoray826.h"
 #include "tocabi_sensor/mx5_imu.h"
+#include <fstream>
 #include "shm_msgs.h"
 
 class SensorManager
@@ -25,6 +27,8 @@ public:
 
     bool imu_reset_signal_ = false;
     bool ft_calib_signal_ = false;
+
+    std::fstream ft_init_log;
 
     int packet_num;
 };

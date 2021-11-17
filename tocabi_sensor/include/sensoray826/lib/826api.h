@@ -16,20 +16,20 @@ extern "C" {
 
 // Error codes
 #define S826_ERR_OK             0           // No error
-#define S826_ERR_BOARD          (unsigned int)(-1)        // Illegal board number
-#define S826_ERR_VALUE          (unsigned int)(-2)        // Illegal argument value
-#define S826_ERR_NOTREADY       (unsigned int)(-3)        // Device not ready or timeout waiting for device
-#define S826_ERR_CANCELLED      (unsigned int)(-4)        // Wait cancelled
-#define S826_ERR_DRIVER         (unsigned int)(-5)        // Driver call failed
-#define S826_ERR_MISSEDTRIG     (unsigned int)(-6)        // Missed adc trigger
-#define S826_ERR_DUPADDR        (unsigned int)(-9)        // Two boards set to same board number
-#define S826_ERR_BOARDCLOSED    (unsigned int)(-10)       // Board is not open
-#define S826_ERR_CREATEMUTEX    (unsigned int)(-11)       // Can't create mutex
-#define S826_ERR_MEMORYMAP      (unsigned int)(-12)       // Can't map board to memory address
-#define S826_ERR_MALLOC         (unsigned int)(-13)       // Can't allocate memory
-#define S826_ERR_FIFOOVERFLOW   (unsigned int)(-15)       // Counter's snapshot fifo overflowed
-#define S826_ERR_LOCALBUS       (unsigned int)(-16)       // Can't read local bus (register contains illegal value)
-#define S826_ERR_OSSPECIFIC     (unsigned int)(-100)      // Port-specific error (base error number)
+#define S826_ERR_BOARD          (unsigned int)(1)        // Illegal board number
+#define S826_ERR_VALUE          (unsigned int)(2)        // Illegal argument value
+#define S826_ERR_NOTREADY       (unsigned int)(3)        // Device not ready or timeout waiting for device
+#define S826_ERR_CANCELLED      (unsigned int)(4)        // Wait cancelled
+#define S826_ERR_DRIVER         (unsigned int)(5)        // Driver call failed
+#define S826_ERR_MISSEDTRIG     (unsigned int)(6)        // Missed adc trigger
+#define S826_ERR_DUPADDR        (unsigned int)(9)        // Two boards set to same board number
+#define S826_ERR_BOARDCLOSED    (unsigned int)(10)       // Board is not open
+#define S826_ERR_CREATEMUTEX    (unsigned int)(11)       // Can't create mutex
+#define S826_ERR_MEMORYMAP      (unsigned int)(12)       // Can't map board to memory address
+#define S826_ERR_MALLOC         (unsigned int)(13)       // Can't allocate memory
+#define S826_ERR_FIFOOVERFLOW   (unsigned int)(15)       // Counter's snapshot fifo overflowed
+#define S826_ERR_LOCALBUS       (unsigned int)(16)       // Can't read local bus (register contains illegal value)
+#define S826_ERR_OSSPECIFIC     (unsigned int)(100)      // Port-specific error (base error number)
 
 // Number of available channels.
 #define S826_NUM_COUNT          6           // Counters

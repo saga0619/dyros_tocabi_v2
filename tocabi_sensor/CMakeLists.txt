@@ -148,7 +148,6 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   /usr/share/c++-mscl/source
   /usr/share/c++-mscl/Boost/include
-  include/sensoray826/
 )
 
 link_directories(
@@ -189,6 +188,7 @@ target_link_libraries(${PROJECT_NAME}
   mx5_lib
   -lmscl  
   /usr/share/c++-mscl/Boost/lib/libboost_system.so.1.68.0
+  /usr/lib/lib826_64.so
 )
 
 add_dependencies(mx5_lib ${catkin_EXPORTED_TARGETS})

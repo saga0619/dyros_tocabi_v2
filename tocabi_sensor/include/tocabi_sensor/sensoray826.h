@@ -1,4 +1,4 @@
-#include "lib/826api.h"
+#include "sensoray826/lib/826api.h"
 #include "math_type_define.h"
 #include <ros/ros.h>
 #include <thread>
@@ -51,12 +51,12 @@ public:
 
     const double calibrationMatrixLFoot[6][6] = 
     {
-    {-7.31079,   0.57154,   3.96660, -193.51164, -10.48427,  191.62950},
-    {-4.75952,  219.70659,   0.37703, -110.68639,  11.48251, -110.46257},
-    {235.50673,  15.29352,  235.02213,   6.13158,  241.08552,  12.23876},
-    {-0.11263,   3.04924,  -7.88257,  -1.87193,   7.90115,  -1.05469},
-    {9.07350,   0.69075,  -4.45980,   2.47521,  -4.43928,  -2.91897},
-    {0.06164,  -4.92947,   0.06684,  -5.01570,   0.62875,  -4.91040}
+    { 7.20619,  -0.25887,  -3.85310,  193.37127,  10.91866, -191.60465},
+    {4.88154, -220.16877,  -1.11757,  110.83988, -11.50700,  110.61787},
+    {-235.75704, -15.48050, -235.33214,  -5.97867, -241.11222, -12.32612},
+    {0.15684, -3.03866, 7.90152, 1.81391, -7.87886, 1.08755},
+    {-9.07820, -0.66112, 4.48816, -2.49905, 4.42455, 2.91318},
+    {0.00913, 4.99650, -0.01382, 5.03627, -0.55808, 4.89442}
     };
     const double calibrationMatrixRFoot[6][6] = 
     {
@@ -180,8 +180,8 @@ public:
                 burstNum[i] = ((uint32_t)_adBuf[i] >> 24);
                 adcVoltages[i] = adcDatas[i] * 10.0 / 32768;
             }
-         //   std::cout<<"1 :"<< adcVoltages[0] << " 2 : " << adcVoltages[1] << " 3 : " << adcVoltages[2] << " 4 : " << adcVoltages[3] << " 5 : " << adcVoltages[4] << " 6 : " << adcVoltages[5] << " 7 : " << adcVoltages[6] << " 8 : " << adcVoltages[7] << " 9 : " << adcVoltages[8] << " 10 : " << adcVoltages[9] << " 11 : " << adcVoltages[10] << " 12 : " << adcVoltages[11]<< " 13 : " << adcVoltages[12]<< " 14 : " << adcVoltages[13] << " 15 : " << adcVoltages[14] << " 16 : " << adcVoltages[15]    <<std::endl;
         }
+     // std::cout<<"1 :"<< adcVoltages[0] << " 2 : " << adcVoltages[1] << " 3 : " << adcVoltages[2] << " 4 : " << adcVoltages[3] << " 5 : " << adcVoltages[4] << " 6 : " << adcVoltages[5] << " 7 : " << adcVoltages[6] << " 8 : " << adcVoltages[7] << " 9 : " << adcVoltages[8] << " 10 : " << adcVoltages[9] << " 11 : " << adcVoltages[10] << " 12 : " << adcVoltages[11]<< " 13 : " << adcVoltages[12]<< " 14 : " << adcVoltages[13] << " 15 : " << adcVoltages[14] << " 16 : " << adcVoltages[15]    <<std::endl;
     }
 
     double lowPassFilter(double input, double prev, double ts, double tau)
@@ -249,11 +249,12 @@ public:
             _lf -= leftFootBias[i];
             _rf -= rightFootBias[i];
 
-            leftFootAxisData[i] = lowPassFilter(_lf, leftFootAxisData_prev[i], 1.0 / SAMPLE_RATE, 0.05);
-            rightFootAxisData[i] = lowPassFilter(_rf, rightFootAxisData_prev[i], 1.0/ SAMPLE_RATE,0.05);
+            leftFootAxisData[i] = _lf; //lowPassFilter(_lf, leftFootAxisData_prev[i], 1.0 / SAMPLE_RATE, 0.05);
+            rightFootAxisData[i] = _rf; //lowPassFilter(_rf, rightFootAxisData_prev[i], 1.0/ SAMPLE_RATE,0.05);
             
-            leftFootAxisData_prev[i] = leftFootAxisData[i];
-            rightFootAxisData_prev[i] = rightFootAxisData[i];
+        //    leftFootAxisData_prev[i] = leftFootAxisData[i];
+        //    rightFootAxisData_prev[i] = rightFootAxisData[i];
         }
+        // std::cout << "FzL " << leftFootAxisData[2] << "  " << "FzR" << rightFootAxisData[2] << std::endl;
     }
 };
