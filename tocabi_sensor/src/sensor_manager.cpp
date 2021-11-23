@@ -50,8 +50,8 @@ void *SensorManager::SensorThread(void)
     bool ft_init_write = false;
     bool ft_init_load = false;
     int ft_cycle_count;
-    char ft_cache_file[100]; 
-    
+    char ft_cache_file[100];
+
     strcpy(ft_cache_file, "/home/dyros/.tocabi_bootlog/ftsensor");
 
     try
@@ -175,12 +175,12 @@ void *SensorManager::SensorThread(void)
                     }
                     ft_init_load = true;
                     ft_init_log.close();
-                 //   pub_to_gui(dc, "ft bias loaded");
-                 //   dc.ft_state = 2;
+                    //   pub_to_gui(dc, "ft bias loaded");
+                    //   dc.ft_state = 2;
                 }
                 else
                 {
-                  //  pub_to_gui(dc, "ft bias load failed");
+                    //  pub_to_gui(dc, "ft bias load failed");
                 }
             }
 
@@ -198,16 +198,16 @@ void *SensorManager::SensorThread(void)
                         ft._calibRFTData[i] = 0.0;
                     }
 
-                    ROS_INFO("FT : start calibration ..." );
+                    ROS_INFO("FT : start calibration ...");
                     //pub_to_gui(dc, "ft sensor : calibration ... ");
                 }
                 if (cycle_count < 5 * SAMPLE_RATE + ft_cycle_count)
-                {   
+                {
                     if (cycle_count == 5 * SAMPLE_RATE + ft_cycle_count - 1)
                     {
                         ft_calib_finish = true;
                         ft_calib_signal_ = false;
-                       // dc.ftcalib = false;
+                        // dc.ftcalib = false;
                     }
 
                     ft.calibrationFTData(ft_calib_finish);
@@ -253,8 +253,8 @@ void *SensorManager::SensorThread(void)
             //Write FT data to shm here
             for (int i = 0; i < 6; i++)
             {
-                shm_->ftSensor[i] = ft.leftFootAxisData[i];
-                shm_->ftSensor[i + 6] = ft.rightFootAxisData[i];
+                shm_->ftSensor[i + 6] = ft.leftFootAxisData[i];
+                shm_->ftSensor[i] = ft.rightFootAxisData[i];
             }
 
             shm_->ftWriting = false;

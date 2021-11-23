@@ -235,7 +235,8 @@ void *StateManager::StateThread()
 
 void *StateManager::LoggerThread()
 {
-    bool activateLogger;
+    bool activateLogger = false;
+    bool startLogger = false;
 
     dc_.nh.getParam("/tocabi_controller/log", activateLogger);
 
@@ -250,46 +251,104 @@ void *StateManager::LoggerThread()
     //     }
     // }
 
-    char torqueLogFile[] = "/home/dyros/tocabi_log/torque_elmo_log";
-    char ecatStatusFile[] = "/home/dyros/tocabi_log/ecat_status_log";
-    char torqueclogFile[] = "/home/dyros/tocabi_log/torque_command_log";
-    char torqueActualLogFile[] = "/home/dyros/tocabi_log/torque_actual_log";
-    char posLogFile[] = "/home/dyros/tocabi_log/pos_log";
-    char velLogFile[] = "/home/dyros/tocabi_log/vel_log";
+    std::string torqueLogFile = "/home/dyros/tocabi_log/torque_elmo_log";
+    std::string ecatStatusFile = "/home/dyros/tocabi_log/ecat_status_log";
+    std::string torqueclogFile = "/home/dyros/tocabi_log/torque_command_log";
+    std::string torqueActualLogFile = "/home/dyros/tocabi_log/torque_actual_log";
+    std::string posLogFile = "/home/dyros/tocabi_log/pos_log";
+    std::string velLogFile = "/home/dyros/tocabi_log/vel_log";
+    std::string maskLogFile = "/home/dyros/tocabi_log/mask_log";
 
     ofstream torqueLog;
-    torqueLog.open(torqueLogFile);
-    torqueLog.fill(' ');
-
     ofstream torqueCommandLog;
-    torqueCommandLog.open(torqueclogFile);
-
     ofstream torqueActualLog;
-    torqueActualLog.open(torqueActualLogFile);
-
+    ofstream maskLog;
     ofstream ecatStatusLog;
-    ecatStatusLog.open(ecatStatusFile);
-
     ofstream posLog;
-    posLog.open(posLogFile);
-
     ofstream velLog;
-    velLog.open(posLogFile);
+
     int log_count = 0;
+    int pub_count = 0;
+    int s_count = 0;
+
+    timespec ts;
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+
+
+    int record_seconds = 60;
+
+    int record_tick = record_seconds * 2000;
 
     while (!dc_.tc_shm_->shutdown)
     {
-        log_count++;
-        if (log_count % 33 == 0)
+        pub_count++;
+        if (pub_count % 33 == 0)
         {
             PublishData();
         }
         ros::spinOnce();
 
-        std::this_thread::sleep_for(std::chrono::microseconds(500));
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
-        if (activateLogger)
+        ts.tv_nsec += 500000;
+
+        if (ts.tv_nsec >= 1000000000)
         {
+            ts.tv_nsec -= 1000000000;
+            ts.tv_sec++;
+        }
+
+        if (activateLogger && (!startLogger))
+        {
+            if (dc_.tc_shm_->controlModeLower && dc_.tc_shm_->controlModeUpper)
+            {
+                startLogger = true;
+            }
+        }
+
+        if (startLogger)
+        {
+            if (log_count % record_tick == 0)
+            {
+                std::string apd_;
+                std::string cpd_;
+                if (s_count % 2 == 0)
+                {
+                    apd_ = "0";
+                    cpd_ = "1";
+                    std::cout << "LOGGER : Open Log Files : 0" << std::endl;
+                }
+                else
+                {
+                    apd_ = "1";
+                    cpd_ = "0";
+                    std::cout << "LOGGER : Open Log Files : 1" << std::endl;
+                }
+
+                if (s_count > 0)
+                {
+                    torqueLog.close();
+                    torqueCommandLog.close();
+                    torqueActualLog.close();
+                    maskLog.close();
+                    ecatStatusLog.close();
+                    posLog.close();
+                    velLog.close();
+                }
+
+                torqueLog.open((torqueLogFile + apd_).c_str());
+                torqueLog.fill(' ');
+                torqueCommandLog.open((torqueclogFile + apd_).c_str());
+                torqueActualLog.open((torqueActualLogFile + apd_).c_str());
+                maskLog.open((maskLogFile + apd_).c_str());
+                ecatStatusLog.open((ecatStatusFile + apd_).c_str());
+                posLog.open((posLogFile + apd_).c_str());
+                velLog.open((velLogFile + apd_).c_str());
+                s_count++;
+            }
+            log_count++;
+
             torqueLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
@@ -325,6 +384,17 @@ void *StateManager::LoggerThread()
             }
             torqueActualLog << std::endl;
 
+            maskLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+            for (int i = 0; i < 10; i++)
+            {
+                maskLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->e1_m[i] << " ";
+            }
+            for (int i = 0; i < 10; i++)
+            {
+                maskLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->e2_m[i] << " ";
+            }
+            maskLog << std::endl;
+
             bool change = false;
 
             static int elmoStatus_before[MODEL_DOF];
@@ -351,8 +421,14 @@ void *StateManager::LoggerThread()
             std::copy(elmoStatus_now, elmoStatus_now + MODEL_DOF, elmoStatus_before);
         }
     }
+
     ecatStatusLog.close();
     torqueLog.close();
+    torqueCommandLog.close();
+    torqueActualLog.close();
+    maskLog.close();
+    posLog.close();
+    velLog.close();
 
     std::cout << "Logger : END!" << std::endl;
     return (void *)NULL;
@@ -716,8 +792,6 @@ void StateManager::GetSensorData()
         RF_FT(i) = dc_.tc_shm_->ftSensor[i + 6];
     }
 
-
-
     double foot_plate_mass = 2.326;
 
     Matrix6d adt;
@@ -865,12 +939,10 @@ void StateManager::StoreState(RobotData &rd_dst)
 
     rd_dst.tp_state_ = rd_.tp_state_;
 
-
     rd_dst.LF_FT = LF_FT;
 
     rd_dst.RF_FT = RF_FT;
 
-    
     dc_.triggerThread1 = true;
 }
 

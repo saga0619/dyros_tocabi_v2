@@ -3,6 +3,7 @@
     <arg name="log" default="false"/>
     <arg name="init" default="false"/>
     <arg name="node_start_delay" default="1.0" />  
+    <arg name="node_start_delay_lower" default="2.0" />  
 
     <group if="$(arg hand)">
         <param name="tocabi_controller/urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi_with_redhands.urdf"/>
@@ -26,7 +27,7 @@
 
     </node>
 
-    <node name="tocabi_ecat_lower" pkg="tocabi_ecat" type="tocabi_ecat_lower" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <node name="tocabi_ecat_lower" pkg="tocabi_ecat" type="tocabi_ecat_lower" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay_lower); $0 $@' ">
         <param name="verbose" value="false"/>
         <param name="minrcv" value="$(arg init)"/>
     </node>
