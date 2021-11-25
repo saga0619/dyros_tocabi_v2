@@ -40,12 +40,10 @@ Introduction to tocabi v2
 
 # Installation
 ### 0. prerequisities
-  * This project was developed with Ubuntu 18.04, ROS Melodic
+  * This project was developed with Ubuntu 20.04, ROS Noetic
   * ⚠️Other ubuntu version might cause error!⚠️
   * Realrobot mode is developed and works stable at Xenomai.
   * Developed xenomai Version is Xenomai 3.1.1, linux kernel version is linux-5.4.124
-  * Simulation requires mujoco license. 
-  * visit <https://www.roboti.us/license.html> for license information
 
 ### 1. clone repository
 ```sh
