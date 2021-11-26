@@ -2,8 +2,8 @@
     <arg name="hand" default="false"/>
     <arg name="log" default="false"/>
     <arg name="init" default="false"/>
-    <arg name="node_start_delay" default="0.1" />  
-    <arg name="node_start_delay_ecat" default="0.2" />  
+    <arg name="node_start_delay" default="0.2" />  
+    <arg name="node_start_delay_ecat" default="0.3" />  
 
     <group if="$(arg hand)">
         <param name="tocabi_controller/urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi_with_redhands.urdf"/>

@@ -139,8 +139,11 @@ void *StateManager::StateThread()
 
         if (chrono::duration_cast<chrono::microseconds>(t1 - t0).count() > 500)
         {
-            if (control_time_ != 0)
-                std::cout << control_time_ << " STATE : Waiting for signal for over 500us, " << chrono::duration_cast<chrono::microseconds>(t1 - t0).count() << std::endl;
+            if (control_time_ > 0.5)
+            {
+                if (!dc_.tc_shm_->shutdown)
+                    std::cout << " STATE : Waiting for signal for over 500us, " << chrono::duration_cast<chrono::microseconds>(t1 - t0).count() << " at, " << control_time_ << std::endl;
+            }
         }
 
         dc_.tc_shm_->triggerS1 = false;
@@ -182,9 +185,6 @@ void *StateManager::StateThread()
         //dc_.tc_shm_->t_cnt2 = stm_count_;
         //dc_.tc_shm_->t_cnt2 = cnt3;
 
-        if (dc_.inityawSwitch)
-            dc_.inityawSwitch = false;
-
         auto d3 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t3).count();
 
         auto t4 = chrono::steady_clock::now();
@@ -223,7 +223,7 @@ void *StateManager::StateThread()
         //     fflush(stdout);
         // }
     }
-    cout << "StateManager Thread END" << endl;
+    cout << " STATE : StateManager END" << endl;
     return (void *)NULL;
 }
 
@@ -688,6 +688,7 @@ void StateManager::InitYaw()
     {
         std::cout << "Yaw Initialized : " << rd_.yaw << std::endl;
         rd_gl_.yaw_init = rd_.yaw;
+        dc_.inityawSwitch = false;
     }
 
     //const tf2Scalar& r_,p_,y_;
@@ -1086,8 +1087,12 @@ void StateManager::StateEstimate()
 
         static double dr_static, dl_static;
 
+        static bool ss_switch2 = false;
+
         if (dc_.stateEstimateSwitch)
         {
+            dc_.stateEstimateSwitch = false;
+
             contact_right = false;
             contact_left = false;
             std::cout << "state Estimation Initialized" << std::endl;
@@ -1108,6 +1113,7 @@ void StateManager::StateEstimate()
             imu_init = link_local_[Pelvis].rotm * rd_.imu_lin_acc;
             dr_static = 0.5;
             dl_static = 0.5;
+            ss_switch2 = true;
         }
 
         RF_CP_est.setZero();
@@ -1185,12 +1191,12 @@ void StateManager::StateEstimate()
             }
         }
 
-        if (dc_.stateEstimateSwitch)
+        if (ss_switch2)
         {
 
             LF_contact_pos_holder(2) = 0.0;
             RF_contact_pos_holder(2) = 0.0;
-            dc_.stateEstimateSwitch = false;
+            ss_switch2 = false;
         }
 
         // imu pos estimation part (useless for now... )
@@ -1698,7 +1704,7 @@ void StateManager::SimCommandCallback(const std_msgs::StringConstPtr &msg)
 
 void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
 {
-    std::cout << "Received msg from GUI : " << msg->data << std::endl;
+    // std::cout << "Received msg from GUI : " << msg->data << std::endl;
     //Receiving Command from GUI!
 
     if (msg->data == "torqueon")
@@ -1725,7 +1731,8 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "E2")
     {
         std::cout << "Emergency Damping mode Active ! " << std::endl;
-        dc_.E2Switch = true;
+        //dc_.E2Switch = true;
+        std::cout << "E2 Not supported..." << std::endl;
     }
     else if (msg->data == "gravity")
     {

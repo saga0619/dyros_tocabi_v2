@@ -20,12 +20,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <iostream>
+#include <ctime>
 
 volatile bool *prog_shutdown;
 
 void SIGINT_handler(int sig)
 {
-    cout << "shutdown Signal" << endl;
+    cout << " CNTRL : shutdown Signal" << endl;
     *prog_shutdown = true;
 }
 
@@ -65,6 +66,8 @@ static void set_latency_target(void)
 
 int main(int argc, char **argv)
 {
+    cout << "=====================================" << std::endl;
+    cout << " CNTRL : Starting TOCABI CONTROLLER! " << endl;
     // set_latency_target();
     signal(SIGINT, SIGINT_handler);
     mlockall(MCL_CURRENT | MCL_FUTURE);
@@ -102,6 +105,10 @@ int main(int argc, char **argv)
     // std::cout << "process num : " << (int)dc_.tc_shm_->process_num << std::endl;
 
     // std::cout << "shm initialized" << std::endl;
+
+    std::string sysLogFile = "/home/dyros/tocabi_log/system_report";
+
+    ofstream system_log;
 
     if (dc_.tc_shm_->shutdown)
     {
@@ -154,6 +161,12 @@ int main(int argc, char **argv)
 
         if (!dc_.simMode)
         {
+
+            system_log.open(sysLogFile.c_str(), fstream::out | fstream::app);
+
+            std::time_t t_clock_start = std::time(0);
+            system_log << "===================================================================================================" << std::endl;
+            system_log << "System Successfully Started " << std::ctime(&t_clock_start);
 
             if (pthread_attr_setschedparam(&attrs[0], &param_st))
             {
@@ -208,11 +221,103 @@ int main(int argc, char **argv)
         }
 
         // cout << "waiting cont..." << endl;
-
-        deleteSharedMemory(shm_id_, dc_.tc_shm_);
     }
-    std::cout << cgreen << "//////////////////////////" << creset << std::endl;
-    std::cout << cgreen << "tocabi controller Shutdown" << creset << std::endl;
-    std::cout << cgreen << "//////////////////////////" << creset << std::endl;
+
+    if (system_log.is_open())
+    {
+        std::time_t t_clock_end = std::time(0);
+
+        int h_1 = 4;
+        int h_2 = 10;
+
+        int setw_up[20];
+        int setw_low[20];
+
+        for (int i = 0; i < 20; i++)
+        {
+            int j = 0;
+            while (pow(10, j) < dc_.tc_shm_->lat_h[i])
+            {
+                j++;
+            }
+            while (pow(10, j) < dc_.tc_shm_->rcv_h[i])
+            {
+                j++;
+            }
+            while (pow(10, j) < dc_.tc_shm_->send_h[i])
+            {
+                j++;
+            }
+            while (pow(10, j) < dc_.tc_shm_->lat2_h[i])
+            {
+                j++;
+            }
+            while (pow(10, j) < dc_.tc_shm_->rcv2_h[i])
+            {
+                j++;
+            }
+            while (pow(10, j) < dc_.tc_shm_->send2_h[i])
+            {
+                j++;
+            }
+
+            if (j < 2)
+                j = 2;
+
+            setw_up[i] = j;
+        }
+
+        system_log << "System Successfully Ended   " << std::ctime(&t_clock_end);
+        system_log << "Running Time : " << fixed << setprecision(3) << dc_.rd_.control_time_ << std::endl;
+        system_log << "ECAT UPPER REPORT | TOTAL COUNT : " << dc_.tc_shm_->statusCount << std::endl;
+        system_log << "Latency    avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->lat_avg / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->lat_max / 1000.0 << std::endl;
+        system_log << "ec_receive avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->send_avg / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->send_max / 1000.0 << " ovf : " << dc_.tc_shm_->send_ovf << std::endl;
+        system_log << "ec_send    avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->rcv_avg / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->rcv_max / 1000.0 << std::endl;
+        system_log << "Histogram : ";
+        for (int i = 0; i < 19; i++)
+            system_log << std::setfill(' ') << std::setw(setw_up[i]) << i << "  ";
+        system_log << " +";
+        system_log << std::endl;
+        system_log << "latency   : ";
+        for (int i = 0; i < 20; i++)
+            system_log << std::setfill(' ') << std::setw(setw_up[i]) << dc_.tc_shm_->lat_h[i] << "  ";
+        system_log << std::endl;
+        system_log << "ec_recv   : ";
+        for (int i = 0; i < 20; i++)
+            system_log << std::setfill(' ') << std::setw(setw_up[i]) << dc_.tc_shm_->rcv_h[i] << "  ";
+        system_log << std::endl;
+        system_log << "ec_send   : ";
+        for (int i = 0; i < 20; i++)
+            system_log << std::setfill(' ') << std::setw(setw_up[i]) << dc_.tc_shm_->send_h[i] << "  ";
+        system_log << std::endl;
+
+        system_log << "ECAT LOWER REPORT | TOTAL COUNT : " << dc_.tc_shm_->statusCount2 << std::endl;
+        system_log << "Latency    avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->lat_avg2 / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->lat_max2 / 1000.0 << std::endl;
+        system_log << "ec_receive avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->send_avg2 / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->send_max2 / 1000.0 << " ovf : " << dc_.tc_shm_->send_ovf2 << std::endl;
+        system_log << "ec_send    avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->rcv_avg2 / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->rcv_max2 / 1000.0 << std::endl;
+        system_log << "Histogram : ";
+        for (int i = 0; i < 19; i++)
+            system_log << std::setfill(' ') << std::setw(setw_up[i]) << i << "  ";
+        system_log << " +";
+        system_log << std::endl;
+        system_log << "latency   : ";
+        for (int i = 0; i < 20; i++)
+            system_log << std::setfill(' ') << std::setw(setw_up[i]) << dc_.tc_shm_->lat2_h[i] << "  ";
+        system_log << std::endl;
+        system_log << "ec_recv   : ";
+        for (int i = 0; i < 20; i++)
+            system_log << std::setfill(' ') << std::setw(setw_up[i]) << dc_.tc_shm_->rcv2_h[i] << "  ";
+        system_log << std::endl;
+        system_log << "ec_send   : ";
+        for (int i = 0; i < 20; i++)
+            system_log << std::setfill(' ') << std::setw(setw_up[i]) << dc_.tc_shm_->send2_h[i] << "  ";
+        system_log << std::endl
+                   << std::endl;
+
+        system_log.close();
+    }
+
+    deleteSharedMemory(shm_id_, dc_.tc_shm_);
+    std::cout << cgreen << " CNTRL : tocabi controller Shutdown" << creset << std::endl;
     return 0;
 }

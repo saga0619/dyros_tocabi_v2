@@ -262,7 +262,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
                 if (d1_over_cnt > 0)
                 {
-                    std::cout << cred << "Controller Thread1 calculation time over 500us.. : " << d1_over_cnt << "times, stm cnt : " << dc_.tc_shm_->stloopCount << creset << std::endl;
+                    std::cout << cred << " DYNCS : Thread1 calculation time over 500us.. : " << d1_over_cnt << "times, stm cnt : " << dc_.tc_shm_->stloopCount << creset << std::endl;
                     d1_over_cnt = 0;
                 }
 
@@ -280,7 +280,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
         }
     }
 
-    cout << "thread1 terminate" << endl;
+    // cout << "thread1 terminate" << endl;
     return (void *)NULL;
 }
 
@@ -332,7 +332,7 @@ void *TocabiController::Thread2()
         std::cout << "thread2 disabled" << std::endl;
     }
 
-    std::cout << "thread2 terminate" << std::endl;
+    // std::cout << "thread2 terminate" << std::endl;
     return (void *)NULL;
 }
 

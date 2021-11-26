@@ -14,7 +14,7 @@ void MX5IMU::initIMU()
 {
     //imu_pub = dc.nh.advertise<sensor_msgs::Imu>("/tocabi/imu", 100);
 
-    cout << cgreen << "IMU : connection success " << creset << std::endl;
+    cout << cgreen << "   IMU : connection success " << creset << std::endl;
     /*
     cout << "Node Info : " << endl;
     cout << "Model Name : " << node.modelName() << endl;
@@ -181,27 +181,27 @@ sensor_msgs::Imu MX5IMU::getIMU(int &imu_state)
 
         if (ef_state == 0)
         {
-            std::cout << "IMU : start up" << std::endl;
+            std::cout << "   IMU : start up" << std::endl;
             imu_state = 0;
         }
         else if (ef_state == 1)
         {
             if (ef_state_flag == 4096)
             {
-                std::cout << cyellow << "IMU : initialization, Attitude not initialized" << creset << std::endl;
+                std::cout << cyellow << "   IMU : initialization, Attitude not initialized" << creset << std::endl;
             }
             else if (ef_state_flag == 8192)
             {
-                std::cout << cyellow << "IMU : initialization, Position & Velocity not initialized " << creset << std::endl;
+                std::cout << cyellow << "   IMU : initialization, Position & Velocity not initialized " << creset << std::endl;
             }
             else
             {
-                std::cout << cyellow << "IMU : initialization, flags : " << std::hex << ef_state_flag << std::dec << creset << std::endl;
+                std::cout << cyellow << "   IMU : initialization, flags : " << std::hex << ef_state_flag << std::dec << creset << std::endl;
             }
         }
         else if (ef_state == 2)
         {
-            std::cout << cgreen << "IMU : running, solution valid" << creset << std::endl;
+            std::cout << cgreen << "   IMU : running, solution valid" << creset << std::endl;
             //Publish IMU-VALID
 
             //pub_to_gui(dc, "imuvalid");
@@ -211,7 +211,7 @@ sensor_msgs::Imu MX5IMU::getIMU(int &imu_state)
         }
         else if (ef_state == 3)
         {
-            std::cout << cyellow << "IMU : running, solution error" << std::hex << ef_state_flag << std::dec << creset << std::endl;
+            std::cout << cyellow << "   IMU : running, solution error" << std::hex << ef_state_flag << std::dec << creset << std::endl;
             //Publish IMU not VALID
             //pub_to_gui(dc, "imunotvalid");
             //std::cout<<"state change1 "<<std::endl;
@@ -220,7 +220,7 @@ sensor_msgs::Imu MX5IMU::getIMU(int &imu_state)
         }
         else
         {
-            std::cout << cred << "IMU : unknown ef state : " << std::hex << ef_state << std::dec << creset << std::endl;
+            std::cout << cred << "   IMU : unknown ef state : " << std::hex << ef_state << std::dec << creset << std::endl;
         }
     }
 
@@ -241,7 +241,7 @@ void MX5IMU::startIMU()
 
 void MX5IMU::endIMU()
 {
-    cout << "IMU : Setting IMU to Idle " << std::endl;
+    cout << "   IMU : Setting IMU to Idle " << std::endl;
     node.setToIdle();
 }
 
@@ -574,17 +574,19 @@ void MX5IMU::checkIMUData()
     w[1] = p2 - p1;
     w[2] = y2 - y1;
 
-    if (abs(w[0]) > 0.1)
+    double warn_thr_ = 0.2;
+
+    if (abs(w[0]) > warn_thr_)
     {
-        std::cout << "roll error !" << std::endl;
+        std::cout << cyellow << "   IMU : roll warn !" << creset << std::endl;
     }
-    else if (abs(w[1]) > 0.1)
+    else if (abs(w[1]) > warn_thr_)
     {
-        std::cout << "pitch error !" << std::endl;
+        std::cout << cyellow << "   IMU : pitch warn !" << creset << std::endl;
     }
-    else if (abs(w[2]) > 0.1)
+    else if (abs(w[2]) > warn_thr_)
     {
-        std::cout << "yaw error !" << std::endl;
+        std::cout << cyellow << "   IMU : yaw warn !" << creset << std::endl;
     }
 
     //imu_pub_msg_before.orientation.

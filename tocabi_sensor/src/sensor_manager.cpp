@@ -7,7 +7,7 @@ volatile bool *prog_shutdown;
 
 void SIGINT_handler(int sig)
 {
-    std::cout << "shutdown Signal" << std::endl;
+    // std::cout << " SENSOR : shutdown Signal" << std::endl;
     *prog_shutdown = true;
 }
 
@@ -175,6 +175,7 @@ void *SensorManager::SensorThread(void)
                     }
                     ft_init_load = true;
                     ft_init_log.close();
+                    std::cout<<cgreen<<"    FT : Calibration data loaded ..."<<creset<<std::endl;
                     //   pub_to_gui(dc, "ft bias loaded");
                     //   dc.ft_state = 2;
 
@@ -200,7 +201,7 @@ void *SensorManager::SensorThread(void)
                         ft._calibLFTData[i] = 0.0;
                         ft._calibRFTData[i] = 0.0;
                     }
-                    std::cout<<"FT : start calibration ..."<<std::endl;
+                    std::cout<<"    FT : start calibration ..."<<std::endl;
                     // ROS_INFO("FT : start calibration ...");
                     //pub_to_gui(dc, "ft sensor : calibration ... ");
                 }
@@ -229,7 +230,7 @@ void *SensorManager::SensorThread(void)
                 /*    dc.print_ft_info_tofile = true;
                 pub_to_gui(dc, "ft sensor : calibration finish ");
                 pub_to_gui(dc, "ftgood"); */
-                printf("FT : calibration finish\n");
+                printf("    FT : calibration finish\n");
 
                 ft_init_log.open(ft_cache_file, std::ios_base::out);
                 if (ft_init_log.is_open())

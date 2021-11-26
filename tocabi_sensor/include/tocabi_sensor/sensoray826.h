@@ -129,7 +129,7 @@ public:
             {
                 if (boardflags & (1 << i))
                 {
-                    printf("\033[0;32mFT : board %d detected.\033[0m\n", i);
+                    printf("\033[0;32m    FT : board %d detected.\033[0m\n", i);
                 }
             }
             isOpen = true;
@@ -247,7 +247,7 @@ public:
             rightFootBias[i] = _calibRFTData[i];
         }
         _calibMaxIndex = dCalibrationTime * SAMPLE_RATE;
-        printf("FT : calibration Initialize... time = %.1lf sec, total %d samples \n", dCalibrationTime, _calibMaxIndex);
+        printf("    FT : calibration Initialize... time = %.1lf sec, total %d samples \n", dCalibrationTime, _calibMaxIndex);
     }
 
     void calibrationFTData(bool ft_calib_finish)
