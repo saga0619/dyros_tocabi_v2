@@ -14,7 +14,7 @@ void MX5IMU::initIMU()
 {
     //imu_pub = dc.nh.advertise<sensor_msgs::Imu>("/tocabi/imu", 100);
 
-    cout << "IMU : connection success " << std::endl;
+    cout << cgreen << "IMU : connection success " << creset << std::endl;
     /*
     cout << "Node Info : " << endl;
     cout << "Model Name : " << node.modelName() << endl;

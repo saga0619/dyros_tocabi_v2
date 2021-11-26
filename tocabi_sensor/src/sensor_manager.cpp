@@ -86,7 +86,7 @@ void *SensorManager::SensorThread(void)
 
         int cycle_count = 0;
 
-        std::cout << "Sensor Thread Start" << std::endl;
+        // std::cout << "Sensor Thread Start" << std::endl;
 
         auto t_begin = std::chrono::steady_clock::now();
 
@@ -177,6 +177,8 @@ void *SensorManager::SensorThread(void)
                     ft_init_log.close();
                     //   pub_to_gui(dc, "ft bias loaded");
                     //   dc.ft_state = 2;
+
+                    shm_->ft_state = 2;
                 }
                 else
                 {
@@ -187,6 +189,7 @@ void *SensorManager::SensorThread(void)
             if (ft_calib_signal_) //enabled by gui
             {
                 //dc.ft_state = 1;
+                shm_->ft_state = 1;
                 if (ft_calib_init == false)
                 {
                     ft_cycle_count = cycle_count;
@@ -197,8 +200,8 @@ void *SensorManager::SensorThread(void)
                         ft._calibLFTData[i] = 0.0;
                         ft._calibRFTData[i] = 0.0;
                     }
-
-                    ROS_INFO("FT : start calibration ...");
+                    std::cout<<"FT : start calibration ..."<<std::endl;
+                    // ROS_INFO("FT : start calibration ...");
                     //pub_to_gui(dc, "ft sensor : calibration ... ");
                 }
                 if (cycle_count < 5 * SAMPLE_RATE + ft_cycle_count)
@@ -226,7 +229,7 @@ void *SensorManager::SensorThread(void)
                 /*    dc.print_ft_info_tofile = true;
                 pub_to_gui(dc, "ft sensor : calibration finish ");
                 pub_to_gui(dc, "ftgood"); */
-                ROS_INFO("calibration finish");
+                printf("FT : calibration finish\n");
 
                 ft_init_log.open(ft_cache_file, std::ios_base::out);
                 if (ft_init_log.is_open())
@@ -242,7 +245,7 @@ void *SensorManager::SensorThread(void)
                     }
                 }
                 ft_init_log.close();
-                //dc.ft_state = 2;
+                shm_->ft_state = 2;
                 ft_calib_ui = true;
             }
 
@@ -266,6 +269,7 @@ void *SensorManager::SensorThread(void)
 
         mx5.endIMU();
     }
+    return (void *)NULL;
 }
 
 int main(int argc, char **argv)
