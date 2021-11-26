@@ -295,7 +295,7 @@ void *TocabiController::Thread2()
     }
     if (enableThread2)
     {
-        std::cout << "thread2_entered" << std::endl;
+        // std::cout << "thread2_entered" << std::endl;
         while (!dc_.tc_shm_->shutdown)
         {
             if (triggerThread2)

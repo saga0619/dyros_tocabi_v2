@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 
     prog_shutdown = &dc_.tc_shm_->shutdown;
 
-    std::cout << "process num : " << (int)dc_.tc_shm_->process_num << std::endl;
+    // std::cout << "process num : " << (int)dc_.tc_shm_->process_num << std::endl;
 
     // std::cout << "shm initialized" << std::endl;
 

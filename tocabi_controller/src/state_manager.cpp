@@ -49,15 +49,6 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
         link_[Left_Hand].contact_point << 0, 0.0, -0.035;
         link_[Left_Hand].sensor_point << 0.0, 0.0, 0.0;
 
-        Eigen::Matrix3d i_com_;
-        i_com_.setZero();
-        for (int i = 0; i < LINK_NUMBER; i++)
-        {
-            i_com_ += link_[i].inertia * link_[i].mass / total_mass_;
-        }
-
-        link_[COM_id].inertia = i_com_;
-
         memcpy(link_local_, link_, sizeof(LinkData) * LINK_NUMBER);
     }
 
@@ -88,7 +79,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
 
     com_status_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/comstates", 100);
 
-    com_status_msg_.data.resize(10);
+    com_status_msg_.data.resize(14);
 
     point_pub_msg_.polygon.points.resize(13);
     syspub_msg.data.resize(8);
@@ -131,15 +122,11 @@ void *StateManager::StateThread()
         //////////State Loop//////////
         //////////////////////////////
 
-        dc_.tc_shm_->stloopCount.store(stm_count_);
-
-        SendCommand();
-
         auto t0 = std::chrono::steady_clock::now();
 
         while (!dc_.tc_shm_->triggerS1)
         {
-            // clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
+            clock_nanosleep(CLOCK_MONOTONIC, 0, &tv_us1, NULL);
 
             __asm__("pause" ::
                         : "memory");
@@ -152,7 +139,8 @@ void *StateManager::StateThread()
 
         if (chrono::duration_cast<chrono::microseconds>(t1 - t0).count() > 500)
         {
-            std::cout << control_time_ << " STATE : Waiting for signal for over 500us, " << chrono::duration_cast<chrono::microseconds>(t1 - t0).count() << std::endl;
+            if (control_time_ != 0)
+                std::cout << control_time_ << " STATE : Waiting for signal for over 500us, " << chrono::duration_cast<chrono::microseconds>(t1 - t0).count() << std::endl;
         }
 
         dc_.tc_shm_->triggerS1 = false;
@@ -197,11 +185,15 @@ void *StateManager::StateThread()
         if (dc_.inityawSwitch)
             dc_.inityawSwitch = false;
 
-        auto d3 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
+        auto d3 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t3).count();
 
         auto t4 = chrono::steady_clock::now();
 
-        auto d4 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
+        dc_.tc_shm_->stloopCount.store(stm_count_);
+
+        SendCommand();
+
+        auto d4 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t4).count();
         rd_gl_.state_ctime_total_ += (d1 + d2 + d3 + d4);
         rd_gl_.state_ctime_avg_ = rd_gl_.state_ctime_total_ / stm_count_;
         if (stm_count_ % 2000 == 0)
@@ -210,9 +202,10 @@ void *StateManager::StateThread()
             StatusPub("%7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d", control_time_, e_cnt, stm_count_ - e_cnt, (int)dc_.tcm_cnt - e_cnt);
         }
 
-        if (d2 > 500)
+        if ((d1 + d2 + d3 + d4) > 500)
         {
-            printf("stm over 500, d1 : %ld, d2 : %ld, d3 : %ld, d4 : %ld\n", d1, d2, d3, d4);
+            if (control_time_ > 0.1)
+                printf("%7.1f stm over 500, d1 : %ld, d2 : %ld, d3 : %ld, d4 : %ld\n", control_time_, d1, d2, d3, d4);
         }
 
         for (int i = 0; i < MODEL_DOF; i++)
@@ -220,6 +213,7 @@ void *StateManager::StateThread()
 
             state_safety_before_[i] = state_safety_[i];
         }
+
         //printf("%d\n", rcv_tcnt);
         //printf("\x1b[A\x1b[A\33[2K\r");
         // if (rcv_tcnt % 33 == 0)
@@ -275,8 +269,7 @@ void *StateManager::LoggerThread()
 
     clock_gettime(CLOCK_MONOTONIC, &ts);
 
-
-    int record_seconds = 60;
+    int record_seconds = 120;
 
     int record_tick = record_seconds * 2000;
 
@@ -436,10 +429,14 @@ void *StateManager::LoggerThread()
 
 void StateManager::SendCommand()
 {
+    timespec t_u10;
 
+    t_u10.tv_nsec = 1000;
+    t_u10.tv_sec = 0;
     static double torque_command[MODEL_DOF];
     while (dc_.t_c_)
     {
+        clock_nanosleep(CLOCK_MONOTONIC, 0, &t_u10, NULL);
     }
     dc_.t_c_ = true;
     std::copy(dc_.torque_command, dc_.torque_command + MODEL_DOF, torque_command);
@@ -615,6 +612,7 @@ void StateManager::SendCommand()
     //UpperBody
     while (dc_.tc_shm_->cmd_upper)
     {
+        clock_nanosleep(CLOCK_MONOTONIC, 0, &t_u10, NULL);
     }
     dc_.tc_shm_->cmd_upper = true;
     //std::fill(dc_.tc_shm_->commandMode, dc_.tc_shm_->commandMode + MODEL_DOF, 1);
@@ -631,6 +629,7 @@ void StateManager::SendCommand()
 
     while (dc_.tc_shm_->cmd_lower)
     {
+        clock_nanosleep(CLOCK_MONOTONIC, 0, &t_u10, NULL);
     }
 
     dc_.tc_shm_->cmd_lower = true;
@@ -1040,6 +1039,28 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
     link_p[COM_id].jac_com.block(0, 0, 3, MODEL_DOF_VIRTUAL) = jacobian_com;
 
     link_p[COM_id].jac_com.block(3, 0, 3, MODEL_DOF_VIRTUAL) = jacobian_com_r;
+
+    Eigen::Matrix3d i_com_;
+    i_com_.setZero();
+
+    Eigen::Vector3d x_com_;
+
+    Eigen::Matrix3d c_product_;
+
+    for (int i = 0; i < LINK_NUMBER; i++)
+    {
+        x_com_ = link_p[i].xpos - link_p[COM_id].xpos;
+
+        c_product_.setZero();
+
+        c_product_.block(0, 0, 3, 1) = x_com_ * x_com_(0);
+        c_product_.block(0, 1, 3, 1) = x_com_ * x_com_(1);
+        c_product_.block(0, 2, 3, 1) = x_com_ * x_com_(2);
+
+        i_com_ += link_p[i].rotm * link_p[i].inertia * link_[i].rotm.transpose() + link_p[i].mass * (Eigen::Matrix3d::Identity() * (x_com_(0) * x_com_(0) + x_com_(1) * x_com_(1) + x_com_(2) * x_com_(2)) - c_product_);
+    }
+
+    link_[COM_id].inertia = i_com_;
 
     //link_p[COM_id].xpos(2) = link_p[Pelvis].xpos(2);
     // sector 4 end : 3 us
@@ -1575,9 +1596,34 @@ void StateManager::PublishData()
     else
     {
         syspub_msg.data[0] = dc_.tc_shm_->imu_state;
-        syspub_msg.data[1] = 3;
+        if (dc_.tc_shm_->initializeModeUpper && !dc_.tc_shm_->controlModeUpper)
+        {
+            syspub_msg.data[1] = 1;
+        }
+        else if (dc_.tc_shm_->controlModeUpper && dc_.tc_shm_->initializeModeUpper)
+        {
+            syspub_msg.data[1] = 2;
+        }
+        else if (!dc_.tc_shm_->controlModeUpper && !dc_.tc_shm_->initializeModeUpper)
+        {
+            syspub_msg.data[1] = 0;
+        }
+
+        if (dc_.tc_shm_->initializeModeLower && !dc_.tc_shm_->controlModeLower)
+        {
+            syspub_msg.data[3] = 1;
+        }
+        else if (dc_.tc_shm_->controlModeLower && dc_.tc_shm_->initializeModeLower)
+        {
+            syspub_msg.data[3] = 2;
+        }
+        else if (!dc_.tc_shm_->controlModeLower && !dc_.tc_shm_->initializeModeLower)
+        {
+            syspub_msg.data[3] = 0;
+        }
+
         syspub_msg.data[2] = dc_.tc_shm_->ft_state;
-        syspub_msg.data[3] = 3;
+        // syspub_msg.data[4] = dc_.tc_shm_->
     }
     syspub_msg.data[4] = rd_gl_.semode;
     if (rd_gl_.tc_run) //tc on warn error off
@@ -1602,6 +1648,12 @@ void StateManager::PublishData()
     com_status_msg_.data[7] = dc_.tc_shm_->send_avg2 / 1000.0;
     com_status_msg_.data[8] = dc_.tc_shm_->send_max2 / 1000.0;
     com_status_msg_.data[9] = dc_.tc_shm_->send_ovf2;
+
+    com_status_msg_.data[10] = dc_.tc_shm_->statusCount;
+    com_status_msg_.data[11] = dc_.tc_shm_->statusCount2;
+
+    com_status_msg_.data[12] = dc_.tc_shm_->watchCount;
+    com_status_msg_.data[13] = dc_.tc_shm_->watchCount2;
 
     com_status_pub_.publish(com_status_msg_);
     //
