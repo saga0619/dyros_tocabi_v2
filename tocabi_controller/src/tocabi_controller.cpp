@@ -100,7 +100,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
                 rd_.positionHoldSwitch = true;
                 rd_.pc_mode = true;
 
-                std::cout << "position hold switch " << std::endl;
+                std::cout << " CNTRL : Position Hold!" << rd_.control_time_ << std::endl;
 
                 // for (int i = 0; i < MODEL_DOF; i++)
                 // {
@@ -469,7 +469,7 @@ void TocabiController::PositionCommandCallback(const tocabi_msgs::positionComman
     if (position_command && msg->relative)
     {
         rd_.pc_pos_init = rd_.q_desired;
-        std::cout << "pos init with prev des" << std::endl;
+        std::cout << " CNTRL : pos init with prev des" << std::endl;
     }
 
     for (int i = 0; i < MODEL_DOF; i++)
@@ -479,17 +479,17 @@ void TocabiController::PositionCommandCallback(const tocabi_msgs::positionComman
     rd_.pc_mode = true;
     rd_.pc_gravity = msg->gravity;
     rd_.positionHoldSwitch = false;
-    
+
     stm_.StatusPub("%f Position Control", (float)rd_.control_time_);
     position_command = true;
-    std::cout << "position command received" << std::endl;
+    std::cout << " CNTRL : Position command received" << std::endl;
 }
 
 void TocabiController::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg)
 {
     rd_.pc_mode = false;
     rd_.tc_ = *msg;
-    std::cout << "task signal received mode :" << rd_.tc_.mode << std::endl;
+    std::cout << " CNTRL : task signal received mode :" << rd_.tc_.mode << std::endl;
     stm_.StatusPub("%f task Control mode : %d", (float)rd_.control_time_, rd_.tc_.mode);
     rd_.tc_time_ = rd_.control_time_;
     rd_.tc_run = true;
@@ -523,7 +523,7 @@ void TocabiController::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPt
 
     if (!rd_.semode)
     {
-        std::cout << "State Estimate is not running. disable task command" << std::endl;
+        std::cout << " CNTRL : State Estimate is not running. disable task command" << std::endl;
         rd_.tc_run = false;
     }
 }

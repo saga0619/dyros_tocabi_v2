@@ -111,6 +111,8 @@ public:
 
     float control_time_ = 0;
 
+    double torqueRatio = 0.0;
+
     double total_mass_ = 0;
     tf2_ros::TransformBroadcaster br;
 

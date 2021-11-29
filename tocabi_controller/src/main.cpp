@@ -66,7 +66,8 @@ static void set_latency_target(void)
 
 int main(int argc, char **argv)
 {
-    cout << "=====================================" << std::endl;
+    cout << std::endl
+         << "=====================================" << std::endl;
     cout << " CNTRL : Starting TOCABI CONTROLLER! " << endl;
     // set_latency_target();
     signal(SIGINT, SIGINT_handler);
@@ -268,7 +269,26 @@ int main(int argc, char **argv)
         }
 
         system_log << "System Successfully Ended   " << std::ctime(&t_clock_end);
-        system_log << "Running Time : " << fixed << setprecision(3) << dc_.rd_.control_time_ << std::endl;
+        int hr, mr;
+        double sr;
+
+        hr = dc_.rd_.control_time_ / 3600;
+        mr = (dc_.rd_.control_time_ - hr * 3600) / 60;
+
+        sr = dc_.rd_.control_time_ - hr * 3600 - mr * 60;
+
+        if (hr > 0)
+        {
+            system_log << "Running Time : "<<hr<<" h : "<<mr<<" m : " << fixed << setprecision(3) << sr <<" s"<< std::endl;
+        }
+        else if (mr > 0)
+        {
+            system_log << "Running Time : " <<mr<<" m : "<< fixed << setprecision(3) << sr <<" s"<< std::endl;
+        }
+        else
+        {
+            system_log << "Running Time : " << fixed << setprecision(3) << dc_.rd_.control_time_ <<" s"<< std::endl;
+        }
         system_log << "ECAT UPPER REPORT | TOTAL COUNT : " << dc_.tc_shm_->statusCount << std::endl;
         system_log << "Latency    avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->lat_avg / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->lat_max / 1000.0 << std::endl;
         system_log << "ec_receive avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->send_avg / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->send_max / 1000.0 << " ovf : " << dc_.tc_shm_->send_ovf << std::endl;

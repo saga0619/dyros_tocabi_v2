@@ -79,7 +79,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
 
     com_status_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/comstates", 100);
 
-    com_status_msg_.data.resize(14);
+    com_status_msg_.data.resize(17);
 
     point_pub_msg_.polygon.points.resize(13);
     syspub_msg.data.resize(8);
@@ -103,7 +103,7 @@ void *StateManager::StateThread()
     rcv_tcnt = dc_.tc_shm_->statusCount;
     //cout << "first packet " << rcv_tcnt << endl;
     int cycle_count_ = rcv_tcnt;
-    int stm_count_ = 0;
+    dc_.stm_cnt = 0;
 
     int cnt = 0;
     int cnt2 = 0;
@@ -148,7 +148,7 @@ void *StateManager::StateThread()
 
         dc_.tc_shm_->triggerS1 = false;
         cycle_count_++;
-        stm_count_++;
+        dc_.stm_cnt++;
 
         rcv_tcnt = dc_.tc_shm_->statusCount;
 
@@ -173,7 +173,7 @@ void *StateManager::StateThread()
 
         StoreState(rd_gl_); //6.2 us //w/o march native 8us
 
-        //MeasureTime(stm_count_, d1, d2);
+        //MeasureTime(dc_.stm_cnt, d1, d2);
 
         rd_gl_.control_time_ = dur_start_ / 1000000.0;
         rd_gl_.control_time_us_ = dur_start_;
@@ -182,30 +182,59 @@ void *StateManager::StateThread()
         auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
 
         auto t3 = chrono::steady_clock::now();
-        //dc_.tc_shm_->t_cnt2 = stm_count_;
+        //dc_.tc_shm_->t_cnt2 = dc_.stm_cnt;
         //dc_.tc_shm_->t_cnt2 = cnt3;
 
         auto d3 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t3).count();
 
         auto t4 = chrono::steady_clock::now();
 
-        dc_.tc_shm_->stloopCount.store(stm_count_);
+        dc_.tc_shm_->stloopCount.store(dc_.stm_cnt);
 
         SendCommand();
 
         auto d4 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t4).count();
         rd_gl_.state_ctime_total_ += (d1 + d2 + d3 + d4);
-        rd_gl_.state_ctime_avg_ = rd_gl_.state_ctime_total_ / stm_count_;
-        if (stm_count_ % 2000 == 0)
+        rd_gl_.state_ctime_avg_ = rd_gl_.state_ctime_total_ / dc_.stm_cnt;
+
+        static int e_cnt = dc_.tc_shm_->statusCount;
+        static int stm_diff = dc_.stm_cnt - e_cnt;
+        static int tcm_diff = dc_.tcm_cnt - e_cnt + 1;
+
+        static bool pub_once = true;
+
+        if (pub_once)
         {
-            int e_cnt = dc_.tc_shm_->statusCount;
-            StatusPub("%7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d", control_time_, e_cnt, stm_count_ - e_cnt, (int)dc_.tcm_cnt - e_cnt);
+
+            std::cout << "STATUS : init stm diff : " << stm_diff << "  init tcm diff : " << tcm_diff << std::endl;
+            pub_once = false;
+        }
+
+        if (dc_.stm_cnt % 10 == 0)
+        {
+            int e_cnt_l = dc_.tc_shm_->statusCount;
+            int stm_diff_l = dc_.stm_cnt - e_cnt_l;
+            int tcm_diff_l = dc_.tcm_cnt - e_cnt_l + 1;
+
+            if (abs(stm_diff - stm_diff_l) > 1)
+            {
+                // StatusPub("STATUS : STM DESYNC AT %7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d, %d, %d", control_time_, e_cnt_l, (int)dc_.stm_cnt - e_cnt_l, (int)dc_.tcm_cnt - e_cnt_l, stm_diff, stm_diff_l);
+                printf("STATUS : STM DESYNC AT %7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d\n", control_time_, e_cnt_l, (int)dc_.stm_cnt - e_cnt_l, (int)dc_.tcm_cnt - e_cnt_l);
+                stm_diff = stm_diff_l;
+            }
+
+            if (abs(tcm_diff - tcm_diff_l) > 1)
+            {
+                // StatusPub("STATUS : TCM DESYNC AT %7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d, %d, %d", control_time_, e_cnt_l, (int)dc_.stm_cnt - e_cnt_l, (int)dc_.tcm_cnt - e_cnt_l, tcm_diff, tcm_diff_l);
+                printf("STATUS : TCM DESYNC AT %7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d\n", control_time_, e_cnt_l, (int)dc_.stm_cnt - e_cnt_l, (int)dc_.tcm_cnt - e_cnt_l);
+                tcm_diff = tcm_diff_l;
+            }
         }
 
         if ((d1 + d2 + d3 + d4) > 500)
         {
             if (control_time_ > 0.1)
-                printf("%7.1f stm over 500, d1 : %ld, d2 : %ld, d3 : %ld, d4 : %ld\n", control_time_, d1, d2, d3, d4);
+                printf(" STATE : %7.1f stm over 500, d1 : %ld, d2 : %ld, d3 : %ld, d4 : %ld\n", control_time_, d1, d2, d3, d4);
         }
 
         for (int i = 0; i < MODEL_DOF; i++)
@@ -459,7 +488,7 @@ void StateManager::SendCommand()
         {
             if (prob_cnt != rcv_c_count)
             {
-                std::cout << "Command not received for " << warning_cnt << "times " << std::endl;
+                std::cout << " STATE : Command not received for " << warning_cnt << "times " << std::endl;
                 warning_cnt = 0;
             }
         }
@@ -472,21 +501,26 @@ void StateManager::SendCommand()
     rcv_c_count_before = rcv_c_count;
 
     const double maxTorque = 1500.0;
-    const double rTime = 5.0;
+    const double rTime1 = 2.0;
+    const double rTime2 = 1.0;
+
+    const double rat1 = 0.3;
+    const double rat2 = 0.7;
 
     int maxTorqueCommand;
 
     if (dc_.torqueOnSwitch)
     {
+        dc_.positionControlSwitch = true;
         dc_.torqueOnSwitch = false;
 
         if (dc_.torqueOn)
         {
-            std::cout << "torque is already on " << std::endl;
+            std::cout << " STATE : Torque is already on " << std::endl;
         }
         else
         {
-            std::cout << "turning on ... " << std::endl;
+            std::cout << " STATE : Turning on ... " << std::endl;
             dc_.torqueOnTime = rd_gl_.control_time_;
             dc_.torqueOn = true;
             dc_.torqueRisingSeq = true;
@@ -498,13 +532,13 @@ void StateManager::SendCommand()
 
         if (dc_.torqueOn)
         {
-            std::cout << "turning off ... " << std::endl;
+            std::cout << " STATE : Turning off ... " << std::endl;
             dc_.torqueOffTime = rd_gl_.control_time_;
             dc_.toruqeDecreaseSeq = true;
         }
         else
         {
-            std::cout << "torque is already off" << std::endl;
+            std::cout << " STATE : Torque is already off" << std::endl;
         }
     }
 
@@ -512,38 +546,60 @@ void StateManager::SendCommand()
     {
         if (dc_.torqueRisingSeq)
         {
-            maxTorqueCommand = (int)(maxTorque * DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOnTime) / rTime, 0.0, 1.0));
-
-            if (rd_gl_.control_time_ > dc_.torqueOnTime + rTime)
+            if (rd_gl_.control_time_ <= dc_.torqueOnTime + rTime1)
             {
-                std::cout << "torque 100% ! " << std::endl;
+                torqueRatio = rat1 * DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOnTime) / rTime1, 0.0, 1.0);
+            }
+            if (rd_gl_.control_time_ > dc_.torqueOnTime + rTime1 && rd_gl_.control_time_ <= dc_.torqueOnTime + rTime1 + rTime2)
+            {
+                torqueRatio = rat1 + rat2 * DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOnTime - rTime1) / rTime2, 0.0, 1.0);
+            }
+            else if (rd_gl_.control_time_ > dc_.torqueOnTime + rTime1 + rTime2)
+            {
+                std::cout << " STATE : Torque 100% ! " << std::endl;
                 StatusPub("%f Torque 100%", control_time_);
+
+                torqueRatio = 1.0;
 
                 dc_.torqueRisingSeq = false;
             }
+
+            maxTorqueCommand = maxTorque * torqueRatio;
         }
         else if (dc_.toruqeDecreaseSeq)
         {
 
-            maxTorqueCommand = (int)(maxTorque * (1 - DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOffTime) / rTime, 0.0, 1.0)));
-
-            if (rd_gl_.control_time_ > dc_.torqueOffTime + rTime)
+            if (rd_gl_.control_time_ <= dc_.torqueOffTime + rTime2)
+            {
+                torqueRatio = (1 - rat2 * DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOffTime) / rTime2, 0.0, 1.0));
+            }
+            if (rd_gl_.control_time_ > dc_.torqueOffTime + rTime2 && rd_gl_.control_time_ <= dc_.torqueOffTime + rTime2 + rTime1)
+            {
+                torqueRatio = (1 - rat2 - rat1 * DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOffTime - rTime2) / rTime1, 0.0, 1.0));
+            }
+            else if (rd_gl_.control_time_ > dc_.torqueOffTime + rTime2 + rTime1)
             {
                 dc_.toruqeDecreaseSeq = false;
 
-                std::cout << "torque 0% .. torque Off " << std::endl;
-                StatusPub("%f Torque 0%", control_time_);
+                rd_gl_.tc_run = false;
 
+                std::cout << " STATE : Torque 0% .. torque Off " << std::endl;
+                StatusPub("%f Torque 0%", control_time_);
+                torqueRatio = 0.0;
                 dc_.torqueOn = false;
             }
+
+            maxTorqueCommand = maxTorque * torqueRatio;
         }
         else
         {
+            torqueRatio = 1.0;
             maxTorqueCommand = (int)maxTorque;
         }
     }
     else
     {
+        torqueRatio = 0.0;
         maxTorqueCommand = 0;
     }
 
@@ -686,7 +742,7 @@ void StateManager::InitYaw()
 
     if (dc_.inityawSwitch)
     {
-        std::cout << "Yaw Initialized : " << rd_.yaw << std::endl;
+        std::cout << " STATE : Yaw Initialized : " << rd_.yaw << std::endl;
         rd_gl_.yaw_init = rd_.yaw;
         dc_.inityawSwitch = false;
     }
@@ -1095,7 +1151,7 @@ void StateManager::StateEstimate()
 
             contact_right = false;
             contact_left = false;
-            std::cout << "state Estimation Initialized" << std::endl;
+            std::cout << " STATE : State Estimation Initialized" << std::endl;
             RF_contact_pos_holder.setZero(); // - RF_contactpoint_internal_pos(2);
             LF_contact_pos_holder.setZero(); // - LF_contactpoint_internal_pos(2);
             RF_contact_pos_mod.setZero();
@@ -1165,14 +1221,14 @@ void StateManager::StateEstimate()
             right_change = true;
             if (local_RF_Contact)
             {
-                std::cout << control_time_ << "  right foot contact initialized" << std::endl;
+                std::cout << control_time_ << " STATE : right foot contact initialized" << std::endl;
                 RF_contact_pos_holder = RF_global_contact_pos;
                 RF_CP_est_holder_before = RF_CP_est_holder;
                 RF_CP_est_holder = RF_CP_est;
             }
             else
             {
-                std::cout << control_time_ << "  right foot contact disabled" << std::endl;
+                std::cout << control_time_ << " STATE : right foot contact disabled" << std::endl;
             }
         }
         if (contact_left != local_LF_contact)
@@ -1180,14 +1236,14 @@ void StateManager::StateEstimate()
             left_change = true;
             if (local_LF_contact)
             {
-                std::cout << control_time_ << "  left foot contact initialized" << std::endl;
+                std::cout << control_time_ << " STATE : left foot contact initialized" << std::endl;
                 LF_contact_pos_holder = LF_global_contact_pos;
                 LF_CP_est_holder_before = LF_CP_est_holder;
                 LF_CP_est_holder = LF_CP_est;
             }
             else
             {
-                std::cout << control_time_ << "  left foot contact disabled" << std::endl;
+                std::cout << control_time_ << " STATE : left foot contact disabled" << std::endl;
             }
         }
 
@@ -1661,6 +1717,11 @@ void StateManager::PublishData()
     com_status_msg_.data[12] = dc_.tc_shm_->watchCount;
     com_status_msg_.data[13] = dc_.tc_shm_->watchCount2;
 
+    com_status_msg_.data[14] = torqueRatio;
+
+    com_status_msg_.data[15] = dc_.stm_cnt;
+    com_status_msg_.data[16] = dc_.tcm_cnt;
+
     com_status_pub_.publish(com_status_msg_);
     //
     //memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
@@ -1719,13 +1780,14 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     }
     else if (msg->data == "E0")
     {
-        std::cout << "Emergency Switch pressed! " << std::endl;
+        std::cout << " CNTRL : Emergency Switch pressed! " << std::endl;
+
         dc_.emergencySwitch = true;
         dc_.tc_shm_->emergencyOff = true;
     }
     else if (msg->data == "E1")
     {
-        std::cout << "Emergency Stop Activated !" << std::endl;
+        std::cout << " CNTRL : Emergency Stop Activated !" << std::endl;
         dc_.E1Switch = true;
     }
     else if (msg->data == "E2")
@@ -1757,13 +1819,13 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         if (rd_gl_.semode)
         {
-            std::cout << "stateestimation off" << std::endl;
+            std::cout << " STATE : stateestimation off" << std::endl;
             StatusPub("%f StateEstimate Off", control_time_);
             rd_gl_.semode = false;
         }
         else
         {
-            std::cout << "stateestimation on" << std::endl;
+            std::cout << " STATE : stateestimation on" << std::endl;
             StatusPub("%f StateEstimate ON", control_time_);
             dc_.inityawSwitch = true;
 
@@ -1784,7 +1846,7 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
 
         if (dc_.tc_shm_->safety_disable)
         {
-            std::cout << "safety checking disabled!" << std::endl;
+            std::cout << " CNTRL : safety checking disabled!" << std::endl;
             StatusPub("%f safety disabled", control_time_);
             dc_.tc_shm_->safety_reset_lower_signal = true;
             dc_.tc_shm_->safety_reset_upper_signal = true;
@@ -1793,7 +1855,7 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
         {
 
             StatusPub("%f safety enabled", control_time_);
-            std::cout << "safety checking enabled!" << std::endl;
+            std::cout << " CNTRL : safety checking enabled!" << std::endl;
         }
     }
     else if (msg->data == "ecatinit")
