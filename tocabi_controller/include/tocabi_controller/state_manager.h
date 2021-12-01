@@ -55,6 +55,8 @@ public:
     //update kinematic information with RBDL
     void UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual, const Eigen::VectorXd &q_dot_virtual, const Eigen::VectorXd &q_ddot_virtual);
 
+    void UpdateCMM(RobotData &robotd_, LinkData *link_p);
+
     void PublishData();
 
     LinkData link_[LINK_NUMBER + 1];

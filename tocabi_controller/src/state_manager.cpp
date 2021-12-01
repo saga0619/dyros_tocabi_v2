@@ -171,6 +171,8 @@ void *StateManager::StateThread()
         //global kinematics update : 127 us //w/o march native 125 us
         UpdateKinematics(model_global_, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
 
+        UpdateCMM(rd_, link_);
+
         StoreState(rd_gl_); //6.2 us //w/o march native 8us
 
         //MeasureTime(dc_.stm_cnt, d1, d2);
@@ -979,6 +981,8 @@ void StateManager::StoreState(RobotData &rd_dst)
     memcpy(&rd_dst.q_dot_virtual_, &q_dot_virtual_, sizeof(VectorVQd));
     memcpy(&rd_dst.q_ddot_virtual_, &q_ddot_virtual_, sizeof(VectorVQd));
 
+    rd_dst.CMM = rd_.CMM;
+
     rd_dst.roll = rd_.roll;
     rd_dst.pitch = rd_.pitch;
     rd_dst.yaw = rd_.yaw;
@@ -1121,6 +1125,30 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
 
     //link_p[COM_id].xpos(2) = link_p[Pelvis].xpos(2);
     // sector 4 end : 3 us
+}
+
+void StateManager::UpdateCMM(RobotData &robotd_, LinkData *link_p)
+{
+    robotd_.CMM.setZero();
+
+    Eigen::Matrix<double, 6, 6> trans_temp;
+
+    Eigen::Matrix<double, 6, 6> inertia_temp;
+
+    inertia_temp.setZero();
+
+    for (int i = 0; i < LINK_NUMBER; i++)
+    {
+        trans_temp.setIdentity();
+        inertia_temp.block(0, 0, 3, 3) = Eigen::Matrix3d::Identity() * link_p[i].mass;
+        inertia_temp.block(3, 0, 3, 3) = link_p[i].mass * DyrosMath::skm(link_p[i].xipos - link_p[i].xpos);
+        inertia_temp.block(0, 3, 3, 3) = link_p[i].mass * DyrosMath::skm(link_p[i].xipos - link_p[i].xpos).transpose();
+        inertia_temp.block(3, 3, 3, 3) = link_p[i].rotm * link_p[i].inertia * link_p[i].rotm.transpose();
+
+        trans_temp.setIdentity();
+        trans_temp.block(0, 3, 3, 3) = DyrosMath::skm(link_p[i].xipos - link_p[COM_id].xpos);
+        robotd_.CMM = robotd_.CMM + trans_temp * inertia_temp * link_p[i].JacCOM();
+    }
 }
 
 void StateManager::StateEstimate()
