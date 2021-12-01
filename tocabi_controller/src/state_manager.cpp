@@ -1141,8 +1141,8 @@ void StateManager::UpdateCMM(RobotData &robotd_, LinkData *link_p)
     {
         trans_temp.setIdentity();
         inertia_temp.block(0, 0, 3, 3) = Eigen::Matrix3d::Identity() * link_p[i].mass;
-        inertia_temp.block(3, 0, 3, 3) = link_p[i].mass * DyrosMath::skm(link_p[i].xipos - link_p[i].xpos);
-        inertia_temp.block(0, 3, 3, 3) = link_p[i].mass * DyrosMath::skm(link_p[i].xipos - link_p[i].xpos).transpose();
+        // inertia_temp.block(3, 0, 3, 3) = link_p[i].mass * DyrosMath::skm(link_p[i].xipos - link_p[i].xpos);
+        // inertia_temp.block(0, 3, 3, 3) = link_p[i].mass * DyrosMath::skm(link_p[i].xipos - link_p[i].xpos).transpose();
         inertia_temp.block(3, 3, 3, 3) = link_p[i].rotm * link_p[i].inertia * link_p[i].rotm.transpose();
 
         trans_temp.setIdentity();
