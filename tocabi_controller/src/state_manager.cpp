@@ -778,12 +778,15 @@ void StateManager::GetJointData()
 
     memcpy(q_a_, dc_.tc_shm_->pos, sizeof(float) * MODEL_DOF);
     memcpy(q_dot_a_, dc_.tc_shm_->vel, sizeof(float) * MODEL_DOF);
+    memcpy(torqueActual_a_, dc_.tc_shm_->torqueActual, sizeof(float) * MODEL_DOF);
 
     q_ = Map<VectorQf>(q_a_, MODEL_DOF).cast<double>();
     q_dot_ = Map<VectorQf>(q_dot_a_, MODEL_DOF).cast<double>();
 
     q_virtual_local_.segment(6, MODEL_DOF) = q_;
     q_dot_virtual_local_.segment(6, MODEL_DOF) = q_dot_;
+
+    torque_elmo_ = Map<VectorQf>(torqueActual_a_, MODEL_DOF).cast<double>();
 
     if (dc_.useSimVirtual)
     {
@@ -980,6 +983,7 @@ void StateManager::StoreState(RobotData &rd_dst)
     memcpy(&rd_dst.q_virtual_, &q_virtual_, sizeof(VectorQVQd));
     memcpy(&rd_dst.q_dot_virtual_, &q_dot_virtual_, sizeof(VectorVQd));
     memcpy(&rd_dst.q_ddot_virtual_, &q_ddot_virtual_, sizeof(VectorVQd));
+    memcpy(&rd_dst.torque_elmo_, &torque_elmo_, sizeof(VectorQd));
 
     rd_dst.CMM = rd_.CMM;
 

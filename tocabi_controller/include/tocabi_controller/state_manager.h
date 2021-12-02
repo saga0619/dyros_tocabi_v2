@@ -77,6 +77,7 @@ public:
 
     float q_a_[MODEL_DOF] = {};
     float q_dot_a_[MODEL_DOF] = {};
+    float torqueActual_a_[MODEL_DOF] = {};
     int joint_state_[MODEL_DOF];
     int joint_state_before_[MODEL_DOF];
 
@@ -106,6 +107,7 @@ public:
     Eigen::VectorQd q_;
     Eigen::VectorQd q_dot_;
     Eigen::VectorQd q_ddot_;
+    Eigen::VectorQd torque_elmo_;
 
     Eigen::VectorQVQd q_virtual_;
     Eigen::VectorVQd q_dot_virtual_;
