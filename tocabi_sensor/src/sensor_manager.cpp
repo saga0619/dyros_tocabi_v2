@@ -175,7 +175,7 @@ void *SensorManager::SensorThread(void)
                     }
                     ft_init_load = true;
                     ft_init_log.close();
-                    std::cout<<cgreen<<"    FT : Calibration data loaded ..."<<creset<<std::endl;
+                    std::cout << cgreen << "    FT : Calibration data loaded ..." << creset << std::endl;
                     //   pub_to_gui(dc, "ft bias loaded");
                     //   dc.ft_state = 2;
 
@@ -201,7 +201,7 @@ void *SensorManager::SensorThread(void)
                         ft._calibLFTData[i] = 0.0;
                         ft._calibRFTData[i] = 0.0;
                     }
-                    std::cout<<"    FT : start calibration ..."<<std::endl;
+                    std::cout << "    FT : start calibration ..." << std::endl;
                     // ROS_INFO("FT : start calibration ...");
                     //pub_to_gui(dc, "ft sensor : calibration ... ");
                 }
@@ -257,8 +257,8 @@ void *SensorManager::SensorThread(void)
             //Write FT data to shm here
             for (int i = 0; i < 6; i++)
             {
-                shm_->ftSensor[i + 6] = ft.leftFootAxisData[i];
-                shm_->ftSensor[i] = ft.rightFootAxisData[i];
+                shm_->ftSensor[i] = ft.leftFootAxisData[i];
+                shm_->ftSensor[i + 6] = ft.rightFootAxisData[i];
             }
 
             shm_->ftWriting = false;
