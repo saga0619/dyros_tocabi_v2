@@ -1,0 +1,29 @@
+<launch>
+    <arg name="hand" default="true"/>
+    <arg name="log" default="true"/>
+    <arg name="init" default="false"/>
+    <arg name="node_start_delay" default="0.2" />  
+    <arg name="node_start_delay_ecat" default="0.3" />  
+
+    <group if="$(arg hand)">
+        <param name="tocabi_controller/urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi_with_redhands.urdf"/>
+    </group>
+    <group unless="$(arg hand)">
+        <param name="tocabi_controller/urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi.urdf"/>
+    </group>
+
+    <param name="tocabi_controller/log" value="$(arg log)"/>
+
+    <node name="tocabi_controller_shm_reset" pkg="tocabi_controller" type="shm_reset" output="screen"/>
+
+
+    <node name="tocabi_controller" pkg="tocabi_controller" type="tocabi_controller" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+        <param name="sim_mode" value="false"/>
+        <rosparam command="load" file="$(find tocabi_description)/setting/setting_realrobot_positionPDgain.yaml"/>
+        <rosparam command="load" file="$(find tocabi_description)/setting/setting_realrobot_parameters.yaml"/>
+    </node>
+
+    <node name="tocabi_sensor" pkg="tocabi_sensor" type="tocabi_sensor" output="screen" respawn="true" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+
+    </node>
+</launch>

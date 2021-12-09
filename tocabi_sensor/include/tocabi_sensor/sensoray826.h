@@ -224,7 +224,7 @@ public:
                 adcVoltages[i] = adcDatas[i] * 10.0 / 32768;
             }
         }
-        // std::cout<<"1 :"<< adcVoltages[0] << " 2 : " << adcVoltages[1] << " 3 : " << adcVoltages[2] << " 4 : " << adcVoltages[3] << " 5 : " << adcVoltages[4] << " 6 : " << adcVoltages[5] << " 7 : " << adcVoltages[6] << " 8 : " << adcVoltages[7] << " 9 : " << adcVoltages[8] << " 10 : " << adcVoltages[9] << " 11 : " << adcVoltages[10] << " 12 : " << adcVoltages[11]<< " 13 : " << adcVoltages[12]<< " 14 : " << adcVoltages[13] << " 15 : " << adcVoltages[14] << " 16 : " << adcVoltages[15]    <<std::endl;
+       // std::cout<<"1 :"<< adcVoltages[0] << " 2 : " << adcVoltages[1] << " 3 : " << adcVoltages[2] << " 4 : " << adcVoltages[3] << " 5 : " << adcVoltages[4] << " 6 : " << adcVoltages[5] << " 7 : " << 0.0 << " 8 : " << 0.0 << " 9 : " << adcVoltages[8] << " 10 : " << adcVoltages[9] << " 11 : " << adcVoltages[10] << " 12 : " << adcVoltages[11]<< " 13 : " << adcVoltages[12]<< " 14 : " << adcVoltages[13] << " 15 : " << adcVoltages[14] << " 16 : " << adcVoltages[15]    <<std::endl;
     }
 
     double lowPassFilter(double input, double prev, double ts, double tau)
@@ -298,6 +298,6 @@ public:
             //    leftFootAxisData_prev[i] = leftFootAxisData[i];
             //    rightFootAxisData_prev[i] = rightFootAxisData[i];
         }
-        // std::cout << "FzL " << leftFootAxisData[2] << "  " << "FzR" << rightFootAxisData[2] << std::endl;
+        //std::cout << "FxL " << leftFootAxisData[0]<< " FzL " << leftFootAxisData[2] << " FxR " <<rightFootAxisData[0]<< " FzR" << rightFootAxisData[2] << std::endl;
     }
 };
