@@ -142,7 +142,10 @@ void *StateManager::StateThread()
             if (control_time_ > 0.5)
             {
                 if (!dc_.tc_shm_->shutdown)
-                    std::cout << " STATE : Waiting for signal for over 500us, " << chrono::duration_cast<chrono::microseconds>(t1 - t0).count() << " at, " << control_time_ << std::endl;
+                {
+                    if (!dc_.simMode)
+                        std::cout << " STATE : Waiting for signal for over 500us, " << chrono::duration_cast<chrono::microseconds>(t1 - t0).count() << " at, " << control_time_ << std::endl;
+                }
             }
         }
 
@@ -212,7 +215,7 @@ void *StateManager::StateThread()
             pub_once = false;
         }
 
-        if (dc_.stm_cnt % 10 == 0)
+        if (dc_.stm_cnt % 10 == 0 && !dc_.simMode)
         {
             int e_cnt_l = dc_.tc_shm_->statusCount;
             int stm_diff_l = dc_.stm_cnt - e_cnt_l;
