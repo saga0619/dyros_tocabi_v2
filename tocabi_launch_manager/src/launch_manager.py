@@ -34,6 +34,7 @@ def startercallback(data):
     global starterSwitch
     global roslaunch_subprocess
     if data.data == "start_tocabi":
+        pub_syslog.publish(String('Start Signal Received'))
         print("start switch!")
         starterSwitch = True
         
@@ -41,6 +42,7 @@ def startercallback(data):
 def stoppercallback(data):
     global stopperSwitch
     if data.data == "stop_tocabi":
+        pub_syslog.publish(String('Stop Signal Received'))
         print("stop switch!")
         stopperSwitch = True
 
@@ -90,7 +92,7 @@ if __name__ == '__main__':
                 None
                 #print('no input')
             else:
-                pub_syslog.publish(String(line))
+                pub_syslog.publish(String(str(line)))
                 print(line[:-1])
 
 
@@ -101,7 +103,7 @@ if __name__ == '__main__':
             
             
             rl_is_running = True
-            roslaunch_subprocess = Popen(['roslaunch','tocabi_controller','simulation.launch'],stdout=PIPE, stderr=PIPE)
+            roslaunch_subprocess = Popen(['roslaunch','tocabi_controller','realrobot.launch'],stdout=PIPE, stderr=PIPE)
             q=Queue()
             t= Thread(target=enque_output, args=(roslaunch_subprocess.stdout,q))
             t.daemon = True
