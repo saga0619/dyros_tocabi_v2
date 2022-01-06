@@ -92,7 +92,7 @@ if __name__ == '__main__':
                 None
                 #print('no input')
             else:
-                pub_syslog.publish(String(str(line)))
+                pub_syslog.publish(String(str(line.decode())))
                 print(line[:-1])
 
 
