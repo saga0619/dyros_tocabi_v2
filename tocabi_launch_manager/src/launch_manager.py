@@ -7,6 +7,8 @@ from subprocess import Popen, PIPE
 from threading import Thread
 import sys
 from signal import SIGINT
+from datetime import datetime
+
 
 try:
     from queue import Queue, Empty
@@ -15,10 +17,6 @@ except ImportError:
 
 ON_POSIX = 'posix' in sys.builtin_module_names
 
-def enque_output(out,queue):
-    for line in iter(out.readline, b''):
-        queue.put(line)
-    out.close()
 
 
 global starterSwitch
@@ -35,7 +33,7 @@ def startercallback(data):
     global roslaunch_subprocess
     if data.data == "start_tocabi":
         pub_syslog.publish(String('Start Signal Received'))
-        print("start switch!")
+        print("Start Signal Rcv",datetime.now().strftime("%H:%M:%S"))
         starterSwitch = True
         
 
@@ -43,24 +41,34 @@ def stoppercallback(data):
     global stopperSwitch
     if data.data == "stop_tocabi":
         pub_syslog.publish(String('Stop Signal Received'))
-        print("stop switch!")
+        print("Stop Signal Received",datetime.now().strftime("%H:%M:%S"))
         stopperSwitch = True
 
 
 
 # launch.start()
-
 # rospy.loginfo("started")
-
 # rospy.sleep(3)
-
 # launch.shutdown()
+global pub_syslog
+
+
+# Get stdout from subprocess and process it to queue
+def enque_output(out,queue): 
+    # print("start iter")
+    for line in iter(out.readline, b''):
+        # queue.put(line)
+        pub_syslog.publish(String(str(line[:-1].decode())))
+        print(line[:-1].decode())
+
+    out.close()
+
 
 
 if __name__ == '__main__':
     
     output = Popen(['uname','-r'], stdout=PIPE).communicate()[0]
-    print(output)
+    print(output.decode())
 
     rospy.init_node('tocabi_launcher', anonymous=True)
     rospy.Subscriber("/tocabi/starter",String,startercallback)
@@ -68,16 +76,11 @@ if __name__ == '__main__':
     pub_syslog = rospy.Publisher("/tocabi/syslog",String, queue_size=10)
     #uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     #roslaunch.configure_logging(uuid)
-
     #cli_args = ['tocabi_controller','realrobot.launch','log:=true','hand:=true']
 
-
     rl_is_running = False
-
     #roslaunch_file = roslaunch.rlutil.resolve_launch_arguments(cli_args)
-
     #roslaunch_args = cli_args[2:]
-
     rate = rospy.Rate(60)
 
     tick = 0
@@ -86,14 +89,15 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
         rate.sleep()
 
-        if(rl_is_running == True):
-            try: line = q.get_nowait()
-            except Empty:
-                None
-                #print('no input')
-            else:
-                pub_syslog.publish(String(str(line.decode())))
-                print(line[:-1])
+        # if(rl_is_running == True):
+        #     try: line = q.get_nowait()
+        #     except Empty:
+        #         None
+        #         #print('no input')
+        #     else:
+        #         pub_syslog.publish(String(str(line.decode())))
+        #         print(line[:-1].decode())
+        #         #print(line.decode())
 
 
         tick = tick+1
@@ -114,8 +118,11 @@ if __name__ == '__main__':
         
         if(stopperSwitch == True):
             rl_is_running = False
+            print('sending sigint',datetime.now().strftime("%H:%M:%S"))
             roslaunch_subprocess.send_signal(SIGINT)
+            print('subprocess.communicate',datetime.now().strftime("%H:%M:%S"))
             roslaunch_subprocess.communicate()
-            print('turned off!')
+            print('turned off!',datetime.now().strftime("%H:%M:%S"))
+            # t.end()
             #launch.shutdown()
             stopperSwitch=False

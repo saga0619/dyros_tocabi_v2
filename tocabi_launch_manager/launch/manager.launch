@@ -1,5 +1,5 @@
 <launch>
     <node pkg="tocabi_launch_manager" name="launch_manager_" type="launch_manager.py" output="screen"/>
-    <include file="$(find tocabi_hui)/launch/rosweb.launch">
-    </include>
+    
+    
 </launch>
