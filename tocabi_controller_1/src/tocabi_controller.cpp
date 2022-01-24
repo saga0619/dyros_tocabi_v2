@@ -59,7 +59,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
     WBC::SetContactInit(rd_);
 
     EnableThread2(true);  //Set true for Thread2
-    EnableThread3(false); //True for thread3 ...
+    EnableThread3(true); //True for thread3 ...
 
     //std::cout<<"21"<<std::endl;
 
@@ -202,11 +202,12 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
                 }
 #endif
 #ifdef COMPILE_TOCABI_CC
-                // if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
-                // {
-                //     RequestThread2();
-                //     my_cc.computeSlow();
-                // }
+                if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
+                { 
+                    RequestThread2();
+                    RequestThread3();
+                    my_cc.computeSlow();
+                }
 #endif
             }
             else
@@ -295,15 +296,20 @@ void *TocabiController::Thread2()
     }
     if (enableThread2)
     {
-        // std::cout << "thread2_entered" << std::endl;
+        std::cout << "thread2_entered" << std::endl;
+        std::chrono::steady_clock::time_point t_begin = std::chrono::steady_clock::now();
+        std::chrono::microseconds cycletime(1000);
+        int cycle_count = 1;
         while (!dc_.tc_shm_->shutdown)
         {
-            if (triggerThread2)
+            if (true) //(triggerThread2)
             {
-                triggerThread2 = false;
                 /////////////////////////////////////////////
                 /////////////Do something in Thread2 !!!!!!!
-
+               std::this_thread::sleep_until(t_begin + cycle_count * cycletime);    
+    //           std::chrono::steady_clock::time_point start_time1 = std::chrono::steady_clock::now();
+            
+                cycle_count++;
                 if (rd_.tc_run)
                 {
 #ifdef COMPILE_TOCABI_AVATAR
@@ -313,12 +319,16 @@ void *TocabiController::Thread2()
                     }
 #endif
 #ifdef COMPILE_TOCABI_CC
-                    if (rd_.tc_.mode == 15)
+                    if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
                     {
                         my_cc.computeFast();
                     }
 #endif
                 }
+// auto d1 = std::chrono::duration_cast<std::chrono::microseconds>(start_time1 - t_begin).count();
+  //              std::cout <<"cycle " << cycle_count << " " << d1 << std::endl;
+            
+                std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
                 /////////////////////////////////////////////
             }
             else
@@ -357,6 +367,47 @@ void *TocabiController::Thread3()
                 triggerThread3 = false;
                 /////////////////////////////////////////////
                 /////////////Do something in Thread3 !!!!!!!
+                auto t1 = std::chrono::steady_clock::now();
+                if (rd_.tc_run)
+                {
+#ifdef COMPILE_TOCABI_AVATAR
+                    if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
+                    {
+                        ac_.computePlanner();
+                    }
+#endif
+#ifdef COMPILE_TOCABI_CC
+                    if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
+                    {
+                        my_cc.computePlanner();
+                    }
+#endif
+                }
+                /////////////////////////////////////////////
+                auto t_end = std::chrono::steady_clock::now();
+                auto d1 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - t1).count();
+                static int d1_over_cnt = 0;
+
+                // std::cout <<"d1 " << d1 << std::endl;
+
+                /*    if(my_cc.mpc_cycle>=20 && my_cc.mpc_cycle <= 1799)
+                {
+                    my_cc.aaa += d1;
+                }
+
+                if(my_cc.mpc_cycle == 1799)
+                {
+                    std::cout<<"Result" << std::endl;
+                    std::cout << my_cc.aaa/1780.0 << std::endl;
+                }
+//std::cout <<"d1 " << d1 << std::endl;
+                 if (d1 > 4000)
+                {
+                    d1_over_cnt++;
+                    std::cout <<"d1 " << d1 << std::endl;
+                 //   std::cout << "d1_over_cnt" << d1_over_cnt << std::endl;
+                    std::cout << my_cc.mpc_cycle << std::endl;
+                }*/
 
                 /////////////////////////////////////////////
             }
@@ -438,7 +489,7 @@ void TocabiController::EnableThread2(bool enable)
 }
 
 void TocabiController::EnableThread3(bool enable)
-{
+{   
     enableThread3 = enable;
 }
 

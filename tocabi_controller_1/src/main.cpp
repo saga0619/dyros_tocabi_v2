@@ -119,7 +119,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        const int thread_number = 3;
+        const int thread_number = 4;
 
         struct sched_param param_st;
         struct sched_param param;
@@ -194,6 +194,11 @@ int main(int argc, char **argv)
         {
             printf("threads[2] create failed\n");
         }
+        if (pthread_create(&threads[3], &attrs[3], &TocabiController::Thread3Starter, &tc_))
+        {
+            printf("threads[3] create failed\n");
+        }
+        
         pthread_t loggerThread;
         pthread_attr_t loggerattrs;
         if (true)

@@ -993,7 +993,6 @@ void StateManager::StoreState(RobotData &rd_dst)
     rd_dst.roll = rd_.roll;
     rd_dst.pitch = rd_.pitch;
     rd_dst.yaw = rd_.yaw;
-
     if (!rd_dst.firstCalc)
     {
 
@@ -1007,8 +1006,10 @@ void StateManager::StoreState(RobotData &rd_dst)
     rd_dst.tp_state_ = rd_.tp_state_;
 
     rd_dst.LF_FT = LF_FT;
-
     rd_dst.RF_FT = RF_FT;
+
+    rd_dst.LF_CF_FT = LF_CF_FT;
+    rd_dst.RF_CF_FT = RF_CF_FT;
 
     dc_.triggerThread1 = true;
 }
@@ -1938,7 +1939,10 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         dc_.tc_shm_->force_load_saved_signal = true;
     }
-
+    else if (msg->data == "positiondobcontrol")
+    {
+        rd_gl_.ankleHybrid = true;
+    }
     //Controlling GUI
 }
 
