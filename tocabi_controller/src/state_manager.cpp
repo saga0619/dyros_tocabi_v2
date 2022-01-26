@@ -174,7 +174,7 @@ void *StateManager::StateThread()
         //global kinematics update : 127 us //w/o march native 125 us
         UpdateKinematics(model_global_, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
 
-        UpdateCMM(rd_, link_);
+       // UpdateCMM(rd_, link_);
 
         StoreState(rd_gl_); //6.2 us //w/o march native 8us
 
@@ -224,22 +224,22 @@ void *StateManager::StateThread()
             if (abs(stm_diff - stm_diff_l) > 1)
             {
                 // StatusPub("STATUS : STM DESYNC AT %7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d, %d, %d", control_time_, e_cnt_l, (int)dc_.stm_cnt - e_cnt_l, (int)dc_.tcm_cnt - e_cnt_l, stm_diff, stm_diff_l);
-                printf("STATUS : STM DESYNC AT %7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d\n", control_time_, e_cnt_l, (int)dc_.stm_cnt - e_cnt_l, (int)dc_.tcm_cnt - e_cnt_l);
+            //    printf("STATUS : STM DESYNC AT %7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d\n", control_time_, e_cnt_l, (int)dc_.stm_cnt - e_cnt_l, (int)dc_.tcm_cnt - e_cnt_l);
                 stm_diff = stm_diff_l;
             }
 
             if (abs(tcm_diff - tcm_diff_l) > 1)
             {
                 // StatusPub("STATUS : TCM DESYNC AT %7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d, %d, %d", control_time_, e_cnt_l, (int)dc_.stm_cnt - e_cnt_l, (int)dc_.tcm_cnt - e_cnt_l, tcm_diff, tcm_diff_l);
-                printf("STATUS : TCM DESYNC AT %7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d\n", control_time_, e_cnt_l, (int)dc_.stm_cnt - e_cnt_l, (int)dc_.tcm_cnt - e_cnt_l);
+              //  printf("STATUS : TCM DESYNC AT %7.1f, ecat cnt : %d, stm cnt : %d, dcm cnt : %d\n", control_time_, e_cnt_l, (int)dc_.stm_cnt - e_cnt_l, (int)dc_.tcm_cnt - e_cnt_l);
                 tcm_diff = tcm_diff_l;
             }
         }
 
         if ((d1 + d2 + d3 + d4) > 500)
         {
-            if (control_time_ > 0.1)
-                printf(" STATE : %7.1f stm over 500, d1 : %ld, d2 : %ld, d3 : %ld, d4 : %ld\n", control_time_, d1, d2, d3, d4);
+            //if (control_time_ > 0.1)
+              //  printf(" STATE : %7.1f stm over 500, d1 : %ld, d2 : %ld, d3 : %ld, d4 : %ld\n", control_time_, d1, d2, d3, d4);
         }
 
         for (int i = 0; i < MODEL_DOF; i++)
@@ -683,8 +683,8 @@ void StateManager::SendCommand()
     cCount++;
     dc_.tc_shm_->commandCount.store(cCount);
 
-    dc_.tc_shm_->commanding.store(false);
-
+    dc_.tc_shm_->commanding.store(false);   
+    dc_.tc_shm_->mujoco_dist = rd_gl_.mujoco_dist;
     dc_.tc_shm_->cmd_upper = false;
     //LowerBody
 
