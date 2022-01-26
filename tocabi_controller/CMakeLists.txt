@@ -73,6 +73,20 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
+
+execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RES OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+string(FIND ${UNAME_RES} "xenomai" wsloc)
+
+if(${wsloc} EQUAL -1 )
+  message(" Controller : simulation only compile mode ")
+  ADD_DEFINITIONS(-DCOMPILE_SIMULATION)
+else()
+  message(" xenomai detected realrobot compilt mode ")
+  ADD_DEFINITIONS(-DCOMPILE_REALROBOT)
+endif() 
+
+
 IF(tocabi_cc_FOUND)
  message(" -- tocabi_cc found" )
    ADD_DEFINITIONS(-DCOMPILE_TOCABI_CC)

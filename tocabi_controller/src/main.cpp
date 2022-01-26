@@ -71,8 +71,10 @@ int main(int argc, char **argv)
     cout << " CNTRL : Starting TOCABI CONTROLLER! " << endl;
     // set_latency_target();
     signal(SIGINT, SIGINT_handler);
-    mlockall(MCL_CURRENT | MCL_FUTURE);
 
+#ifdef COMPILE_REALROBOT
+    mlockall(MCL_CURRENT | MCL_FUTURE);
+#endif
     ros::init(argc, argv, "tocabi_controller", ros::init_options::NoSigintHandler);
 
     DataContainer dc_;
