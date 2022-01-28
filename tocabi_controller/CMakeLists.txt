@@ -146,8 +146,12 @@ IF(tocabi_cc_FOUND)
 target_link_libraries(${PROJECT_NAME}_lib
   ${tocabi_cc_LIBRARIES}
 )
+message("cc_found")
+message(${tocabi_cc_INCLUDE_DIRS})
 include_directories(
   ${tocabi_cc_INCLUDE_DIRS}
+  /opt/hpipm/include
+  /opt/blasfeo/include
 )
 ENDIF()
 IF(tocabi_avatar_FOUND)

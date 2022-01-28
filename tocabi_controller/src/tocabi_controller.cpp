@@ -54,16 +54,14 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
         }
     }
 
-    // std::cout << "thread1 Proceeding ... " << endl;
+    std::cout << "thread1 Proceeding ... " << endl;
 
     WBC::SetContactInit(rd_);
 
     EnableThread2(true);  //Set true for Thread2
     EnableThread3(true); //True for thread3 ...
 
-    //std::cout<<"21"<<std::endl;
-
-    // std::cout << "entering thread1 loop" << endl;
+    std::cout << "entering thread1 loop" << endl;
 
     signalThread1 = true;
     int thread1_count = 0;
@@ -193,7 +191,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
                 if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
                 {
                     RequestThread2();
-                    ac_.computeSlow();
+                  //  ac_.computeSlow();
 
                     //If necessary, use
                     //To Enable Thread2, you need to fix the 50th line. Change EnableThread2(false) to EnableThread2(true).
@@ -315,7 +313,7 @@ void *TocabiController::Thread2()
 #ifdef COMPILE_TOCABI_AVATAR
                     if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
                     {
-                        ac_.computeFast();
+                   //     ac_.computeFast();
                     }
 #endif
 #ifdef COMPILE_TOCABI_CC
@@ -373,7 +371,7 @@ void *TocabiController::Thread3()
 #ifdef COMPILE_TOCABI_AVATAR
                     if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
                     {
-                        ac_.computePlanner();
+                     //   ac_.computePlanner();
                     }
 #endif
 #ifdef COMPILE_TOCABI_CC
