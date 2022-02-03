@@ -1,6 +1,6 @@
 <launch>
-    <arg name="hand" default="false"/>
-    <arg name="log" default="false"/>
+    <arg name="hand" default="true"/>
+    <arg name="log" default="true"/>
     <arg name="init" default="false"/>
     <arg name="node_start_delay" default="0.2" />  
     <arg name="node_start_delay_ecat" default="0.3" />  
