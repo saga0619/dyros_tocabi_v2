@@ -276,7 +276,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
         }
         else
         {
-            std::this_thread::sleep_for(std::chrono::microseconds(1));
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
         }
     }
 
@@ -320,10 +320,12 @@ void *TocabiController::Thread2()
 #endif
                 }
                 /////////////////////////////////////////////
+                std::this_thread::sleep_for(std::chrono::microseconds(10));
+
             }
             else
             {
-                std::this_thread::sleep_for(std::chrono::microseconds(1));
+                std::this_thread::sleep_for(std::chrono::microseconds(10));
             }
         }
     }

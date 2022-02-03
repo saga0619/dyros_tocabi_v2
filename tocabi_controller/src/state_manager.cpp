@@ -465,7 +465,7 @@ void StateManager::SendCommand()
 {
     timespec t_u10;
 
-    t_u10.tv_nsec = 1000;
+    t_u10.tv_nsec = 10000;
     t_u10.tv_sec = 0;
     static double torque_command[MODEL_DOF];
     while (dc_.t_c_)
@@ -810,6 +810,11 @@ void StateManager::GetJointData()
         q_dot_virtual_local_(0) = 0.0;
         q_dot_virtual_local_(1) = 0.0;
         q_dot_virtual_local_(2) = 0.0;
+    }
+
+    if(dc_.tc_shm_->imuWriting)
+    {
+        usleep(10);
     }
 
     q_dot_virtual_local_(3) = dc_.tc_shm_->vel_virtual[3];
