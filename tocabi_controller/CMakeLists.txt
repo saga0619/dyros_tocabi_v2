@@ -140,6 +140,9 @@ target_link_libraries(${PROJECT_NAME}_lib
   -lpthread
   -lrbdl
   -lrbdl_urdfreader
+  -lboost_system 
+  -lpinocchio
+  -lurdfdom_model
 )
 
 IF(tocabi_cc_FOUND)
