@@ -12,10 +12,10 @@ TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc
                                                                ac_(*(new AvatarController(rd_)))
 #endif
 {
-    //Tocabi Controller Initialize Component
+    // Tocabi Controller Initialize Component
 
     nh_controller_.setCallbackQueue(&queue_controller_);
-    //sub_1 = nh_controller_.subscribe("/tocabi/avatar_test", 1, &AvatarController::avatar_callback, this);
+    // sub_1 = nh_controller_.subscribe("/tocabi/avatar_test", 1, &AvatarController::avatar_callback, this);
 
     task_command_sub_ = nh_controller_.subscribe("/tocabi/taskcommand", 100, &TocabiController::TaskCommandCallback, this);
     task_command_que_sub_ = nh_controller_.subscribe("/tocabi/taskquecommand", 100, &TocabiController::TaskQueCommandCallback, this);
@@ -31,20 +31,20 @@ TocabiController::~TocabiController()
 }
 
 // Thread1 : running
-void *TocabiController::Thread1() //Thread1, running with 2Khz.
+void *TocabiController::Thread1() // Thread1, running with 2Khz.
 {
     // std::cout << "thread1_entered" << std::endl;
 
     volatile int rcv_time_ = 0;
-    //cout << "shm_msgs:" << dc_.tc_shm_->t_cnt << endl;
-    //cout << "entered" << endl;
+    // cout << "shm_msgs:" << dc_.tc_shm_->t_cnt << endl;
+    // cout << "entered" << endl;
 
     if (dc_.tc_shm_->shutdown)
     {
         cout << "what?" << endl;
     }
 
-    //cout << "waiting first calc.." << endl;
+    // cout << "waiting first calc.." << endl;
     while (!rd_.firstCalc)
     {
         std::this_thread::sleep_for(std::chrono::microseconds(1));
@@ -58,10 +58,10 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
     WBC::SetContactInit(rd_);
 
-    EnableThread2(true);  //Set true for Thread2
-    EnableThread3(false); //True for thread3 ...
+    EnableThread2(true);  // Set true for Thread2
+    EnableThread3(false); // True for thread3 ...
 
-    //std::cout<<"21"<<std::endl;
+    // std::cout<<"21"<<std::endl;
 
     // std::cout << "entering thread1 loop" << endl;
 
@@ -188,6 +188,84 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
                         rd_.count_for_inverse_total = 0;
                     }*/
                 }
+                else if (rd_.tc_.mode == 1)
+                {
+                    if (rd_.tc_init)
+                    {
+                        std::cout << "mode 1 init" << std::endl;
+                        rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
+                    }
+
+                    WBC::SetContact(rd_, 1, 1);
+
+                    rd_.J_task.setZero(6, MODEL_DOF_VIRTUAL);
+                    rd_.J_task.block(0, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[COM_id].Jac().block(0, 0, 3, MODEL_DOF_VIRTUAL);
+                    rd_.J_task.block(3, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[Upper_Body].Jac().block(3, 0, 3, MODEL_DOF_VIRTUAL);
+
+                    rd_.link_[COM_id].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
+                    rd_.link_[COM_id].x_desired(2) = rd_.tc_.height;
+
+                    rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll, rd_.tc_.pitch, rd_.tc_.yaw + rd_.link_[Pelvis].yaw_init);
+
+                    Eigen::VectorXd fstar;
+                    rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+                    rd_.link_[Upper_Body].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                    fstar.setZero(6);
+                    fstar.segment(0, 3) = WBC::GetFstarPos(rd_.link_[COM_id]);
+                    fstar.segment(3, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
+
+                    // rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) );
+
+                    VectorQd task_torque_qp = WBC::TaskControlTorqueQP(rd_, fstar, rd_.tc_init);
+
+                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + task_torque_qp);
+
+                    // std::cout << (task_torque_qp - task_torque_qp2).transpose() << std::endl;
+
+                    rd_.tc_init = false;
+                }
+                else if (rd_.tc_.mode == 2)
+                {
+                    if (rd_.tc_init)
+                    {
+                        std::cout << "mode 1 init" << std::endl;
+                        rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
+                    }
+
+                    WBC::SetContact(rd_, 1, 1);
+
+                    rd_.J_task.setZero(6, MODEL_DOF_VIRTUAL);
+                    rd_.J_task.block(0, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[COM_id].Jac().block(0, 0, 3, MODEL_DOF_VIRTUAL);
+                    rd_.J_task.block(3, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[Upper_Body].Jac().block(3, 0, 3, MODEL_DOF_VIRTUAL);
+
+                    rd_.link_[COM_id].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
+                    rd_.link_[COM_id].x_desired(2) = rd_.tc_.height;
+
+                    rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll, rd_.tc_.pitch, rd_.tc_.yaw + rd_.link_[Pelvis].yaw_init);
+
+                    Eigen::VectorXd fstar;
+                    rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+                    rd_.link_[Upper_Body].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                    fstar.setZero(6);
+                    fstar.segment(0, 3) = WBC::GetFstarPos(rd_.link_[COM_id]);
+                    fstar.segment(3, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
+
+                    // rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) );
+
+                    VectorQd task_torque_qp = WBC::TaskControlTorqueQP(rd_, fstar, rd_.tc_init);
+
+                    VectorQd gravity_torque_qp = WBC::GravityCompensationTorque(rd_);
+
+                    VectorQd contact_torque_qp = WBC::ContactTorqueQP(rd_, task_torque_qp + gravity_torque_qp);
+
+                    rd_.torque_desired = task_torque_qp + gravity_torque_qp + contact_torque_qp;
+
+                    // std::cout << (task_torque_qp - task_torque_qp2).transpose() << std::endl;
+
+                    rd_.tc_init = false;
+                }
 
 #ifdef COMPILE_TOCABI_AVATAR
                 if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
@@ -195,10 +273,10 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
                     RequestThread2();
                     ac_.computeSlow();
 
-                    //If necessary, use
-                    //To Enable Thread2, you need to fix the 50th line. Change EnableThread2(false) to EnableThread2(true).
-                    //If not, thread2 is disabled, so that you cannot use thread2
-                    //RequestThread2() : call this function to trigger Thread2 at each tick.
+                    // If necessary, use
+                    // To Enable Thread2, you need to fix the 50th line. Change EnableThread2(false) to EnableThread2(true).
+                    // If not, thread2 is disabled, so that you cannot use thread2
+                    // RequestThread2() : call this function to trigger Thread2 at each tick.
                 }
 #endif
 #ifdef COMPILE_TOCABI_CC
@@ -215,11 +293,11 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
                 rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_));
             }
 
-            //Send Data To thread2
+            // Send Data To thread2
 
-            //Data2Thread2
+            // Data2Thread2
 
-            //std::cout << torque_task_.norm() << "\t" << torque_grav_.norm() << "\t" << torque_contact_.norm() << std::endl;
+            // std::cout << torque_task_.norm() << "\t" << torque_grav_.norm() << "\t" << torque_contact_.norm() << std::endl;
 
             static std::chrono::steady_clock::time_point t_c_ = std::chrono::steady_clock::now();
 
@@ -227,8 +305,8 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
 
             auto t_end = std::chrono::steady_clock::now();
 
-            auto d1 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - t1).count();            //150us without march=native
-            auto d2 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - rd_.tp_state_).count(); //150us without march=native
+            auto d1 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - t1).count();            // 150us without march=native
+            auto d2 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - rd_.tp_state_).count(); // 150us without march=native
 
             static int d1_over_cnt = 0;
 
@@ -272,7 +350,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
             }
             t_c_ = std::chrono::steady_clock::now();
 
-            //std::cout<<"21"<<std::endl;
+            // std::cout<<"21"<<std::endl;
         }
         else
         {
@@ -284,7 +362,7 @@ void *TocabiController::Thread1() //Thread1, running with 2Khz.
     return (void *)NULL;
 }
 
-//Thread2 : running with request
+// Thread2 : running with request
 void *TocabiController::Thread2()
 {
     while (true)
@@ -336,7 +414,7 @@ void *TocabiController::Thread2()
     return (void *)NULL;
 }
 
-//Thread3 : running with request
+// Thread3 : running with request
 void *TocabiController::Thread3()
 {
     while (true)
@@ -517,9 +595,9 @@ void TocabiController::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPt
     rd_.link_[Upper_Body].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
     rd_.link_[COM_id].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
 
-    //std::cout << " pelv yaw init : " << rd_.link_[Pelvis].yaw_init << std::endl;
+    // std::cout << " pelv yaw init : " << rd_.link_[Pelvis].yaw_init << std::endl;
 
-    //std::cout << "upperbody rotation init : " << DyrosMath::rot2Euler_tf(rd_.link_[Upper_Body].rot_init).transpose() << std::endl;
+    // std::cout << "upperbody rotation init : " << DyrosMath::rot2Euler_tf(rd_.link_[Upper_Body].rot_init).transpose() << std::endl;
 
     if (!rd_.semode)
     {
