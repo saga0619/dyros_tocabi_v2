@@ -126,7 +126,7 @@ sensor_msgs::Imu MX5IMU::getIMU(int &imu_state)
                     q_rot.setRPY(M_PI, 0, M_PI / 2);
 
                     //Angle bias modifier :::::
-                    q_rot2.setRPY(0, 0, -M_PI / 2);
+                    q_rot2.setRPY(M_PI, 0, M_PI / 2);
                     q_new = q_rot * q * q_rot2; // * q_rot2;
 
                     imu_pub_msg.orientation = tf2::toMsg(q_new);
@@ -480,7 +480,7 @@ void MX5IMU::parseData_custum(mscl::InertialNode &node)
                     tf2::Quaternion q_new, q_rot, q_rot2;
                     //tf2::Transform transform;
 
-                    q_rot.setRPY(0, 0, M_PI_2);
+                    q_rot.setRPY(M_PI_2, 0, M_PI_2);
                     tf2::Matrix3x3 rotm(q_orig);
                     double i_roll, i_pitch, i_yaw;
                     rotm.getRPY(i_roll, i_pitch, i_yaw);
