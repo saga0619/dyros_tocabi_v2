@@ -129,6 +129,7 @@ link_directories(${CATKIN_DEVEL_PREFIX}/lib})
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME} src/main.cpp)
+add_executable(shutdown src/shutdown.cpp)
 
 add_executable(shm_reset src/shm_manager.cpp)
 #add_executable(rbdl_test src/simple_example.cpp)
