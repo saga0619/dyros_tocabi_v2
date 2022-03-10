@@ -683,7 +683,6 @@ void StateManager::SendCommand()
     cCount++;
     dc_.tc_shm_->commandCount.store(cCount);
 
-    dc_.tc_shm_->commanding.store(false);
 
     dc_.tc_shm_->cmd_upper = false;
     //LowerBody
@@ -697,6 +696,8 @@ void StateManager::SendCommand()
     std::copy(torque_command, torque_command + 15, dc_.tc_shm_->torqueCommand);
     dc_.tc_shm_->cmd_lower = false;
 
+    dc_.tc_shm_->commanding.store(false);
+    
     // dc_.tc_shm_->commandCount++;
     // dc_.tc_shm_->commanding = false;
 
