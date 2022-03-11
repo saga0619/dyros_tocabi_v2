@@ -307,12 +307,18 @@ void *StateManager::LoggerThread()
 
     int record_tick = record_seconds * 2000;
 
+    long current_time = rd_gl_.control_time_us_;
+
     while (!dc_.tc_shm_->shutdown)
     {
         pub_count++;
         if (pub_count % 33 == 0)
         {
+            if (current_time < rd_gl_.control_time_us_)
+            {
             PublishData();
+                current_time = rd_gl_.control_time_us_;
+            }
         }
         ros::spinOnce();
 
