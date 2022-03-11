@@ -97,11 +97,11 @@ void *StateManager::StateThread()
 
     int rcv_tcnt = -1;
 
-    //Checking Connect//
+    // Checking Connect//
 
-    //Check Coonnect Complete//
+    // Check Coonnect Complete//
     rcv_tcnt = dc_.tc_shm_->statusCount;
-    //cout << "first packet " << rcv_tcnt << endl;
+    // cout << "first packet " << rcv_tcnt << endl;
     int cycle_count_ = rcv_tcnt;
     dc_.stm_cnt = 0;
 
@@ -155,7 +155,7 @@ void *StateManager::StateThread()
 
         rcv_tcnt = dc_.tc_shm_->statusCount;
 
-        GetJointData(); //0.246 us //w/o march native 0.226
+        GetJointData(); // 0.246 us //w/o march native 0.226
         GetSensorData();
 
         InitYaw();
@@ -163,7 +163,7 @@ void *StateManager::StateThread()
         auto dur_start_ = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - time_start).count();
         control_time_ = rcv_tcnt / 2000.0;
 
-        //local kinematics update : 33.7 us // w/o march native 20 us
+        // local kinematics update : 33.7 us // w/o march native 20 us
         UpdateKinematics_local(model_local_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
 
         auto d1 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t1).count();
@@ -171,14 +171,14 @@ void *StateManager::StateThread()
         auto t2 = chrono::steady_clock::now();
         StateEstimate();
 
-        //global kinematics update : 127 us //w/o march native 125 us
+        // global kinematics update : 127 us //w/o march native 125 us
         UpdateKinematics(model_global_, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
 
         UpdateCMM(rd_, link_);
 
-        StoreState(rd_gl_); //6.2 us //w/o march native 8us
+        StoreState(rd_gl_); // 6.2 us //w/o march native 8us
 
-        //MeasureTime(dc_.stm_cnt, d1, d2);
+        // MeasureTime(dc_.stm_cnt, d1, d2);
 
         rd_gl_.control_time_ = dur_start_ / 1000000.0;
         rd_gl_.control_time_us_ = dur_start_;
@@ -187,8 +187,8 @@ void *StateManager::StateThread()
         auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
 
         auto t3 = chrono::steady_clock::now();
-        //dc_.tc_shm_->t_cnt2 = dc_.stm_cnt;
-        //dc_.tc_shm_->t_cnt2 = cnt3;
+        // dc_.tc_shm_->t_cnt2 = dc_.stm_cnt;
+        // dc_.tc_shm_->t_cnt2 = cnt3;
 
         auto d3 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t3).count();
 
@@ -248,14 +248,14 @@ void *StateManager::StateThread()
             state_safety_before_[i] = state_safety_[i];
         }
 
-        //printf("%d\n", rcv_tcnt);
-        //printf("\x1b[A\x1b[A\33[2K\r");
-        // if (rcv_tcnt % 33 == 0)
-        // {
-        //     printf("\33[2K\r");
-        //     printf("%8d %8d avg : %7.3f max : %4d min : %4d, cnt : %4d, cnt2 : %4d, cnt3 : %4d ", rcv_tcnt, cycle_count_, avg, max, min, cnt, cnt2, cnt3);
-        //     fflush(stdout);
-        // }
+        // printf("%d\n", rcv_tcnt);
+        // printf("\x1b[A\x1b[A\33[2K\r");
+        //  if (rcv_tcnt % 33 == 0)
+        //  {
+        //      printf("\33[2K\r");
+        //      printf("%8d %8d avg : %7.3f max : %4d min : %4d, cnt : %4d, cnt2 : %4d, cnt3 : %4d ", rcv_tcnt, cycle_count_, avg, max, min, cnt, cnt2, cnt3);
+        //      fflush(stdout);
+        //  }
     }
     cout << " STATE : StateManager END" << endl;
     return (void *)NULL;
@@ -268,16 +268,16 @@ void *StateManager::LoggerThread()
 
     dc_.nh.getParam("/tocabi_controller/log", activateLogger);
 
-    //wait for both ecat are in control mode !
-    // while (!dc_.tc_shm_->shutdown)
-    // {
-    //     std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    //     if (dc_.tc_shm_->controlModeLower && dc_.tc_shm_->controlModeUpper)
-    //     {
-    //         std::cout << "Logger : Both ECAT is now on CONTROL MODE! Logging start..." << std::endl;
-    //         break;
-    //     }
-    // }
+    // wait for both ecat are in control mode !
+    //  while (!dc_.tc_shm_->shutdown)
+    //  {
+    //      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    //      if (dc_.tc_shm_->controlModeLower && dc_.tc_shm_->controlModeUpper)
+    //      {
+    //          std::cout << "Logger : Both ECAT is now on CONTROL MODE! Logging start..." << std::endl;
+    //          break;
+    //      }
+    //  }
 
     std::string torqueLogFile = "/home/dyros/tocabi_log/torque_elmo_log";
     std::string ecatStatusFile = "/home/dyros/tocabi_log/ecat_status_log";
@@ -316,7 +316,7 @@ void *StateManager::LoggerThread()
         {
             if (current_time < rd_gl_.control_time_us_)
             {
-            PublishData();
+                PublishData();
                 current_time = rd_gl_.control_time_us_;
             }
         }
@@ -614,7 +614,7 @@ void StateManager::SendCommand()
         maxTorqueCommand = 0;
     }
 
-    if (dc_.E1Switch) //Emergency stop
+    if (dc_.E1Switch) // Emergency stop
     {
         if (dc_.E1Status)
         {
@@ -632,7 +632,7 @@ void StateManager::SendCommand()
 
         dc_.E1Switch = false;
     }
-    if (dc_.E2Switch) //Emergency damping
+    if (dc_.E2Switch) // Emergency damping
     {
         if (dc_.E2Status)
         {
@@ -644,7 +644,7 @@ void StateManager::SendCommand()
             rd_gl_.tc_run = false;
             rd_gl_.pc_mode = false;
 
-            //Damping mode = true!
+            // Damping mode = true!
         }
 
         dc_.E2Switch = false;
@@ -676,22 +676,21 @@ void StateManager::SendCommand()
 
     dc_.tc_shm_->commanding = true;
 
-    //UpperBody
+    // UpperBody
     while (dc_.tc_shm_->cmd_upper)
     {
         clock_nanosleep(CLOCK_MONOTONIC, 0, &t_u10, NULL);
     }
     dc_.tc_shm_->cmd_upper = true;
-    //std::fill(dc_.tc_shm_->commandMode, dc_.tc_shm_->commandMode + MODEL_DOF, 1);
+    // std::fill(dc_.tc_shm_->commandMode, dc_.tc_shm_->commandMode + MODEL_DOF, 1);
     std::copy(torque_command + 15, torque_command + MODEL_DOF, dc_.tc_shm_->torqueCommand + 15);
     dc_.tc_shm_->maxTorque = maxTorqueCommand;
     static int cCount = 0;
     cCount++;
     dc_.tc_shm_->commandCount.store(cCount);
 
-
     dc_.tc_shm_->cmd_upper = false;
-    //LowerBody
+    // LowerBody
 
     while (dc_.tc_shm_->cmd_lower)
     {
@@ -703,7 +702,7 @@ void StateManager::SendCommand()
     dc_.tc_shm_->cmd_lower = false;
 
     dc_.tc_shm_->commanding.store(false);
-    
+
     // dc_.tc_shm_->commandCount++;
     // dc_.tc_shm_->commanding = false;
 
@@ -759,22 +758,22 @@ void StateManager::InitYaw()
         dc_.inityawSwitch = false;
     }
 
-    //const tf2Scalar& r_,p_,y_;
+    // const tf2Scalar& r_,p_,y_;
 
     tf2::Quaternion q_mod;
     rd_.yaw = rd_.yaw - rd_gl_.yaw_init;
 
     q_mod.setRPY(rd_.roll, rd_.pitch, rd_.yaw);
-    //tf2::Quaternion q_rot;
-    //q_rot.setRPY(0, 0, -yaw_init);
-    //q = q * q_rot;
+    // tf2::Quaternion q_rot;
+    // q_rot.setRPY(0, 0, -yaw_init);
+    // q = q * q_rot;
 
     q_virtual_local_(3) = q_mod.getX();
     q_virtual_local_(4) = q_mod.getY();
     q_virtual_local_(5) = q_mod.getZ();
     q_virtual_local_(MODEL_DOF_VIRTUAL) = q_mod.getW();
 
-    //q_virtual_local_ = q_virtual_local_yaw_initialized;
+    // q_virtual_local_ = q_virtual_local_yaw_initialized;
 }
 
 void StateManager::GetJointData()
@@ -811,15 +810,15 @@ void StateManager::GetJointData()
     else
     {
         q_virtual_local_(0) = 0.0; // dc_.tc_shm_->pos_virtual[0];
-        q_virtual_local_(1) = 0.0; //dc_.tc_shm_->pos_virtual[1];
-        q_virtual_local_(2) = 0.0; //dc_.tc_shm_->pos_virtual[2];
+        q_virtual_local_(1) = 0.0; // dc_.tc_shm_->pos_virtual[1];
+        q_virtual_local_(2) = 0.0; // dc_.tc_shm_->pos_virtual[2];
 
         q_dot_virtual_local_(0) = 0.0;
         q_dot_virtual_local_(1) = 0.0;
         q_dot_virtual_local_(2) = 0.0;
     }
 
-    if(dc_.tc_shm_->imuWriting)
+    if (dc_.tc_shm_->imuWriting)
     {
         usleep(10);
     }
@@ -833,27 +832,27 @@ void StateManager::GetJointData()
     q_virtual_local_(5) = dc_.tc_shm_->pos_virtual[5];
     q_virtual_local_(MODEL_DOF_VIRTUAL) = dc_.tc_shm_->pos_virtual[6];
 
-    //memcpy(joint_state_, dc_.tc_shm_->status, sizeof(int) * MODEL_DOF);
+    // memcpy(joint_state_, dc_.tc_shm_->status, sizeof(int) * MODEL_DOF);
     memcpy(state_elmo_, dc_.tc_shm_->ecat_status, sizeof(int8_t) * MODEL_DOF);
     memcpy(state_safety_, dc_.tc_shm_->safety_status, sizeof(int8_t) * MODEL_DOF);
     memcpy(state_zp_, dc_.tc_shm_->zp_status, sizeof(int8_t) * MODEL_DOF);
 
-    //Position Hold On Safety
-    // for (int i = 0; i < MODEL_DOF; i++)
-    // {
-    //     if (state_safety_[i] != state_safety_before_[i])
-    //     {
-    //         if (state_safety_[i] != 0)
-    //         {
-    //             dc_.positionControlSwitch = true;
-    //             std::cout << "Safety Activated ! To Position Hold" << std::endl;
-    //         }
-    //     }
-    // }
+    // Position Hold On Safety
+    //  for (int i = 0; i < MODEL_DOF; i++)
+    //  {
+    //      if (state_safety_[i] != state_safety_before_[i])
+    //      {
+    //          if (state_safety_[i] != 0)
+    //          {
+    //              dc_.positionControlSwitch = true;
+    //              std::cout << "Safety Activated ! To Position Hold" << std::endl;
+    //          }
+    //      }
+    //  }
 
-    //RF_CF_FT.setZ
+    // RF_CF_FT.setZ
 
-    //dc_.tc_shm_->pos
+    // dc_.tc_shm_->pos
 }
 
 void StateManager::GetSensorData()
@@ -890,9 +889,9 @@ void StateManager::GetSensorData()
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
 
     RF_CF_FT = rotrf * adt * RF_FT + adt2 * Wrench_foot_plate;
-    //rd_gl_.ee_[1].contact_force_ft = RF_CF_FT;
+    // rd_gl_.ee_[1].contact_force_ft = RF_CF_FT;
 
-    //RF_CF_FT_local = rotrf.inverse() * RF_CF_FT;
+    // RF_CF_FT_local = rotrf.inverse() * RF_CF_FT;
 
     adt.setIdentity();
     adt.block(3, 0, 3, 3) = DyrosMath::skm(-(link_local_[Left_Foot].contact_point - link_local_[Left_Foot].sensor_point)) * Matrix3d::Identity();
@@ -911,9 +910,10 @@ void StateManager::GetSensorData()
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
 
     LF_CF_FT = rotrf * adt * LF_FT + adt2 * Wrench_foot_plate;
-    //dc.tocabi_.ee_[0].contact_force_ft = LF_CF_FT;
 
-    //LF_CF_FT_local = rotrf.inverse() * LF_CF_FT;
+    // dc.tocabi_.ee_[0].contact_force_ft = LF_CF_FT;
+
+    // LF_CF_FT_local = rotrf.inverse() * LF_CF_FT;
 }
 
 void StateManager::ConnectSim()
@@ -986,7 +986,7 @@ void StateManager::StoreState(RobotData &rd_dst)
         memcpy(&rd_dst.link_[i].v, &link_[i].v, sizeof(Vector3d));
         memcpy(&rd_dst.link_[i].w, &link_[i].w, sizeof(Vector3d));
 
-        //xpos xipos rotm v w
+        // xpos xipos rotm v w
     }
 
     memcpy(&rd_dst.A_, &A_, sizeof(MatrixVVd));
@@ -1030,15 +1030,15 @@ void StateManager::StoreState(RobotData &rd_dst)
 
 void StateManager::UpdateKinematics_local(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual_f, const Eigen::VectorXd &q_dot_virtual_f, const Eigen::VectorXd &q_ddot_virtual_f)
 {
-    //ROS_INFO_ONCE("CONTROLLER : MODEL : updatekinematics enter ");
+    // ROS_INFO_ONCE("CONTROLLER : MODEL : updatekinematics enter ");
     /* q_virtual description
-   * 0 ~ 2 : XYZ cartesian coordinates
-   * 3 ~ 5 : XYZ Quaternion
-   * 6 ~ MODEL_DOF + 5 : joint position
-   * model dof + 6 ( last component of q_virtual) : w of Quaternion
-   * */
+     * 0 ~ 2 : XYZ cartesian coordinates
+     * 3 ~ 5 : XYZ Quaternion
+     * 6 ~ MODEL_DOF + 5 : joint position
+     * model dof + 6 ( last component of q_virtual) : w of Quaternion
+     * */
 
-    //local kinematics update sequence
+    // local kinematics update sequence
 
     RigidBodyDynamics::UpdateKinematicsCustom(model_l, &q_virtual_f, &q_dot_virtual_f, &q_ddot_virtual_f);
 
@@ -1063,13 +1063,13 @@ void StateManager::UpdateKinematics_local(RigidBodyDynamics::Model &model_l, Lin
 
 void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual_f, const Eigen::VectorXd &q_dot_virtual_f, const Eigen::VectorXd &q_ddot_virtual_f)
 {
-    //ROS_INFO_ONCE("CONTROLLER : MODEL : updatekinematics enter ");
+    // ROS_INFO_ONCE("CONTROLLER : MODEL : updatekinematics enter ");
     /* q_virtual description
-   * 0 ~ 2 : XYZ cartesian coordinates
-   * 3 ~ 5 : XYZ Quaternion
-   * 6 ~ MODEL_DOF + 5 : joint position
-   * model dof + 6 ( last component of q_virtual) : w of Quaternion
-   * */
+     * 0 ~ 2 : XYZ cartesian coordinates
+     * 3 ~ 5 : XYZ Quaternion
+     * 6 ~ MODEL_DOF + 5 : joint position
+     * model dof + 6 ( last component of q_virtual) : w of Quaternion
+     * */
 
     // Update Kinematics : Total 127 us
 
@@ -1089,7 +1089,7 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
     // sector 2 end : 57 us
 
     // sector 3 start : mass matrix inverse
-    //A_inv_ = A_.inverse();
+    // A_inv_ = A_.inverse();
     A_inv_ = A_.llt().solve(Eigen::MatrixVVd::Identity());
     // sector 3 end : 39 us
 
@@ -1114,8 +1114,8 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
     link_p[COM_id].w = link_p[Pelvis].w;
     link_p[COM_id].rotm = link_p[Pelvis].rotm;
     link_p[COM_id].jac.setZero(6, MODEL_DOF_VIRTUAL);
-    //link_p[COM_id].jac.block(0, 0, 2, MODEL_DOF + 6) = jacobian_com.block(0, 0, 2, MODEL_DOF + 6) / com_.mass;
-    //link_p[COM_id].jac.block(2, 0, 4, MODEL_DOF + 6) = link_p[Pelvis].jac.block(2, 0, 4, MODEL_DOF + 6);
+    // link_p[COM_id].jac.block(0, 0, 2, MODEL_DOF + 6) = jacobian_com.block(0, 0, 2, MODEL_DOF + 6) / com_.mass;
+    // link_p[COM_id].jac.block(2, 0, 4, MODEL_DOF + 6) = link_p[Pelvis].jac.block(2, 0, 4, MODEL_DOF + 6);
     link_p[COM_id].jac.block(0, 0, 3, MODEL_DOF_VIRTUAL) = jacobian_com.block(0, 0, 3, MODEL_DOF_VIRTUAL);
     link_p[COM_id].jac.block(3, 0, 3, MODEL_DOF_VIRTUAL) = link_p[Pelvis].jac.block(3, 0, 3, MODEL_DOF_VIRTUAL);
 
@@ -1145,8 +1145,8 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
 
     link_[COM_id].inertia = i_com_;
 
-    //link_p[COM_id].xpos(2) = link_p[Pelvis].xpos(2);
-    // sector 4 end : 3 us
+    // link_p[COM_id].xpos(2) = link_p[Pelvis].xpos(2);
+    //  sector 4 end : 3 us
 }
 
 void StateManager::UpdateCMM(RobotData &robotd_, LinkData *link_p)
@@ -1324,9 +1324,9 @@ void StateManager::StateEstimate()
         RF_contact_pos_holder = RF_contact_pos_holder + RF_P_cpm;
         LF_contact_pos_holder = LF_contact_pos_holder + LF_P_cpm;
 
-        //Vector3d es_zmp;
+        // Vector3d es_zmp;
 
-        //es_zmp = dc.tocabi_.com_.pos - dc.tocabi_.com_.pos(2)/9.81*
+        // es_zmp = dc.tocabi_.com_.pos - dc.tocabi_.com_.pos(2)/9.81*
 
         contact_right = local_RF_Contact;
         contact_left = local_LF_contact;
@@ -1335,7 +1335,7 @@ void StateManager::StateEstimate()
         lf_cp_m = LF_fixed_contact_pos - LF_contact_pos_holder;
 
         double dr, dl;
-        //dr =
+        // dr =
 
         dr = DyrosMath::minmax_cut(RF_CF_FT(2) / (-total_mass_ * GRAVITY), 0.0, 1.0); // * dc.tocabi_.ee_[1].contact_accuracy;
         dl = DyrosMath::minmax_cut(LF_CF_FT(2) / (-total_mass_ * GRAVITY), 0.0, 1.0); // * dc.tocabi_.ee_[0].contact_accuracy;
@@ -1393,7 +1393,7 @@ void StateManager::StateEstimate()
         if (contact_right && contact_left)
         {
             mod_base_pos = rf_cp_m * rf_s_ratio + lf_cp_m * lf_s_ratio;
-            //mod_base_pos(2) = mod_base_pos(2) + ((link_[Right_Foot].xpos(2) + link_[Right_Foot].contact_point(2)) * rf_s_ratio/ (rf_s_ratio + lf_s_ratio) + (link_[Left_Foot].xpos(2) + link_[Left_Foot].contact_point(2)) * lf_s_ratio / (rf_s_ratio + lf_s_ratio));
+            // mod_base_pos(2) = mod_base_pos(2) + ((link_[Right_Foot].xpos(2) + link_[Right_Foot].contact_point(2)) * rf_s_ratio/ (rf_s_ratio + lf_s_ratio) + (link_[Left_Foot].xpos(2) + link_[Left_Foot].contact_point(2)) * lf_s_ratio / (rf_s_ratio + lf_s_ratio));
             mod_base_vel = -RF_fixed_contact_vel.segment(3, 3) * rf_s_ratio - LF_fixed_contact_vel.segment(3, 3) * lf_s_ratio;
         }
         else if (contact_right && (!contact_left))
@@ -1417,8 +1417,8 @@ void StateManager::StateEstimate()
         //     mod_base_vel = -RF_fixed_contact_vel.segment(3, 3);
         // }
 
-        //Pelvis Velocity Complementary filter
-        //v = alpha *(pelv_imu_acc * dt + v_before) + (1-alpha)*mb_v
+        // Pelvis Velocity Complementary filter
+        // v = alpha *(pelv_imu_acc * dt + v_before) + (1-alpha)*mb_v
 
         Vector3d imu_acc_dat;
         imu_acc_dat = link_local_[Pelvis].rotm * rd_.imu_lin_acc;
@@ -1434,7 +1434,7 @@ void StateManager::StateEstimate()
         q_virtual_ = q_virtual_local_;
         q_dot_virtual_ = q_dot_virtual_local_;
 
-        //std::cout<<"pelv_v es : "<<pelv_v_before.transpose()<<" imu acc : "<<imu_acc_dat.transpose()<<"  imu init : "<<imu_init.transpose() <<" imu lin acc : "<<imu_lin_acc.transpose() <<" mod base : "<<mod_base_vel.transpose()<<std::endl;
+        // std::cout<<"pelv_v es : "<<pelv_v_before.transpose()<<" imu acc : "<<imu_acc_dat.transpose()<<"  imu init : "<<imu_init.transpose() <<" imu lin acc : "<<imu_lin_acc.transpose() <<" mod base : "<<mod_base_vel.transpose()<<std::endl;
 
         pelv_x = alpha * (pelv_v * dt + imu_acc_dat * dt * dt * 0.5 + pelv_x_before) + (1 - alpha) * (-mod_base_pos);
         pelv_x_before = pelv_x;
@@ -1445,7 +1445,7 @@ void StateManager::StateEstimate()
         for (int i = 0; i < 3; i++)
         {
             q_virtual_(i) = -mod_base_pos(i);
-            //q_dot_virtual_(i) = pelv_v(i);
+            // q_dot_virtual_(i) = pelv_v(i);
 
             q_dot_virtual_(i) = mod_base_vel(i);
 
@@ -1460,9 +1460,9 @@ void StateManager::StateEstimate()
         // fr_msg.data[10] = imu_acc_dat[1];
         // fr_msg.data[11] = imu_acc_dat[2];
 
-        //acceleration calculation!
-        //q_ddot_virtual_ = (q_dot_virtual_ - q_dot_virtual_before) / ((double)dc.ctime / 1000000.0);
-        //q_dot_virtual_before = q_dot_virtual_;
+        // acceleration calculation!
+        // q_ddot_virtual_ = (q_dot_virtual_ - q_dot_virtual_before) / ((double)dc.ctime / 1000000.0);
+        // q_dot_virtual_before = q_dot_virtual_;
 
         static Vector3d pelv_pos_before;
 
@@ -1522,7 +1522,7 @@ void StateManager::StateEstimate()
         rf3 = LF_fixed_contact_pos;
         rf4 = LF_contact_pos_holder;
         pelv_pos_before = currentPelvPos;
-        //quat_before = imu_quat;
+        // quat_before = imu_quat;
         rfzb = RF_CF_FT(2) / (-total_mass_ * GRAVITY);
         lfzb = LF_CF_FT(2) / (-total_mass_ * GRAVITY);
     }
@@ -1536,7 +1536,7 @@ void StateManager::StateEstimate()
 
 void StateManager::CalcNonlinear()
 {
-    //RigidBodyDynamics::NonlinearEffects(model_local_,)
+    // RigidBodyDynamics::NonlinearEffects(model_local_,)
 }
 
 void StateManager::PublishData()
@@ -1594,9 +1594,9 @@ void StateManager::PublishData()
 
     DyrosMath::rot2Euler_tf2(link_[Pelvis].rotm, tr_, tp_, ty_);
 
-    point_pub_msg_.polygon.points[4].x = tr_; //rpy
-    point_pub_msg_.polygon.points[4].y = tp_; //rpy
-    point_pub_msg_.polygon.points[4].z = ty_; //rpy
+    point_pub_msg_.polygon.points[4].x = tr_; // rpy
+    point_pub_msg_.polygon.points[4].y = tp_; // rpy
+    point_pub_msg_.polygon.points[4].z = ty_; // rpy
 
     point_pub_msg_.polygon.points[5].x = link_[Right_Hand].xpos(0);
     point_pub_msg_.polygon.points[5].y = link_[Right_Hand].xpos(1);
@@ -1625,7 +1625,7 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[10].y = tp_;
     point_pub_msg_.polygon.points[10].z = ty_;
 
-    //geometry_msgs::Point32 p_vel, p_vel_virtual_;
+    // geometry_msgs::Point32 p_vel, p_vel_virtual_;
 
     point_pub_msg_.polygon.points[11].x = link_[Pelvis].v(0);
     point_pub_msg_.polygon.points[11].y = link_[Pelvis].v(1);
@@ -1656,7 +1656,7 @@ void StateManager::PublishData()
 
     head_pose_pub_.publish(head_pose_msg_);
 
-    //head_pose_msg_.orientation.
+    // head_pose_msg_.orientation.
 
     //
 
@@ -1748,13 +1748,13 @@ void StateManager::PublishData()
         // syspub_msg.data[4] = dc_.tc_shm_->
     }
     syspub_msg.data[4] = rd_gl_.semode;
-    if (rd_gl_.tc_run) //tc on warn error off
+    if (rd_gl_.tc_run) // tc on warn error off
     {
-        syspub_msg.data[5] = 0; //on
+        syspub_msg.data[5] = 0; // on
     }
     else
     {
-        syspub_msg.data[5] = 3; //off
+        syspub_msg.data[5] = 3; // off
     }
 
     gui_state_pub_.publish(syspub_msg);
@@ -1784,7 +1784,7 @@ void StateManager::PublishData()
 
     com_status_pub_.publish(com_status_msg_);
     //
-    //memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
+    // memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
 }
 
 void StateManager::SimCommandCallback(const std_msgs::StringConstPtr &msg)
@@ -1795,7 +1795,7 @@ void StateManager::SimCommandCallback(const std_msgs::StringConstPtr &msg)
 
     if (buf == "RESET")
     {
-        //parameterInitialize();
+        // parameterInitialize();
         sim_time_before_ = 0.0;
 
         mujoco_ready = true;
@@ -1813,7 +1813,7 @@ void StateManager::SimCommandCallback(const std_msgs::StringConstPtr &msg)
         mujoco_sim_command_pub_.publish(rst_msg_);
         sim_time_ = 0.0;
         control_time_ = 0.0;
-        //dc.semode_init = true;
+        // dc.semode_init = true;
         mujoco_reset = true;
     }
 
@@ -1826,7 +1826,7 @@ void StateManager::SimCommandCallback(const std_msgs::StringConstPtr &msg)
 void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
 {
     // std::cout << "Received msg from GUI : " << msg->data << std::endl;
-    //Receiving Command from GUI!
+    // Receiving Command from GUI!
 
     if (msg->data == "torqueon")
     {
@@ -1853,7 +1853,7 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "E2")
     {
         std::cout << "Emergency Damping mode Active ! " << std::endl;
-        //dc_.E2Switch = true;
+        // dc_.E2Switch = true;
         std::cout << "E2 Not supported..." << std::endl;
     }
     else if (msg->data == "gravity")
@@ -1964,7 +1964,7 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
         dc_.tc_shm_->force_load_saved_signal = true;
     }
 
-    //Controlling GUI
+    // Controlling GUI
 }
 
 void StateManager::StatusPub(const char *str, ...)
@@ -1983,7 +1983,7 @@ void StateManager::StatusPub(const char *str, ...)
 
     status_pub_.publish(str_msg_);
 
-    //std::cout<<str_;
+    // std::cout<<str_;
 
     va_end(lst);
 }
