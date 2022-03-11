@@ -34,7 +34,7 @@ catkin_package(
    INCLUDE_DIRS include
    LIBRARIES tocabi_controller
    CATKIN_DEPENDS roscpp roslib tocabi_lib tocabi_msgs tocabi_cc tocabi_avatar
-   #DEPENDS pthread
+#  DEPENDS system_lib
 )
 
 
@@ -70,6 +70,8 @@ ENDIF()
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${tocabi_cc_INCLUDE_DIRS}
+  ${tocabi_avatar_INCLUDE_DIRS}
 )
 
 add_library(${PROJECT_NAME}_lib
@@ -77,7 +79,7 @@ add_library(${PROJECT_NAME}_lib
   src/tocabi_controller.cpp
 )
 
-# link_directories(${CATKIN_DEVEL_PREFIX}/lib})
+link_directories(${CATKIN_DEVEL_PREFIX}/lib})
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -94,6 +96,8 @@ add_executable(shm_reset src/shm_manager.cpp)
 
 target_link_libraries(${PROJECT_NAME}_lib
   ${catkin_LIBRARIES}
+  ${tocabi_cc_LIBRARIES}
+  ${tocabi_avatar_LIBRARIES}
   -lpthread
 )
 
