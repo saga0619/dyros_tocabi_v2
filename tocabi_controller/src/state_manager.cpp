@@ -81,7 +81,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
 
     com_status_msg_.data.resize(17);
 
-    point_pub_msg_.polygon.points.resize(13);
+    point_pub_msg_.polygon.points.resize(15);
     syspub_msg.data.resize(8);
     elmo_status_msg_.data.resize(MODEL_DOF * 3);
 }
@@ -1014,6 +1014,9 @@ void StateManager::StoreState(RobotData &rd_dst)
 
     rd_dst.LF_FT = LF_FT;
 
+    rd_dst.LF_CF_FT = LF_CF_FT;
+    rd_dst.RF_CF_FT = RF_CF_FT;
+
     rd_dst.RF_FT = RF_FT;
 
     dc_.triggerThread1 = true;
@@ -1597,8 +1600,8 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[6].y = link_[Left_Hand].xpos(1);
     point_pub_msg_.polygon.points[6].z = link_[Left_Hand].xpos(2);
 
-    point_pub_msg_.polygon.points[7].x = 0.0; //zmp
-    point_pub_msg_.polygon.points[7].y = 0.0;
+    point_pub_msg_.polygon.points[7].x = rd_gl_.zmp_global_(0);
+    point_pub_msg_.polygon.points[7].y = rd_gl_.zmp_global_(1);
     point_pub_msg_.polygon.points[7].z = 0.0;
 
     DyrosMath::rot2Euler_tf2(link_[Left_Foot].rotm, tr_, tp_, ty_);
@@ -1625,6 +1628,16 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[12].x = dc_.tc_shm_->vel_virtual[0];
     point_pub_msg_.polygon.points[12].y = dc_.tc_shm_->vel_virtual[1];
     point_pub_msg_.polygon.points[12].z = dc_.tc_shm_->vel_virtual[2];
+
+    point_pub_msg_.polygon.points[13].x = rd_gl_.ee_[0].xpos_contact(0) - LF_CF_FT(4) / LF_CF_FT(2);
+    point_pub_msg_.polygon.points[13].y = rd_gl_.ee_[0].xpos_contact(1) + LF_CF_FT(3) / LF_CF_FT(2);
+    point_pub_msg_.polygon.points[13].z = 0.0;
+
+    // std::cout << LF_CF_FT.transpose() << rd_gl_.ee_[0].xpos_contact.transpose() << std::endl;
+
+    point_pub_msg_.polygon.points[14].x = rd_gl_.ee_[1].xpos_contact(0) - RF_CF_FT(4) / RF_CF_FT(2);
+    point_pub_msg_.polygon.points[14].y = rd_gl_.ee_[1].xpos_contact(1) + RF_CF_FT(3) / RF_CF_FT(2);
+    point_pub_msg_.polygon.points[14].z = 0.0;
 
     point_pub_.publish(point_pub_msg_);
 

@@ -308,6 +308,9 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             auto d1 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - t1).count();            // 150us without march=native
             auto d2 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - rd_.tp_state_).count(); // 150us without march=native
 
+            // zmp calculation
+            rd_.zmp_global_ = WBC::GetZMPpos_fromFT(rd_);
+
             static int d1_over_cnt = 0;
 
             if (d1 > 500)
@@ -399,7 +402,7 @@ void *TocabiController::Thread2()
                 }
                 /////////////////////////////////////////////
                 std::this_thread::sleep_for(std::chrono::microseconds(10));
-
+                
             }
             else
             {
