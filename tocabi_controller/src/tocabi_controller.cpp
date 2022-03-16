@@ -142,7 +142,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
                     }
 
-                    WBC::SetContact(rd_, 1, 1);
+                    WBC::SetContact(rd_, rd_.tc_.left_foot, rd_.tc_.right_foot, rd_.tc_.left_hand, rd_.tc_.right_hand);
 
                     rd_.J_task.setZero(9, MODEL_DOF_VIRTUAL);
                     rd_.J_task.block(0, 0, 6, MODEL_DOF_VIRTUAL) = rd_.link_[COM_id].Jac();
@@ -229,11 +229,11 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                 {
                     if (rd_.tc_init)
                     {
-                        std::cout << "mode 1 init" << std::endl;
+                        std::cout << "mode 2 init : contact " << std::endl;
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
                     }
 
-                    WBC::SetContact(rd_, 1, 1);
+                    WBC::SetContact(rd_, rd_.tc_.left_foot, rd_.tc_.right_foot, rd_.tc_.left_hand, rd_.tc_.right_hand);
 
                     rd_.J_task.setZero(6, MODEL_DOF_VIRTUAL);
                     rd_.J_task.block(0, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[COM_id].Jac().block(0, 0, 3, MODEL_DOF_VIRTUAL);
@@ -402,7 +402,6 @@ void *TocabiController::Thread2()
                 }
                 /////////////////////////////////////////////
                 std::this_thread::sleep_for(std::chrono::microseconds(10));
-                
             }
             else
             {
