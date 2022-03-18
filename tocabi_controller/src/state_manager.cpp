@@ -166,7 +166,7 @@ void *StateManager::StateThread()
         UpdateKinematics_local(model_local_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
 
         GetSensorData();
-        
+
         auto d1 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t1).count();
 
         auto t2 = chrono::steady_clock::now();
@@ -889,7 +889,7 @@ void StateManager::GetSensorData()
     Wrench_foot_plate.setZero();
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
 
-    RF_CF_FT = rotrf * adt * RF_FT + adt2 * Wrench_foot_plate;
+    RF_CF_FT = rotrf * adt * RF_FT - adt2 * Wrench_foot_plate;
     // rd_gl_.ee_[1].contact_force_ft = RF_CF_FT;
 
     // RF_CF_FT_local = rotrf.inverse() * RF_CF_FT;
@@ -910,7 +910,7 @@ void StateManager::GetSensorData()
     Wrench_foot_plate.setZero();
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
 
-    LF_CF_FT = rotrf * adt * LF_FT + adt2 * Wrench_foot_plate;
+    LF_CF_FT = rotrf * adt * LF_FT - adt2 * Wrench_foot_plate;
 
     // dc.tocabi_.ee_[0].contact_force_ft = LF_CF_FT;
 
