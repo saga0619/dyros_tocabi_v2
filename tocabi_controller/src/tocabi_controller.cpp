@@ -311,6 +311,13 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             // zmp calculation
             rd_.zmp_global_ = WBC::GetZMPpos_fromFT(rd_);
 
+            // Eigen::VectorXd cf_from_torque;
+            // cf_from_torque.resize(rd_.contact_index * 6);
+            // cf_from_torque = WBC::getContactForce(rd_, rd_.torque_desired);
+            // std::cout << cf_from_torque.transpose() << std::endl;
+            // std::cout << "ZMP from cf : "<<WBC::GetZMPpos_from_ContactForce(rd_, cf_from_torque).transpose() <<"  zmp from ft : " <<rd_.zmp_global_.transpose()<<std::endl;
+            // std::cout << "lf zmp cf : "<< (rd_.ee_[0].zmp - rd_.ee_[0].xpos_contact).segment(0,2).transpose() << " direct calc from cf : "<< -cf_from_torque(4)/cf_from_torque(2) << " " <<cf_from_torque(3)/cf_from_torque(2) <<" lf zmp from ft : "<<- rd_.LF_CF_FT(4) / rd_.LF_CF_FT(2) << rd_.LF_CF_FT(3) / rd_.LF_CF_FT(2)<<std::endl;
+
             static int d1_over_cnt = 0;
 
             if (d1 > 500)

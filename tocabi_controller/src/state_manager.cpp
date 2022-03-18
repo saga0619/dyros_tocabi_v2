@@ -156,7 +156,6 @@ void *StateManager::StateThread()
         rcv_tcnt = dc_.tc_shm_->statusCount;
 
         GetJointData(); // 0.246 us //w/o march native 0.226
-        GetSensorData();
 
         InitYaw();
 
@@ -166,6 +165,8 @@ void *StateManager::StateThread()
         // local kinematics update : 33.7 us // w/o march native 20 us
         UpdateKinematics_local(model_local_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
 
+        GetSensorData();
+        
         auto d1 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t1).count();
 
         auto t2 = chrono::steady_clock::now();
