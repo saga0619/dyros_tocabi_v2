@@ -512,8 +512,9 @@ void StateManager::SendCommand()
 
     rcv_c_count_before = rcv_c_count;
 
-    const double maxTorque = 1500.0;
-    const double rTime1 = 2.0;
+    const double maxTorque = _MAXTORQUE; //SYSTEM MAX TORQUE
+
+    const double rTime1 = 4.0;
     const double rTime2 = 1.0;
 
     const double rat1 = 0.3;

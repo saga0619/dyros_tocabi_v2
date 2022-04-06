@@ -92,6 +92,9 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
             static VectorQd zero_m = VectorQd::Zero();
 
+            WBC::ContactCalcDefault(rd_);
+
+
             if (rd_.positionControlSwitch)
             {
                 rd_.positionControlSwitch = false;
@@ -312,7 +315,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
             static std::chrono::steady_clock::time_point t_c_ = std::chrono::steady_clock::now();
 
-            //Available at simMode for now ...
+            // Available at simMode for now ...
             if (dc_.simMode)
                 WBC::CheckTorqueLimit(rd_, rd_.torque_desired);
 
