@@ -3,7 +3,7 @@
     <size njmax="8000" nconmax="4000"/>
     <compiler angle="radian" meshdir="../meshes/" balanceinertia="true"/>
     <default>
-        <motor ctrllimited="true" ctrlrange="-300 300"/>
+        <motor ctrllimited="true"/>
         <default class="viz">
             <geom contype="0" conaffinity="0" group="1" type="mesh" rgba=".6 .6 .7 1" />
         </default>

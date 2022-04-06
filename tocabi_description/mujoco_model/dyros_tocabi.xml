@@ -322,44 +322,44 @@
 
     </worldbody>
     <actuator>
-        <motor name="L_HipYaw_Motor" joint="L_HipYaw_Joint"/>
-        <motor name="L_HipRoll_Motor" joint="L_HipRoll_Joint"/>
-        <motor name="L_HipPitch_Motor" joint="L_HipPitch_Joint"/>
-        <motor name="L_Knee_Motor" joint="L_Knee_Joint"/>
-        <motor name="L_AnklePitch_Motor" joint="L_AnklePitch_Joint"/>
-        <motor name="L_AnkleRoll_Motor" joint="L_AnkleRoll_Joint"/>
+        <motor name="L_HipYaw_Motor" joint="L_HipYaw_Joint" ctrlrange="-333 333"/>
+        <motor name="L_HipRoll_Motor" joint="L_HipRoll_Joint" ctrlrange="-232 232"/>
+        <motor name="L_HipPitch_Motor" joint="L_HipPitch_Joint" ctrlrange="-263 263"/>
+        <motor name="L_Knee_Motor" joint="L_Knee_Joint" ctrlrange="-289 289"/>/>
+        <motor name="L_AnklePitch_Motor" joint="L_AnklePitch_Joint" ctrlrange="-222 222"/>
+        <motor name="L_AnkleRoll_Motor" joint="L_AnkleRoll_Joint" ctrlrange="-166 166"/>
 
-        <motor name="R_HipYaw_Motor" joint="R_HipYaw_Joint"/>
-        <motor name="R_HipRoll_Motor" joint="R_HipRoll_Joint"/>
-        <motor name="R_HipPitch_Motor" joint="R_HipPitch_Joint"/>
-        <motor name="R_Knee_Motor" joint="R_Knee_Joint"/>
-        <motor name="R_AnklePitch_Motor" joint="R_AnklePitch_Joint"/>
-        <motor name="R_AnkleRoll_Motor" joint="R_AnkleRoll_Joint"/>
+        <motor name="R_HipYaw_Motor" joint="R_HipYaw_Joint" ctrlrange="-333 333"/>
+        <motor name="R_HipRoll_Motor" joint="R_HipRoll_Joint" ctrlrange="-232 232"/>
+        <motor name="R_HipPitch_Motor" joint="R_HipPitch_Joint" ctrlrange="-263 263"/>
+        <motor name="R_Knee_Motor" joint="R_Knee_Joint" ctrlrange="-289 289"/>
+        <motor name="R_AnklePitch_Motor" joint="R_AnklePitch_Joint" ctrlrange="-222 222"/>
+        <motor name="R_AnkleRoll_Motor" joint="R_AnkleRoll_Joint" ctrlrange="-166 166"/>
 
-        <motor name="Waist1_Motor" joint="Waist1_Joint"/>
-        <motor name="Waist2_Motor" joint="Waist2_Joint"/>
-        <motor name="Upperbody_Motor" joint="Upperbody_Joint"/>
+        <motor name="Waist1_Motor" joint="Waist1_Joint" ctrlrange="-303 303"/>
+        <motor name="Waist2_Motor" joint="Waist2_Joint" ctrlrange="-303 303"/>
+        <motor name="Upperbody_Motor" joint="Upperbody_Joint" ctrlrange="-303 303"/>
 
-        <motor name="L_Shoulder1_Motor" joint="L_Shoulder1_Joint"/>
-        <motor name="L_Shoulder2_Motor" joint="L_Shoulder2_Joint"/>
-        <motor name="L_Shoulder3_Motor" joint="L_Shoulder3_Joint"/>
-        <motor name="L_Armlink_Motor" joint="L_Armlink_Joint"/>
-        <motor name="L_Elbow_Motor" joint="L_Elbow_Joint"/>
-        <motor name="L_Forearm_Motor" joint="L_Forearm_Joint"/>
-        <motor name="L_Wrist1_Motor" joint="L_Wrist1_Joint"/>
-        <motor name="L_Wrist2_Motor" joint="L_Wrist2_Joint"/>
+        <motor name="L_Shoulder1_Motor" joint="L_Shoulder1_Joint" ctrlrange="-64 64"/>
+        <motor name="L_Shoulder2_Motor" joint="L_Shoulder2_Joint" ctrlrange="-64 64"/>
+        <motor name="L_Shoulder3_Motor" joint="L_Shoulder3_Joint" ctrlrange="-64 64"/>
+        <motor name="L_Armlink_Motor" joint="L_Armlink_Joint" ctrlrange="-64 64"/>
+        <motor name="L_Elbow_Motor" joint="L_Elbow_Joint" ctrlrange="-23 23"/>
+        <motor name="L_Forearm_Motor" joint="L_Forearm_Joint" ctrlrange="-23 23"/>
+        <motor name="L_Wrist1_Motor" joint="L_Wrist1_Joint" ctrlrange="-10 10"/>
+        <motor name="L_Wrist2_Motor" joint="L_Wrist2_Joint" ctrlrange="-10 10"/>
 
-        <motor name="Neck_Motor" joint="Neck_Joint"/>
-        <motor name="Head_Motor" joint="Head_Joint"/>
+        <motor name="Neck_Motor" joint="Neck_Joint" ctrlrange="-10 10"/>
+        <motor name="Head_Motor" joint="Head_Joint" ctrlrange="-10 10"/>
 
-        <motor name="R_Shoulder1_Motor" joint="R_Shoulder1_Joint"/>
-        <motor name="R_Shoulder2_Motor" joint="R_Shoulder2_Joint"/>
-        <motor name="R_Shoulder3_Motor" joint="R_Shoulder3_Joint"/>
-        <motor name="R_Armlink_Motor" joint="R_Armlink_Joint"/>
-        <motor name="R_Elbow_Motor" joint="R_Elbow_Joint"/>
-        <motor name="R_Forearm_Motor" joint="R_Forearm_Joint"/>
-        <motor name="R_Wrist1_Motor" joint="R_Wrist1_Joint"/>
-        <motor name="R_Wrist2_Motor" joint="R_Wrist2_Joint"/>
+        <motor name="R_Shoulder1_Motor" joint="R_Shoulder1_Joint" ctrlrange="-64 64"/>
+        <motor name="R_Shoulder2_Motor" joint="R_Shoulder2_Joint" ctrlrange="-64 64"/>
+        <motor name="R_Shoulder3_Motor" joint="R_Shoulder3_Joint" ctrlrange="-64 64"/>
+        <motor name="R_Armlink_Motor" joint="R_Armlink_Joint" ctrlrange="-64 64"/>
+        <motor name="R_Elbow_Motor" joint="R_Elbow_Joint" ctrlrange="-23 23"/>
+        <motor name="R_Forearm_Motor" joint="R_Forearm_Joint" ctrlrange="-23 23"/>
+        <motor name="R_Wrist1_Motor" joint="R_Wrist1_Joint" ctrlrange="-10 10"/>
+        <motor name="R_Wrist2_Motor" joint="R_Wrist2_Joint" ctrlrange="-10 10"/>
 
     </actuator>
 
