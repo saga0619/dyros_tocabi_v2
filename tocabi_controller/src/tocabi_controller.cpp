@@ -92,9 +92,9 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
             static VectorQd zero_m = VectorQd::Zero();
 
-            if (dc_.positionControlSwitch)
+            if (rd_.positionControlSwitch)
             {
-                dc_.positionControlSwitch = false;
+                rd_.positionControlSwitch = false;
 
                 rd_.q_desired = rd_.q_;
                 rd_.positionHoldSwitch = true;
@@ -271,6 +271,17 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                 if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
                 {
                     RequestThread2();
+
+                    static int thread3_count = 0;
+
+                    thread3_count++;
+                    if (thread3_count == 50)
+                    {
+                        thread3_count = 0;
+
+                        RequestThread3();
+                    }
+
                     ac_.computeSlow();
 
                     // If necessary, use
@@ -301,6 +312,10 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
             static std::chrono::steady_clock::time_point t_c_ = std::chrono::steady_clock::now();
 
+            //Available at simMode for now ...
+            if (dc_.simMode)
+                WBC::CheckTorqueLimit(rd_, rd_.torque_desired);
+
             SendCommand(rd_.torque_desired);
 
             auto t_end = std::chrono::steady_clock::now();
@@ -315,6 +330,8 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             // cf_from_torque.resize(rd_.contact_index * 6);
             // cf_from_torque = WBC::getContactForce(rd_, rd_.torque_desired);
             // std::cout << cf_from_torque.transpose() << std::endl;
+
+            // std::cout << rd_.LF_CF_FT.transpose() << rd_.RF_CF_FT.transpose() << std::endl;
             // std::cout << "ZMP from cf : "<<WBC::GetZMPpos_from_ContactForce(rd_, cf_from_torque).transpose() <<"  zmp from ft : " <<rd_.zmp_global_.transpose()<<std::endl;
             // std::cout << "lf zmp cf : "<< (rd_.ee_[0].zmp - rd_.ee_[0].xpos_contact).segment(0,2).transpose() << " direct calc from cf : "<< -cf_from_torque(4)/cf_from_torque(2) << " " <<cf_from_torque(3)/cf_from_torque(2) <<" lf zmp from ft : "<<- rd_.LF_CF_FT(4) / rd_.LF_CF_FT(2) << rd_.LF_CF_FT(3) / rd_.LF_CF_FT(2)<<std::endl;
 

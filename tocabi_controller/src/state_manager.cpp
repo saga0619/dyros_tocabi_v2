@@ -81,7 +81,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
 
     com_status_msg_.data.resize(17);
 
-    point_pub_msg_.polygon.points.resize(15);
+    point_pub_msg_.polygon.points.resize(19);
     syspub_msg.data.resize(8);
     elmo_status_msg_.data.resize(MODEL_DOF * 3);
 }
@@ -523,7 +523,7 @@ void StateManager::SendCommand()
 
     if (dc_.torqueOnSwitch)
     {
-        dc_.positionControlSwitch = true;
+        dc_.rd_.positionControlSwitch = true;
         dc_.torqueOnSwitch = false;
 
         if (dc_.torqueOn)
@@ -1646,6 +1646,28 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[14].y = rd_gl_.ee_[1].xpos_contact(1) + RF_CF_FT(3) / RF_CF_FT(2);
     point_pub_msg_.polygon.points[14].z = 0.0;
 
+
+
+    point_pub_msg_.polygon.points[15].x = LF_CF_FT(0);
+    point_pub_msg_.polygon.points[15].y = LF_CF_FT(1);
+    point_pub_msg_.polygon.points[15].z = LF_CF_FT(2);
+
+    // std::cout << LF_CF_FT.transpose() << rd_gl_.ee_[0].xpos_contact.transpose() << std::endl;
+
+    point_pub_msg_.polygon.points[16].x = LF_CF_FT(3);
+    point_pub_msg_.polygon.points[16].y = LF_CF_FT(4);
+    point_pub_msg_.polygon.points[16].z = LF_CF_FT(5);
+
+    point_pub_msg_.polygon.points[17].x = RF_CF_FT(0);
+    point_pub_msg_.polygon.points[17].y = RF_CF_FT(1);
+    point_pub_msg_.polygon.points[17].z = RF_CF_FT(2);
+
+    // std::cout << LF_CF_FT.transpose() << rd_gl_.ee_[0].xpos_contact.transpose() << std::endl;
+
+    point_pub_msg_.polygon.points[18].x = RF_CF_FT(3);
+    point_pub_msg_.polygon.points[18].y = RF_CF_FT(4);
+    point_pub_msg_.polygon.points[18].z = RF_CF_FT(5);
+
     point_pub_.publish(point_pub_msg_);
 
     Eigen::Quaterniond q_head_(DyrosMath::rotateWithZ(-rd_.yaw) * link_[Head].rotm);
@@ -1958,7 +1980,7 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "positioncontrol")
     {
         StatusPub("%f Position Control Activate", control_time_);
-        dc_.positionControlSwitch = true;
+        dc_.rd_.positionControlSwitch = true;
     }
     else if (msg->data == "forceload")
     {
