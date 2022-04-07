@@ -325,7 +325,7 @@
         <motor name="L_HipYaw_Motor" joint="L_HipYaw_Joint" ctrlrange="-333 333"/>
         <motor name="L_HipRoll_Motor" joint="L_HipRoll_Joint" ctrlrange="-232 232"/>
         <motor name="L_HipPitch_Motor" joint="L_HipPitch_Joint" ctrlrange="-263 263"/>
-        <motor name="L_Knee_Motor" joint="L_Knee_Joint" ctrlrange="-289 289"/>/>
+        <motor name="L_Knee_Motor" joint="L_Knee_Joint" ctrlrange="-289 289"/>
         <motor name="L_AnklePitch_Motor" joint="L_AnklePitch_Joint" ctrlrange="-222 222"/>
         <motor name="L_AnkleRoll_Motor" joint="L_AnkleRoll_Joint" ctrlrange="-166 166"/>
 
