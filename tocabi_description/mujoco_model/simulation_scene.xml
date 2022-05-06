@@ -40,7 +40,7 @@
             <joint damping="0.0029" frictionloss="1.5"/>
         </default>  <!-- rated torque = 5 Nm -->
     </default>
-    </default>
+
 
     <visual>
         <quality shadowsize="2048" offsamples="16"/>
