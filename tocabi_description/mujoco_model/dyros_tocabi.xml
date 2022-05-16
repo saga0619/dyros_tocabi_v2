@@ -33,7 +33,7 @@
         <mesh name="L_forearm" file="L_forearm.STL" />
         <mesh name="L_wrist1" file="L_wrist1.STL" />
         <mesh name="neck" file="neck.STL" />
-        <mesh name="head" file="head.STL" />
+        <mesh name="head" file="head.STL" scale="0.001 0.001 0.001"/>
         <mesh name="hand" file="wrist2joint.STL" scale="0.001 0.001 0.001"/>
         <mesh name="Foot_Link" file="Foot_Link.STL"/>
 
@@ -255,9 +255,9 @@
                             <joint name="Neck_Joint" pos="0 0 0" axis="0 0 1" limited="true" range="-1.54 1.54" class="csf_11_100_2xh_f"/>
                             <geom class="viz" rgba="0.20313 0.20313 0.20313 1" mesh="neck" />
                             <body name="Head_Link" pos="0 0 0.0275">
-                                <inertial pos="-0.0036 0 0.1289" mass="0.006332" fullinertia="0.020045929 0.021593879 0.014854138 -0.000020568 -0.001338538 0.000156360" />
+                                <inertial pos="0.030415 0.433161 0.234057" mass="1.49189" fullinertia="0.10239995 0.12829131 0.21820021 0.05321375 0.01279903 -0.00491974" />
                                 <joint name="Head_Joint" pos="0 0 0" axis="0 1 0" limited="true" range="-1.54 1.54" class="csf_11_100_2xh_f"/>
-                                <geom class="viz" rgba="0.85938 0.07813 0.23438 1" mesh="head" />
+                                <geom class="viz" rgba="0.85938 0.07813 0.23438 1" pos="0.02 0 -0.6" mesh="head" />
                                 <geom class="cls" size="0.08 0.06 0.086" pos="0.02 0 0.14" type="box" />
                             </body>
                         </body>
