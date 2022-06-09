@@ -62,6 +62,32 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
     EnableThread2(true);  // Set true for Thread2
     EnableThread3(false); // True for thread3 ...
 
+    if (dc_.simMode)
+    {
+        for (int i = 0; i < LINK_NUMBER; i++)
+        {
+            rd_.link_[i].pos_p_gain << 400, 400, 400;
+            rd_.link_[i].pos_d_gain << 40, 40, 40;
+            rd_.link_[i].pos_a_gain << 1, 1, 1;
+
+            rd_.link_[i].rot_p_gain << 400, 400, 400;
+            rd_.link_[i].rot_d_gain << 40, 40, 40;
+            rd_.link_[i].rot_a_gain << 1, 1, 1;
+        }
+    }
+    else{
+        for (int i = 0; i < LINK_NUMBER; i++)
+        {
+            rd_.link_[i].pos_p_gain << 80, 80, 80;
+            rd_.link_[i].pos_d_gain << 10, 10, 10;
+            rd_.link_[i].pos_a_gain << 1, 1, 1;
+
+            rd_.link_[i].rot_p_gain << 200, 200, 200;
+            rd_.link_[i].rot_d_gain << 16, 16, 16;
+            rd_.link_[i].rot_a_gain << 1, 1, 1;
+        }
+    }
+
     // std::cout<<"21"<<std::endl;
 
     // std::cout << "entering thread1 loop" << endl;
@@ -94,7 +120,6 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             static VectorQd zero_m = VectorQd::Zero();
 
             WBC::ContactCalcDefault(rd_);
-
 
             if (rd_.positionControlSwitch)
             {
