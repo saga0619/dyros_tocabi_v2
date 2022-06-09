@@ -16,16 +16,31 @@
         <default class="FTsensor">
             <site type="cylinder" size="0.005 0.005" group="4" rgba=".1 .1 .9 1"/>
         </default>
-        <default class="Leg">
-            <joint damping="1" frictionloss="4"/>
-        </default>
-        <default class="Waist">
-            <joint damping="1" frictionloss="1"/>
-        </default>
-        <default class="Upper">
-            <joint damping="1" frictionloss="1"/>
-        </default>
+        <default class="shg20_100_2so">
+            <joint damping="0.0248" frictionloss="9.9"/>
+        </default>  <!-- rated torque = 52 Nm -->
+
+        <default class="shd20_100_2sh">
+            <joint damping="0.0161"  frictionloss="22.0"/>
+        </default>  <!-- rated torque = 28 Nm -->
+
+        <default class="shg25_100_2so">
+            <joint damping="0.0417"  frictionloss="14"/>
+        </default>  <!-- rated torque = 87 Nm -->
+
+        <default class="shg17_100_2so">
+            <joint damping="0.0148"  frictionloss="6.5"/>
+        </default>  <!-- rated torque = 31 Nm -->
+
+        <default class="shg14_100_2so">
+            <joint damping="0.0047"  frictionloss="3.7"/>
+        </default>  <!-- rated torque = 10 Nm -->
+
+        <default class="csf_11_100_2xh_f">
+            <joint damping="0.0029" frictionloss="1.5"/>
+        </default>  <!-- rated torque = 5 Nm -->
     </default>
+
 
     <visual>
         <quality shadowsize="2048" offsamples="16"/>
