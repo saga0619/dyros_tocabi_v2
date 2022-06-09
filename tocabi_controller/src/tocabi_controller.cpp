@@ -20,6 +20,7 @@ TocabiController::TocabiController(StateManager &stm_global) : dc_(stm_global.dc
     task_command_sub_ = nh_controller_.subscribe("/tocabi/taskcommand", 100, &TocabiController::TaskCommandCallback, this);
     task_command_que_sub_ = nh_controller_.subscribe("/tocabi/taskquecommand", 100, &TocabiController::TaskQueCommandCallback, this);
     position_command_sub_ = nh_controller_.subscribe("/tocabi/positioncommand", 100, &TocabiController::PositionCommandCallback, this);
+    task_gain_sub_ = nh_controller_.subscribe("/tocabi/taskgaincommand", 100, &TocabiController::TaskGainCommandCallback, this);
 
     ros::param::get("/tocabi_controller/Kp", rd_.pos_kp_v);
     ros::param::get("/tocabi_controller/Kv", rd_.pos_kv_v);
@@ -634,6 +635,54 @@ void TocabiController::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPt
     {
         std::cout << " CNTRL : State Estimate is not running. disable task command" << std::endl;
         rd_.tc_run = false;
+    }
+}
+
+void TocabiController::TaskGainCommandCallback(const tocabi_msgs::TaskGainCommandConstPtr &msg)
+{
+    int __id = 0;
+    bool okcheck = false;
+    if (msg->mode == 1)
+    {
+        __id = COM_id;
+    }
+    else if (msg->mode == 2)
+    {
+        __id = Pelvis;
+    }
+    else if (msg->mode == 3)
+    {
+        __id = Upper_Body;
+    }
+    else
+    {
+        okcheck = true;
+    }
+
+    if (okcheck)
+    {
+        std::cout << "Wrong Mode " << std::endl;
+    }
+    else
+    {
+        rd_.link_[__id].pos_p_gain[0] = msg->pgain[0];
+        rd_.link_[__id].pos_p_gain[1] = msg->pgain[1];
+        rd_.link_[__id].pos_p_gain[2] = msg->pgain[2];
+
+        rd_.link_[__id].pos_d_gain[0] = msg->dgain[0];
+        rd_.link_[__id].pos_d_gain[1] = msg->dgain[1];
+        rd_.link_[__id].pos_d_gain[2] = msg->dgain[2];
+
+        rd_.link_[__id].rot_p_gain[0] = msg->pgain[3];
+        rd_.link_[__id].rot_p_gain[1] = msg->pgain[4];
+        rd_.link_[__id].rot_p_gain[2] = msg->pgain[5];
+
+        rd_.link_[__id].rot_d_gain[0] = msg->dgain[3];
+        rd_.link_[__id].rot_d_gain[1] = msg->dgain[4];
+        rd_.link_[__id].rot_d_gain[2] = msg->dgain[5];
+
+        std::cout << "Gain Set " << rd_.link_[__id].id << "  POS p : " << rd_.link_[__id].pos_p_gain.transpose() << "   d :" << rd_.link_[__id].pos_d_gain.transpose() << std::endl;
+        std::cout << "Gain Set " << rd_.link_[__id].id << "  ROT p : " << rd_.link_[__id].rot_p_gain.transpose() << "   d :" << rd_.link_[__id].rot_d_gain.transpose() << std::endl;
     }
 }
 

@@ -4,6 +4,8 @@
 #include "tocabi_controller/state_manager.h"
 #include "wholebody_functions.h"
 
+#include "tocabi_msgs/TaskGainCommand.h"
+
 #ifdef COMPILE_TOCABI_CC
 #include "cc.h"
 #endif
@@ -69,9 +71,13 @@ public:
     tocabi_msgs::TaskCommand tc_msg_;
     ros::Subscriber position_command_sub_;
 
+    tocabi_msgs::TaskGainCommand tcg_msg_;
+    ros::Subscriber task_gain_sub_;
+
     void PositionCommandCallback(const tocabi_msgs::positionCommandConstPtr &msg);
     void TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg);
     void TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueConstPtr &msg);
+    void TaskGainCommandCallback(const tocabi_msgs::TaskGainCommandConstPtr &msg);
 
 
     //CustomController Linker
