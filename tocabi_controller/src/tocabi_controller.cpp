@@ -64,7 +64,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
     if (dc_.simMode)
     {
-        for (int i = 0; i < LINK_NUMBER; i++)
+        for (int i = 0; i < LINK_NUMBER + 1; i++)
         {
             rd_.link_[i].pos_p_gain << 400, 400, 400;
             rd_.link_[i].pos_d_gain << 40, 40, 40;
@@ -75,8 +75,9 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             rd_.link_[i].rot_a_gain << 1, 1, 1;
         }
     }
-    else{
-        for (int i = 0; i < LINK_NUMBER; i++)
+    else
+    {
+        for (int i = 0; i < LINK_NUMBER + 1; i++)
         {
             rd_.link_[i].pos_p_gain << 80, 80, 80;
             rd_.link_[i].pos_d_gain << 10, 10, 10;
@@ -86,6 +87,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             rd_.link_[i].rot_d_gain << 16, 16, 16;
             rd_.link_[i].rot_a_gain << 1, 1, 1;
         }
+        std::cout << "set with realrobot gain" << std::endl;
     }
 
     // std::cout<<"21"<<std::endl;
@@ -180,7 +182,9 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     rd_.link_[COM_id].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
                     rd_.link_[COM_id].x_desired(2) = rd_.tc_.height;
 
-                    rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll, rd_.tc_.pitch, rd_.tc_.yaw + rd_.link_[Pelvis].yaw_init);
+                    double ang2rad = 0.0174533;
+
+                    rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll * ang2rad, rd_.tc_.pitch * ang2rad, rd_.tc_.yaw * ang2rad + rd_.link_[Pelvis].yaw_init);
 
                     Eigen::VectorXd fstar;
                     rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
@@ -637,20 +641,20 @@ void TocabiController::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPt
     rd_.link_[Upper_Body].SetInitialWithPosition();
     rd_.link_[COM_id].SetInitialWithPosition();
 
-    double pos_p = 400.0;
-    double pos_d = 40.0;
-    double pos_a = 1;
-    double rot_p = 400.0;
-    double rot_d = 40.0;
-    double rot_a = 1.0;
+    // double pos_p = 400.0;
+    // double pos_d = 40.0;
+    // double pos_a = 1;
+    // double rot_p = 400.0;
+    // double rot_d = 40.0;
+    // double rot_a = 1.0;
 
-    rd_.link_[Right_Foot].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-    rd_.link_[Left_Foot].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-    rd_.link_[Right_Hand].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-    rd_.link_[Left_Hand].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-    rd_.link_[Pelvis].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-    rd_.link_[Upper_Body].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
-    rd_.link_[COM_id].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    // rd_.link_[Right_Foot].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    // rd_.link_[Left_Foot].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    // rd_.link_[Right_Hand].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    // rd_.link_[Left_Hand].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    // rd_.link_[Pelvis].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    // rd_.link_[Upper_Body].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
+    // rd_.link_[COM_id].SetGain(pos_p, pos_d, pos_a, rot_p, rot_d, rot_a);
 
     // std::cout << " pelv yaw init : " << rd_.link_[Pelvis].yaw_init << std::endl;
 
