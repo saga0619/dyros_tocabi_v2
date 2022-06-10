@@ -383,42 +383,42 @@ void *StateManager::LoggerThread()
             }
             log_count++;
 
-            torqueLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+            torqueLog  << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
-                torqueLog << std::setfill(' ') << std::setw(5) << (int)dc_.tc_shm_->elmo_torque[i] << " ";
+                torqueLog << (int)dc_.tc_shm_->elmo_torque[i] << " ";
             }
             torqueLog << std::endl;
 
-            torqueCommandLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+            torqueCommandLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
-                torqueCommandLog << fixed << setprecision(4) << setw(8) << dc_.torque_command[i] << " ";
+                torqueCommandLog << dc_.torque_command[i] << " ";
             }
             torqueCommandLog << std::endl;
 
-            posLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+            posLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
-                posLog << fixed << setprecision(4) << setw(8) << rd_gl_.q_[i] << " ";
+                posLog << rd_gl_.q_[i] << " ";
             }
             posLog << std::endl;
 
-            velLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+            velLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
-                velLog << fixed << setprecision(4) << setw(8) << rd_gl_.q_dot_[i] << " ";
+                velLog << rd_gl_.q_dot_[i] << " ";
             }
             velLog << std::endl;
 
-            torqueActualLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+            torqueActualLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
-                torqueActualLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->torqueActual[i] << " ";
+                torqueActualLog << (int)dc_.tc_shm_->torqueActual[i] << " ";
             }
             torqueActualLog << std::endl;
 
-            maskLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+            maskLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
             for (int i = 0; i < 10; i++)
             {
                 maskLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->e1_m[i] << " ";
@@ -1117,7 +1117,6 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
 
     // RigidBodyDynamics::UpdateKinematicsCustom()
 
-
     link_p[COM_id].v = jacobian_com.cast<double>() * q_dot_virtual_f;
     link_p[COM_id].w = link_p[Pelvis].w;
     link_p[COM_id].rotm = link_p[Pelvis].rotm;
@@ -1457,7 +1456,7 @@ void StateManager::StateEstimate()
         for (int i = 0; i < 3; i++)
         {
             q_virtual_(i) = -mod_base_pos(i);
-            //q_dot_virtual_(i) = pelv_v(i);
+            // q_dot_virtual_(i) = pelv_v(i);
 
             q_dot_virtual_(i) = mod_base_vel(i);
 
