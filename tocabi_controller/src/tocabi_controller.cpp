@@ -165,8 +165,16 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             {
                 if (rd_.tc_.mode == 0)
                 {
+
+                    static ofstream task_log;
+
                     if (rd_.tc_init)
                     {
+
+                        std::string output_file = "/home/dyros/tocabi_log/output";
+
+                        task_log.open(output_file.c_str(), fstream::out | fstream::app);
+                        task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z fstar_x fstar_y fstar_z lambda_x lambda_y lambda_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z" << std::endl;
                         std::cout << "mode 0 init" << std::endl;
                         rd_.tc_init = false;
 
@@ -202,6 +210,19 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     fstar.segment(3, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
 
                     rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + WBC::TaskControlTorque(rd_, fstar));
+
+                    VectorXd out = rd_.lambda * fstar;
+
+                    task_log << rd_.control_time_ << " "
+                             << rd_.link_[COM_id].xpos(0) << " " << rd_.link_[COM_id].xpos(1) << " " << rd_.link_[COM_id].xpos(2) << " "
+                             << rd_.link_[COM_id].v(0) << " " << rd_.link_[COM_id].v(1) << " " << rd_.link_[COM_id].v(2) << " "
+                             << rd_.link_[Pelvis].xpos(0) << " "<< rd_.link_[Pelvis].xpos(1) << " "<< rd_.link_[Pelvis].xpos(2) << " "
+                             << rd_.link_[Pelvis].v(0) << " "<< rd_.link_[Pelvis].v(1) << " "<< rd_.link_[Pelvis].v(2) << " "
+                             << fstar(0) << " "<< fstar(1) << " "<< fstar(2) << " "
+                             << out(0) << " "<< out(1) << " "<< out(2) << " "
+                             << rd_.link_[COM_id].x_traj(0) << " "<< rd_.link_[COM_id].x_traj(1) << " "<< rd_.link_[COM_id].x_traj(2) << " "
+                             << rd_.link_[COM_id].v_traj(0) << " "<< rd_.link_[COM_id].v_traj(1) << " "<< rd_.link_[COM_id].v_traj(2) << " "
+                             << std::endl;
 
                     /*
                     auto ts = std::chrono::steady_clock::now();
