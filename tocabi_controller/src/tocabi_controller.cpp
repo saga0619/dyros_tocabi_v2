@@ -175,9 +175,9 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     WBC::SetContact(rd_, rd_.tc_.left_foot, rd_.tc_.right_foot, rd_.tc_.left_hand, rd_.tc_.right_hand);
 
-                    rd_.J_task.setZero(9, MODEL_DOF_VIRTUAL);
-                    rd_.J_task.block(0, 0, 6, MODEL_DOF_VIRTUAL) = rd_.link_[COM_id].Jac();
-                    rd_.J_task.block(6, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[Upper_Body].Jac().block(3, 0, 3, MODEL_DOF_VIRTUAL);
+                    rd_.J_task.setZero(6, MODEL_DOF_VIRTUAL);
+                    rd_.J_task.block(0, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[COM_id].Jac().block(0, 0, 3, MODEL_DOF_VIRTUAL);
+                    rd_.J_task.block(3, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[Upper_Body].Jac().block(3, 0, 3, MODEL_DOF_VIRTUAL);
 
                     rd_.link_[COM_id].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
                     rd_.link_[COM_id].x_desired(2) = rd_.tc_.height;
@@ -187,12 +187,19 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll * ang2rad, rd_.tc_.pitch * ang2rad, rd_.tc_.yaw * ang2rad + rd_.link_[Pelvis].yaw_init);
 
                     Eigen::VectorXd fstar;
+
+                    if (rd_.tc_.customTaskGain)
+                    {
+                        rd_.link_[COM_id].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
+                        rd_.link_[Upper_Body].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
+                    }
+
                     rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
                     rd_.link_[Upper_Body].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
 
-                    fstar.setZero(9);
-                    fstar.segment(0, 6) = WBC::GetFstar6d(rd_.link_[COM_id]);
-                    fstar.segment(6, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
+                    fstar.setZero(6);
+                    fstar.segment(0, 3) = WBC::GetFstarPos(rd_.link_[COM_id], true);
+                    fstar.segment(3, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
 
                     rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + WBC::TaskControlTorque(rd_, fstar));
 

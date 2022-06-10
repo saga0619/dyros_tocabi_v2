@@ -113,6 +113,8 @@ public:
     Eigen::VectorVQd q_dot_virtual_;
     Eigen::VectorVQd q_ddot_virtual_;
 
+    Eigen::Vector3d pelvis_velocity_estimate_;
+
     float control_time_ = 0;
 
     double torqueRatio = 0.0;

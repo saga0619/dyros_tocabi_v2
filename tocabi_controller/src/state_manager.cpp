@@ -81,7 +81,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
 
     com_status_msg_.data.resize(17);
 
-    point_pub_msg_.polygon.points.resize(19);
+    point_pub_msg_.polygon.points.resize(21);
     syspub_msg.data.resize(8);
     elmo_status_msg_.data.resize(MODEL_DOF * 3);
 }
@@ -512,7 +512,7 @@ void StateManager::SendCommand()
 
     rcv_c_count_before = rcv_c_count;
 
-    const double maxTorque = _MAXTORQUE; //SYSTEM MAX TORQUE
+    const double maxTorque = _MAXTORQUE; // SYSTEM MAX TORQUE
 
     const double rTime1 = 4.0;
     const double rTime2 = 1.0;
@@ -1112,6 +1112,12 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
     link_p[COM_id].xpos.setZero();
     for (int i = 0; i < LINK_NUMBER; i++)
         link_p[COM_id].xpos += link_p[i].xipos * link_p[i].mass / total_mass_;
+
+    // RigidBodyDynamics::CalcCenterOfMass(model_l, )
+
+    // RigidBodyDynamics::UpdateKinematicsCustom()
+
+
     link_p[COM_id].v = jacobian_com.cast<double>() * q_dot_virtual_f;
     link_p[COM_id].w = link_p[Pelvis].w;
     link_p[COM_id].rotm = link_p[Pelvis].rotm;
@@ -1428,7 +1434,7 @@ void StateManager::StateEstimate()
         imu_acc_dat = imu_acc_dat - imu_init;
 
         double dt = 0.0005;
-        double tau = 0.6;
+        double tau = 0.4;
         double alpha = tau / (tau + dt);
 
         pelv_v = alpha * (imu_acc_dat * dt + pelv_v_before) + (1 - alpha) * mod_base_vel;
@@ -1444,10 +1450,14 @@ void StateManager::StateEstimate()
         pelv_anga = (q_dot_virtual_.segment<3>(3) - rd_.imu_ang_vel_before) * 2000;
         rd_.imu_ang_vel_before = q_dot_virtual_.segment<3>(3);
 
+        // mod_base_vel
+
+        pelvis_velocity_estimate_ = pelv_v;
+
         for (int i = 0; i < 3; i++)
         {
             q_virtual_(i) = -mod_base_pos(i);
-            // q_dot_virtual_(i) = pelv_v(i);
+            //q_dot_virtual_(i) = pelv_v(i);
 
             q_dot_virtual_(i) = mod_base_vel(i);
 
@@ -1647,8 +1657,6 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[14].y = rd_gl_.ee_[1].xpos_contact(1) + RF_CF_FT(3) / RF_CF_FT(2);
     point_pub_msg_.polygon.points[14].z = 0.0;
 
-
-
     point_pub_msg_.polygon.points[15].x = LF_CF_FT(0);
     point_pub_msg_.polygon.points[15].y = LF_CF_FT(1);
     point_pub_msg_.polygon.points[15].z = LF_CF_FT(2);
@@ -1668,6 +1676,18 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[18].x = RF_CF_FT(3);
     point_pub_msg_.polygon.points[18].y = RF_CF_FT(4);
     point_pub_msg_.polygon.points[18].z = RF_CF_FT(5);
+
+    point_pub_msg_.polygon.points[19].x = link_[COM_id].v(1);
+    point_pub_msg_.polygon.points[19].y = -link_local_[Left_Foot].v(1);
+    point_pub_msg_.polygon.points[19].z = -link_local_[Right_Foot].v(1);
+
+    // static double com_pos_before = 0;
+
+    point_pub_msg_.polygon.points[20].x = pelvis_velocity_estimate_(1);
+    point_pub_msg_.polygon.points[20].y = link_local_[Left_Foot].v(1);
+    point_pub_msg_.polygon.points[20].z = link_local_[Right_Foot].v(1);
+
+    // com_pos_before = link_[COM_id].xpos(1);
 
     point_pub_.publish(point_pub_msg_);
 
