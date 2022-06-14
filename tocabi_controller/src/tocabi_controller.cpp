@@ -1,5 +1,7 @@
 #include "tocabi_controller/tocabi_controller.h"
 
+#include "qp.h"
+
 using namespace std;
 using namespace TOCABI;
 
@@ -31,127 +33,305 @@ TocabiController::~TocabiController()
 {
     cout << "TocabiController Terminated" << endl;
 }
-
-VectorQd contact_redis_test(RobotData &rd_, VectorQd Control_Torque)
+void ForceRedistributionTwoContactMod2(double eta_cust, double footlength, double footwidth, double staticFrictionCoeff, double ratio_x, double ratio_y, Eigen::Vector3d P1, Eigen::Vector3d P2, Eigen::Vector12d &F12, Eigen::Vector6d &ResultantForce, Eigen::Vector12d &ForceRedistribution, double &eta)
 {
+    Eigen::Matrix6x12d W;
+    W.setZero();
 
-    if (rd_.contact_index == 1)
+    W.block(0, 0, 6, 6).setIdentity();
+    W.block(0, 6, 6, 6).setIdentity();
+    W.block(3, 0, 3, 3) = DyrosMath::skm(P1);
+    W.block(3, 6, 3, 3) = DyrosMath::skm(P2);
+
+    ResultantForce = W * F12; // F1F2;
+
+    double eta_lb = 1.0 - eta_cust;
+    double eta_ub = eta_cust;
+    // printf("1 lb %f ub %f\n",eta_lb,eta_ub);
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // boundary of eta Mx, A*eta + B < 0
+    double A = (P1(2) - P2(2)) * ResultantForce(1) - (P1(1) - P2(1)) * ResultantForce(2);
+    double B = ResultantForce(3) + P2(2) * ResultantForce(1) - P2(1) * ResultantForce(2);
+    double C = ratio_y * footwidth / 2.0 * abs(ResultantForce(2));
+    double a = A * A;
+    double b = 2.0 * A * B;
+    double c = B * B - C * C;
+    double sol_eta1 = (-b + sqrt(b * b - 4.0 * a * c)) / 2.0 / a;
+    double sol_eta2 = (-b - sqrt(b * b - 4.0 * a * c)) / 2.0 / a;
+    if (sol_eta1 > sol_eta2) // sol_eta1 ÀÌ upper boundary
     {
-        return VectorQd::Zero();
+        if (sol_eta1 < eta_ub)
+        {
+            eta_ub = sol_eta1;
+        }
+
+        if (sol_eta2 > eta_lb)
+        {
+            eta_lb = sol_eta2;
+        }
+    }
+    else // sol_eta2 ÀÌ upper boundary
+    {
+        if (sol_eta2 < eta_ub)
+        {
+            eta_ub = sol_eta2;
+        }
+
+        if (sol_eta1 > eta_lb)
+        {
+            eta_lb = sol_eta1;
+        }
+    }
+
+    // printf("3 lb %f ub %f A %f B %f\n",eta_lb,eta_ub, sol_eta1, sol_eta2);
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // boundary of eta My, A*eta + B < 0
+    A = -(P1(2) - P2(2)) * ResultantForce(0) + (P1(0) - P2(0)) * ResultantForce(2);
+    B = ResultantForce(4) - P2(2) * ResultantForce(0) + P2(0) * ResultantForce(2);
+    C = ratio_x * footlength / 2.0 * abs(ResultantForce(2));
+    a = A * A;
+    b = 2.0 * A * B;
+    c = B * B - C * C;
+    sol_eta1 = (-b + sqrt(b * b - 4.0 * a * c)) / 2.0 / a;
+    sol_eta2 = (-b - sqrt(b * b - 4.0 * a * c)) / 2.0 / a;
+    if (sol_eta1 > sol_eta2) // sol_eta1 ÀÌ upper boundary
+    {
+        if (sol_eta1 < eta_ub)
+            eta_ub = sol_eta1;
+
+        if (sol_eta2 > eta_lb)
+            eta_lb = sol_eta2;
+    }
+    else // sol_eta2 ÀÌ upper boundary
+    {
+        if (sol_eta2 < eta_ub)
+            eta_ub = sol_eta2;
+
+        if (sol_eta1 > eta_lb)
+            eta_lb = sol_eta1;
+    }
+
+    // printf("5 lb %f ub %f A %f B %f\n",eta_lb,eta_ub, sol_eta1, sol_eta2);
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // boundary of eta Mz, (A^2-C^2)*eta^2 + 2*A*B*eta + B^2 < 0
+    A = -(P1(0) - P2(0)) * ResultantForce(1) + (P1(1) - P2(1)) * ResultantForce(0);
+    B = ResultantForce(5) + P2(1) * ResultantForce(0) - P2(0) * ResultantForce(1);
+    C = staticFrictionCoeff * abs(ResultantForce(2));
+    a = A * A;
+    b = 2.0 * A * B;
+    c = B * B - C * C;
+    sol_eta1 = (-b + sqrt(b * b - 4.0 * a * c)) / 2.0 / a;
+    sol_eta2 = (-b - sqrt(b * b - 4.0 * a * c)) / 2.0 / a;
+    if (sol_eta1 > sol_eta2) // sol_eta1 ÀÌ upper boundary
+    {
+        if (sol_eta1 < eta_ub)
+            eta_ub = sol_eta1;
+        if (sol_eta2 > eta_lb)
+            eta_lb = sol_eta2;
+    }
+    else // sol_eta2 ÀÌ upper boundary
+    {
+        if (sol_eta2 < eta_ub)
+            eta_ub = sol_eta2;
+        if (sol_eta1 > eta_lb)
+            eta_lb = sol_eta1;
+    }
+    // printf("6 lb %f ub %f A %f B %f\n",eta_lb,eta_ub, sol_eta1, sol_eta2);
+
+    double eta_s = (-ResultantForce(3) - P2(2) * ResultantForce(1) + P2(1) * ResultantForce(2)) / ((P1(2) - P2(2)) * ResultantForce(1) - (P1(1) - P2(1)) * ResultantForce(2));
+
+    eta = eta_s;
+    if (eta_s > eta_ub)
+        eta = eta_ub;
+    else if (eta_s < eta_lb)
+        eta = eta_lb;
+
+    if ((eta > eta_cust) || (eta < 1.0 - eta_cust))
+        eta = 0.5;
+
+    ForceRedistribution(0) = eta * ResultantForce(0);
+    ForceRedistribution(1) = eta * ResultantForce(1);
+    ForceRedistribution(2) = eta * ResultantForce(2);
+    ForceRedistribution(3) = ((P1(2) - P2(2)) * ResultantForce(1) - (P1(1) - P2(1)) * ResultantForce(2)) * eta * eta + (ResultantForce(3) + P2(2) * ResultantForce(1) - P2(1) * ResultantForce(2)) * eta;
+    ForceRedistribution(4) = (-(P1(2) - P2(2)) * ResultantForce(0) + (P1(0) - P2(0)) * ResultantForce(2)) * eta * eta + (ResultantForce(4) - P2(2) * ResultantForce(0) + P2(0) * ResultantForce(2)) * eta;
+    ForceRedistribution(5) = (-(P1(0) - P2(0)) * ResultantForce(1) + (P1(1) - P2(1)) * ResultantForce(0)) * eta * eta + (ResultantForce(5) + P2(1) * ResultantForce(0) - P2(0) * ResultantForce(1)) * eta;
+    ForceRedistribution(6) = (1.0 - eta) * ResultantForce(0);
+    ForceRedistribution(7) = (1.0 - eta) * ResultantForce(1);
+    ForceRedistribution(8) = (1.0 - eta) * ResultantForce(2);
+    ForceRedistribution(9) = (1.0 - eta) * (((P1(2) - P2(2)) * ResultantForce(1) - (P1(1) - P2(1)) * ResultantForce(2)) * eta + (ResultantForce(3) + P2(2) * ResultantForce(1) - P2(1) * ResultantForce(2)));
+    ForceRedistribution(10) = (1.0 - eta) * ((-(P1(2) - P2(2)) * ResultantForce(0) + (P1(0) - P2(0)) * ResultantForce(2)) * eta + (ResultantForce(4) - P2(2) * ResultantForce(0) + P2(0) * ResultantForce(2)));
+    ForceRedistribution(11) = (1.0 - eta) * ((-(P1(0) - P2(0)) * ResultantForce(1) + (P1(1) - P2(1)) * ResultantForce(0)) * eta + (ResultantForce(5) + P2(1) * ResultantForce(0) - P2(0) * ResultantForce(1)));
+    // ForceRedistribution(9) = (1.0-eta)/eta*ForceRedistribution(3);
+    // ForceRedistribution(10) = (1.0-eta)/eta*ForceRedistribution(4);
+    // ForceRedistribution(11) = (1.0-eta)/eta*ForceRedistribution(5);
+}
+
+VectorQd ContactForceRedistributionTorque(RobotData &Robot, VectorQd command_torque, double eta)
+{
+    int contact_dof_ = Robot.J_C.rows();
+
+    VectorQd torque_redis;
+
+    if (contact_dof_ == 12)
+    {
+        Vector12d ContactForce_ = Robot.J_C_INV_T.rightCols(MODEL_DOF) * command_torque - Robot.P_C;
+
+        Vector3d P1_ = Robot.cc_[0].xc_pos - Robot.link_[COM_id].xpos;
+        Vector3d P2_ = Robot.cc_[1].xc_pos - Robot.link_[COM_id].xpos;
+
+        Matrix3d Rotyaw = DyrosMath::rotateWithZ(-Robot.yaw);
+
+        Eigen::Matrix<double, 12, 12> force_rot_yaw;
+        force_rot_yaw.setZero();
+        for (int i = 0; i < 4; i++)
+        {
+            force_rot_yaw.block(i * 3, i * 3, 3, 3) = Rotyaw;
+        }
+
+        Vector6d ResultantForce_;
+        ResultantForce_.setZero();
+
+        Vector12d ResultRedistribution_;
+        ResultRedistribution_.setZero();
+
+        Vector12d F12 = force_rot_yaw * ContactForce_;
+
+        double eta_cust = 0.99;
+        double foot_length = 0.26;
+        double foot_width = 0.1;
+
+        ForceRedistributionTwoContactMod2(0.99, foot_length, foot_width, 1.0, 0.9, 0.9, Rotyaw * P1_, Rotyaw * P2_, F12, ResultantForce_, ResultRedistribution_, eta);
+        Robot.fc_redist_ = force_rot_yaw.transpose() * ResultRedistribution_;
+
+        Vector12d desired_force;
+        desired_force.setZero();
+
+        desired_force.segment(6, 6) = -ContactForce_.segment(6, 6) + Robot.fc_redist_.segment(6, 6);
+        torque_redis = Robot.V2.transpose() * (Robot.J_C_INV_T.rightCols(MODEL_DOF).bottomRows(6) * Robot.V2.transpose()).inverse() * desired_force.segment(6, 6);
     }
     else
     {
-
-        Eigen::MatrixXd crot_matrix;
-        Eigen::MatrixXd RotW;
-
-        crot_matrix.setZero(rd_.contact_index * 6, rd_.contact_index * 6);
-
-        RotW.setIdentity(rd_.contact_index * 6, rd_.contact_index * 6);
-
-        for (int i = 0; i < rd_.contact_index; i++)
-        {
-            Vector3d cv = rd_.link_[rd_.contact_part[i]].rotm.transpose() * (rd_.link_[COM_id].xpos - rd_.link_[rd_.contact_part[i]].xpos);
-            Matrix3d cm = DyrosMath::rotateWithX(-atan(cv(1) / cv(2))) * DyrosMath::rotateWithY(atan(cv(0) / sqrt(cv(1) * cv(1) + cv(2) * cv(2))));
-            crot_matrix.block(i * 6, i * 6, 3, 3) = crot_matrix.block(i * 6 + 3, i * 6 + 3, 3, 3) = cm.transpose() * rd_.link_[rd_.contact_part[i]].rotm.transpose();
-            RotW(i * 6 + 2, i * 6 + 2) = 0;
-        }
-
-        // RotM_.setZero();
-
-        // RotM_.block(0, 0, 3, 3) = crot_l.transpose() * rd_.link_[Left_Foot].rotm.transpose();
-        // RotM_.block(3, 3, 3, 3) = crot_l.transpose() * rd_.link_[Left_Foot].rotm.transpose();
-
-        // RotM_.block(6, 6, 3, 3) = crot_r.transpose() * rd_.link_[Right_Foot].rotm.transpose();
-        // RotM_.block(9, 9, 3, 3) = crot_r.transpose() * rd_.link_[Right_Foot].rotm.transpose();
-
-        // Vector12d COM_Rel_ContactForce;
-
-        // COM_Rel_ContactForce = RotM_ * Fc;
-
-        static CQuadraticProgram qp_torque_contact_;
-        static int contact_dof, const_num;
-
-        const_num = 4;
-
-        qp_torque_contact_.InitializeProblemSize(rd_.contact_index * 6 - 6, rd_.contact_index * const_num);
-
-        static MatrixXd H;
-        static VectorXd g;
-        static MatrixXd A_t;
-
-        // std::cout<<"1"<<std::endl;
-
-        MatrixXd NwJw = rd_.qr_V2.transpose() * (rd_.J_C_INV_T.rightCols(MODEL_DOF).topRows(6) * rd_.qr_V2.transpose()).inverse();
-
-        // std::cout<<"2"<<std::endl;
-        A_t = RotW * crot_matrix * rd_.J_C_INV_T.rightCols(MODEL_DOF) * NwJw;
-
-        // std::cout<<"3"<<std::endl;
-        H = A_t.transpose() * A_t;
-
-        // std::cout<<"4"<<std::endl;
-        g = (RotW * crot_matrix * (rd_.J_C_INV_T.rightCols(MODEL_DOF) * Control_Torque - rd_.P_C)).transpose() * A_t;
-
-        // std::cout<<"5"<<std::endl;
-        qp_torque_contact_.UpdateMinProblem(H, g);
-
-        // Constraint
-
-        MatrixXd A_const_a;
-        A_const_a.setZero(const_num * rd_.contact_index, 6 * rd_.contact_index);
-
-        MatrixXd A__mat;
-
-        MatrixXd A_rot;
-
-        A_rot.setZero(rd_.contact_index * 6, rd_.contact_index * 6);
-
-        for (int i = 0; i < rd_.contact_index; i++)
-        {
-            // std::cout<<"1"<<std::endl;
-            A_rot.block(i * 6, i * 6, 3, 3) = rd_.link_[rd_.contact_part[i]].rotm.transpose(); // rd_.ee_[i].rotm.transpose();
-
-            // std::cout<<"1"<<std::endl;
-            A_rot.block(i * 6 + 3, i * 6 + 3, 3, 3) = rd_.link_[rd_.contact_part[i]].rotm.transpose();
-
-            // std::cout<<"1"<<std::endl;
-            A_const_a(i * const_num + 0, i * 6 + 2) = rd_.ee_[i].cs_y_length;
-            A_const_a(i * const_num + 0, i * 6 + 3) = 1;
-
-            A_const_a(i * const_num + 1, i * 6 + 2) = rd_.ee_[i].cs_y_length;
-            A_const_a(i * const_num + 1, i * 6 + 3) = -1;
-
-            A_const_a(i * const_num + 2, i * 6 + 2) = rd_.ee_[i].cs_x_length;
-            A_const_a(i * const_num + 2, i * 6 + 4) = 1;
-
-            A_const_a(i * const_num + 3, i * 6 + 2) = rd_.ee_[i].cs_x_length;
-            A_const_a(i * const_num + 3, i * 6 + 4) = -1;
-        }
-
-        // std::cout<<"0"<<std::endl;
-        Eigen::VectorXd bA = A_const_a * A_rot * (rd_.P_C - rd_.J_C_INV_T.rightCols(MODEL_DOF) * Control_Torque);
-
-        // std::cout<<"1"<<std::endl;
-
-        Eigen::VectorXd lbA;
-        lbA.setConstant(rd_.contact_index * const_num, -1000);
-
-        // std::cout<<"2"<<std::endl;
-
-        qp_torque_contact_.UpdateSubjectToAx(A_const_a * A_rot * rd_.J_C_INV_T.rightCols(MODEL_DOF) * NwJw, lbA - bA, bA);
-
-        // std::cout << "3" << std::endl;
-
-        // qp_torque_contact_.UpdateSubjectToAx()
-
-        // std::cout<<"6"<<std::endl;
-        Eigen::VectorXd qp_result;
-
-        qp_torque_contact_.SolveQPoases(100, qp_result);
-
-        return NwJw * qp_result;
+        torque_redis.setZero();
     }
+
+    return torque_redis;
+}
+
+VectorQd contact_redis_test(RobotData &rd_, VectorQd Control_Torque)
+{
+    int contact_index = 2;
+    rd_.contact_index = 2;
+    Eigen::MatrixXd crot_matrix;
+    Eigen::MatrixXd RotW;
+
+    crot_matrix.setZero(rd_.contact_index * 6, rd_.contact_index * 6);
+
+    RotW.setIdentity(rd_.contact_index * 6, rd_.contact_index * 6);
+
+    for (int i = 0; i < contact_index; i++)
+    {
+        Vector3d cv = rd_.cc_[i].rotm.transpose() * (rd_.link_[COM_id].xpos - rd_.cc_[i].xc_pos);
+        Matrix3d cm = DyrosMath::rotateWithX(-atan(cv(1) / cv(2))) * DyrosMath::rotateWithY(atan(cv(0) / sqrt(cv(1) * cv(1) + cv(2) * cv(2))));
+        cm.setIdentity();
+
+        crot_matrix.block(i * 6, i * 6, 3, 3) = crot_matrix.block(i * 6 + 3, i * 6 + 3, 3, 3) = cm.transpose() * rd_.cc_[i].rotm.transpose();
+        RotW(i * 6 + 2, i * 6 + 2) = 0;
+    }
+
+    // RotM_.setZero();
+
+    // RotM_.block(0, 0, 3, 3) = crot_l.transpose() * rd_.link_[Left_Foot].rotm.transpose();
+    // RotM_.block(3, 3, 3, 3) = crot_l.transpose() * rd_.link_[Left_Foot].rotm.transpose();
+
+    // RotM_.block(6, 6, 3, 3) = crot_r.transpose() * rd_.link_[Right_Foot].rotm.transpose();
+    // RotM_.block(9, 9, 3, 3) = crot_r.transpose() * rd_.link_[Right_Foot].rotm.transpose();
+
+    // Vector12d COM_Rel_ContactForce;
+
+    // COM_Rel_ContactForce = RotM_ * Fc;
+
+    static CQuadraticProgram qp_torque_contact_;
+    static int contact_dof, const_num;
+
+    const_num = 4;
+
+    qp_torque_contact_.InitializeProblemSize(rd_.contact_index * 6 - 6, rd_.contact_index * const_num);
+
+    static MatrixXd H;
+    static VectorXd g;
+    static MatrixXd A_t;
+
+    // std::cout<<"1"<<std::endl;
+
+    MatrixXd NwJw = rd_.V2.transpose() * (rd_.J_C_INV_T.rightCols(MODEL_DOF).topRows(6) * rd_.V2.transpose()).inverse();
+
+    // std::cout<<"2"<<std::endl;
+    A_t = RotW * crot_matrix * rd_.J_C_INV_T.rightCols(MODEL_DOF) * NwJw;
+
+    // std::cout<<"3"<<std::endl;
+    H = A_t.transpose() * A_t;
+
+    // std::cout<<"4"<<std::endl;
+    g = (RotW * crot_matrix * (rd_.J_C_INV_T.rightCols(MODEL_DOF) * Control_Torque - rd_.P_C)).transpose() * A_t;
+
+    // std::cout<<"5"<<std::endl;
+    qp_torque_contact_.UpdateMinProblem(H, g);
+
+    // Constraint
+
+    MatrixXd A_const_a;
+    A_const_a.setZero(const_num * rd_.contact_index, 6 * rd_.contact_index);
+
+    MatrixXd A__mat;
+
+    MatrixXd A_rot;
+
+    A_rot.setZero(rd_.contact_index * 6, rd_.contact_index * 6);
+
+    for (int i = 0; i < rd_.contact_index; i++)
+    {
+        // std::cout<<"1"<<std::endl;
+        A_rot.block(i * 6, i * 6, 3, 3) = rd_.cc_[i].rotm.transpose(); // rd_.ee_[i].rotm.transpose();
+
+        // std::cout<<"1"<<std::endl;
+        A_rot.block(i * 6 + 3, i * 6 + 3, 3, 3) = rd_.cc_[i].rotm.transpose();
+
+        // std::cout<<"1"<<std::endl;
+        A_const_a(i * const_num + 0, i * 6 + 2) = rd_.cc_[i].contact_plane_y_;
+        A_const_a(i * const_num + 0, i * 6 + 3) = 1;
+
+        A_const_a(i * const_num + 1, i * 6 + 2) = rd_.cc_[i].contact_plane_y_;
+        A_const_a(i * const_num + 1, i * 6 + 3) = -1;
+
+        A_const_a(i * const_num + 2, i * 6 + 2) = rd_.cc_[i].contact_plane_x_;
+        A_const_a(i * const_num + 2, i * 6 + 4) = 1;
+
+        A_const_a(i * const_num + 3, i * 6 + 2) = rd_.cc_[i].contact_plane_x_;
+        A_const_a(i * const_num + 3, i * 6 + 4) = -1;
+    }
+
+    // std::cout<<"0"<<std::endl;
+    Eigen::VectorXd bA = A_const_a * A_rot * (rd_.P_C - rd_.J_C_INV_T.rightCols(MODEL_DOF) * Control_Torque);
+
+    // std::cout<<"1"<<std::endl;
+
+    Eigen::VectorXd lbA;
+    lbA.setConstant(rd_.contact_index * const_num, -1000);
+
+    // std::cout<<"2"<<std::endl;
+
+    qp_torque_contact_.UpdateSubjectToAx(A_const_a * A_rot * rd_.J_C_INV_T.rightCols(MODEL_DOF) * NwJw, lbA - bA, bA);
+
+    // std::cout << "3" << std::endl;
+
+    // qp_torque_contact_.UpdateSubjectToAx()
+
+    // std::cout<<"6"<<std::endl;
+    Eigen::VectorXd qp_result;
+
+    qp_torque_contact_.SolveQPoases(100, qp_result);
+
+    return NwJw * qp_result;
 }
 
 // Thread1 : running
@@ -386,11 +566,30 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             dc_.rd_holder_.CalcContactRedistribute(dc_.rd_holder_.torque_grav_);
             rd_.torque_desired = dc_.rd_holder_.torque_grav_ + dc_.rd_holder_.torque_contact_;
 
+            std::cout << "torque grav " << std::endl;
             std::cout << dc_.rd_holder_.torque_grav_.transpose() << std::endl;
 
+            std::cout << "contact redis torque" << std::endl;
             std::cout << dc_.rd_holder_.torque_contact_.transpose() << std::endl;
 
+            std::cout << " contact force after : " << std::endl;
             std::cout << dc_.rd_holder_.getContactForce(dc_.rd_holder_.torque_grav_ + dc_.rd_holder_.torque_contact_).transpose() << std::endl;
+
+            VectorQd torque_redis2 = contact_redis_test(dc_.rd_holder_, dc_.rd_holder_.torque_grav_);
+
+            std::cout << " contact redis mode 2 :" << std::endl;
+            std::cout << torque_redis2.transpose() << std::endl;
+
+            std::cout << " contact force after 2: " << std::endl;
+            std::cout << dc_.rd_holder_.getContactForce(dc_.rd_holder_.torque_grav_ + torque_redis2).transpose() << std::endl;
+
+            VectorQd torque_redis3 = ContactForceRedistributionTorque(dc_.rd_holder_, dc_.rd_holder_.torque_grav_, 0.9);
+
+            std::cout << " contact redis mode 3 :" << std::endl;
+            std::cout << torque_redis3.transpose() << std::endl;
+
+            std::cout << " contact force after 3: " << std::endl;
+            std::cout << dc_.rd_holder_.getContactForce(dc_.rd_holder_.torque_grav_ + torque_redis3).transpose() << std::endl;
 
             // rd_.SetContact(true, true);
             // rd_.CalcGravCompensation();
