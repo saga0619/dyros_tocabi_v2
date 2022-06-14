@@ -10,11 +10,16 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     string urdf_path;
 
     ros::param::get("/tocabi_controller/urdf_path", urdf_path);
+    rd_.InitModelData(urdf_path.c_str(), true, false);
+    dc_.rd_holder_.InitModelData(urdf_path.c_str(), true, false);
+    rd_gl_.InitModelData(urdf_path.c_str(), true, false);
 
     bool verbose = false;
 
+    // rd_gl_.InitModelData(urdf_path.c_str(), true, false);
+
     RigidBodyDynamics::Addons::URDFReadFromFile(urdf_path.c_str(), &model_local_, true, verbose);
-    RigidBodyDynamics::Addons::URDFReadFromFile(urdf_path.c_str(), &model_global_, true, verbose);
+    // RigidBodyDynamics::Addons::URDFReadFromFile(urdf_path.c_str(), &model_global_, true, verbose);
 
     if (model_local_.dof_count == MODEL_DOF_VIRTUAL)
     {
@@ -30,27 +35,38 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
             }
         }
 
-        total_mass_ = 0;
+        total_mass_ = rd_.total_mass_;
 
         for (int i = 0; i < LINK_NUMBER; i++)
         {
-            link_[i].Initialize(model_global_, link_id_[i]);
-            total_mass_ += link_[i].mass;
+            link_local_[i].Initialize(model_local_, link_id_[i]);
         }
-        rd_gl_.total_mass_ = total_mass_;
 
-        link_[Right_Foot].contact_point << 0.03, 0, -0.1585;
-        link_[Right_Foot].sensor_point << 0.0, 0.0, -0.09;
-        link_[Left_Foot].contact_point << 0.03, 0, -0.1585;
-        link_[Left_Foot].sensor_point << 0.0, 0.0, -0.09;
+        link_local_[Right_Foot].contact_point << 0.03, 0, -0.1585;
+        link_local_[Right_Foot].sensor_point << 0.0, 0.0, -0.09;
+        link_local_[Left_Foot].contact_point << 0.03, 0, -0.1585;
+        link_local_[Left_Foot].sensor_point << 0.0, 0.0, -0.09;
 
-        link_[Right_Hand].contact_point << 0, 0.0, -0.035;
-        link_[Right_Hand].sensor_point << 0.0, 0.0, 0.0;
-        link_[Left_Hand].contact_point << 0, 0.0, -0.035;
-        link_[Left_Hand].sensor_point << 0.0, 0.0, 0.0;
+        link_local_[Right_Hand].contact_point << 0, 0.0, -0.035;
+        link_local_[Right_Hand].sensor_point << 0.0, 0.0, 0.0;
+        link_local_[Left_Hand].contact_point << 0, 0.0, -0.035;
+        link_local_[Left_Hand].sensor_point << 0.0, 0.0, 0.0;
 
-        memcpy(link_local_, link_, sizeof(LinkData) * LINK_NUMBER);
+        // memcpy(link_local_, link_, sizeof(LinkData) * LINK_NUMBER);
     }
+
+    Vector3d foot_contact_point;
+    foot_contact_point << 0.03, 0, -0.1585;
+    Vector3d foot_contact_vector;
+    foot_contact_vector << 0, 0, 1;
+
+    Vector3d hand_contact_point;
+    hand_contact_point << 0.0, 0.0, -0.035;
+
+    rd_.AddContactConstraint(6, DWBC::CONTACT_6D, foot_contact_point, foot_contact_vector, 0.15, 0.075);
+    rd_.AddContactConstraint(12, DWBC::CONTACT_6D, foot_contact_point, foot_contact_vector, 0.15, 0.075);
+    rd_.AddContactConstraint(Left_Hand, DWBC::CONTACT_6D, hand_contact_point, foot_contact_vector, 0.04, 0.04);
+    rd_.AddContactConstraint(Right_Hand, DWBC::CONTACT_6D, hand_contact_point, foot_contact_vector, 0.04, 0.04);
 
     if (dc_.simMode)
     {
@@ -84,6 +100,9 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     point_pub_msg_.polygon.points.resize(21);
     syspub_msg.data.resize(8);
     elmo_status_msg_.data.resize(MODEL_DOF * 3);
+
+    q_dot_virtual_local_.setZero();
+    q_ddot_virtual_local_.setZero();
 }
 
 StateManager::~StateManager()
@@ -172,28 +191,38 @@ void *StateManager::StateThread()
         auto t2 = chrono::steady_clock::now();
         StateEstimate();
 
-        // global kinematics update : 127 us //w/o march native 125 us
-        UpdateKinematics(model_global_, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
+        auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
 
-        UpdateCMM(rd_, link_);
+        auto t3 = chrono::steady_clock::now();
+
+        // global kinematics update : 127 us //w/o march native 125 us
+
+        // std::cout << q_virtual_.transpose() << std::endl;
+        rd_.UpdateKinematics(q_virtual_, q_dot_virtual_, q_ddot_virtual_);
+
+        // UpdateKinematics(model_global_, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
+
+        // UpdateCMM(rd_, link_);
+
+        auto d3 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t3).count();
+
+        auto t4 = chrono::steady_clock::now();
+
+        if (!rd_gl_.firstCalc)
+        {
+            rd_gl_.firstCalc = true;
+        }
 
         StoreState(rd_gl_); // 6.2 us //w/o march native 8us
 
         // MeasureTime(dc_.stm_cnt, d1, d2);
 
-        rd_gl_.control_time_ = dur_start_ / 1000000.0;
+        // rd_gl_.control_time_ = dur_start_ / 1000000.0;
         rd_gl_.control_time_us_ = dur_start_;
         dc_.tc_shm_->control_time_us_ = dur_start_;
 
-        auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
-
-        auto t3 = chrono::steady_clock::now();
         // dc_.tc_shm_->t_cnt2 = dc_.stm_cnt;
         // dc_.tc_shm_->t_cnt2 = cnt3;
-
-        auto d3 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t3).count();
-
-        auto t4 = chrono::steady_clock::now();
 
         dc_.tc_shm_->stloopCount.store(dc_.stm_cnt);
 
@@ -259,212 +288,6 @@ void *StateManager::StateThread()
         //  }
     }
     cout << " STATE : StateManager END" << endl;
-    return (void *)NULL;
-}
-
-void *StateManager::LoggerThread()
-{
-    bool activateLogger = false;
-    bool startLogger = false;
-
-    dc_.nh.getParam("/tocabi_controller/log", activateLogger);
-
-    // wait for both ecat are in control mode !
-    //  while (!dc_.tc_shm_->shutdown)
-    //  {
-    //      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    //      if (dc_.tc_shm_->controlModeLower && dc_.tc_shm_->controlModeUpper)
-    //      {
-    //          std::cout << "Logger : Both ECAT is now on CONTROL MODE! Logging start..." << std::endl;
-    //          break;
-    //      }
-    //  }
-
-    std::string torqueLogFile = "/home/dyros/tocabi_log/torque_elmo_log";
-    std::string ecatStatusFile = "/home/dyros/tocabi_log/ecat_status_log";
-    std::string torqueclogFile = "/home/dyros/tocabi_log/torque_command_log";
-    std::string torqueActualLogFile = "/home/dyros/tocabi_log/torque_actual_log";
-    std::string posLogFile = "/home/dyros/tocabi_log/pos_log";
-    std::string velLogFile = "/home/dyros/tocabi_log/vel_log";
-    std::string maskLogFile = "/home/dyros/tocabi_log/mask_log";
-
-    ofstream torqueLog;
-    ofstream torqueCommandLog;
-    ofstream torqueActualLog;
-    ofstream maskLog;
-    ofstream ecatStatusLog;
-    ofstream posLog;
-    ofstream velLog;
-
-    int log_count = 0;
-    int pub_count = 0;
-    int s_count = 0;
-
-    timespec ts;
-
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-
-    int record_seconds = 120;
-
-    int record_tick = record_seconds * 2000;
-
-    long current_time = rd_gl_.control_time_us_;
-
-    while (!dc_.tc_shm_->shutdown)
-    {
-        pub_count++;
-        if (pub_count % 33 == 0)
-        {
-            if (current_time < rd_gl_.control_time_us_)
-            {
-                PublishData();
-                current_time = rd_gl_.control_time_us_;
-            }
-        }
-        ros::spinOnce();
-
-        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
-
-        ts.tv_nsec += 500000;
-
-        if (ts.tv_nsec >= 1000000000)
-        {
-            ts.tv_nsec -= 1000000000;
-            ts.tv_sec++;
-        }
-
-        if (activateLogger && (!startLogger))
-        {
-            if (dc_.tc_shm_->controlModeLower && dc_.tc_shm_->controlModeUpper)
-            {
-                startLogger = true;
-            }
-        }
-
-        if (startLogger)
-        {
-            if (log_count % record_tick == 0)
-            {
-                std::string apd_;
-                std::string cpd_;
-                if (s_count % 2 == 0)
-                {
-                    apd_ = "0";
-                    cpd_ = "1";
-                    std::cout << "LOGGER : Open Log Files : 0" << std::endl;
-                }
-                else
-                {
-                    apd_ = "1";
-                    cpd_ = "0";
-                    std::cout << "LOGGER : Open Log Files : 1" << std::endl;
-                }
-
-                if (s_count > 0)
-                {
-                    torqueLog.close();
-                    torqueCommandLog.close();
-                    torqueActualLog.close();
-                    maskLog.close();
-                    ecatStatusLog.close();
-                    posLog.close();
-                    velLog.close();
-                }
-
-                torqueLog.open((torqueLogFile + apd_).c_str());
-                torqueLog.fill(' ');
-                torqueCommandLog.open((torqueclogFile + apd_).c_str());
-                torqueActualLog.open((torqueActualLogFile + apd_).c_str());
-                maskLog.open((maskLogFile + apd_).c_str());
-                ecatStatusLog.open((ecatStatusFile + apd_).c_str());
-                posLog.open((posLogFile + apd_).c_str());
-                velLog.open((velLogFile + apd_).c_str());
-                s_count++;
-            }
-            log_count++;
-
-            torqueLog  << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
-            for (int i = 0; i < MODEL_DOF; i++)
-            {
-                torqueLog << (int)dc_.tc_shm_->elmo_torque[i] << " ";
-            }
-            torqueLog << std::endl;
-
-            torqueCommandLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
-            for (int i = 0; i < MODEL_DOF; i++)
-            {
-                torqueCommandLog << dc_.torque_command[i] << " ";
-            }
-            torqueCommandLog << std::endl;
-
-            posLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
-            for (int i = 0; i < MODEL_DOF; i++)
-            {
-                posLog << rd_gl_.q_[i] << " ";
-            }
-            posLog << std::endl;
-
-            velLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
-            for (int i = 0; i < MODEL_DOF; i++)
-            {
-                velLog << rd_gl_.q_dot_[i] << " ";
-            }
-            velLog << std::endl;
-
-            torqueActualLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
-            for (int i = 0; i < MODEL_DOF; i++)
-            {
-                torqueActualLog << (int)dc_.tc_shm_->torqueActual[i] << " ";
-            }
-            torqueActualLog << std::endl;
-
-            maskLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
-            for (int i = 0; i < 10; i++)
-            {
-                maskLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->e1_m[i] << " ";
-            }
-            for (int i = 0; i < 10; i++)
-            {
-                maskLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->e2_m[i] << " ";
-            }
-            maskLog << std::endl;
-
-            bool change = false;
-
-            static int elmoStatus_before[MODEL_DOF];
-            int elmoStatus_now[MODEL_DOF];
-
-            std::copy(dc_.tc_shm_->ecat_status, dc_.tc_shm_->ecat_status + MODEL_DOF, elmoStatus_now);
-
-            for (int i = 0; i < MODEL_DOF; i++)
-            {
-                if (elmoStatus_now[i] != elmoStatus_before[i])
-                    change = true;
-            }
-
-            if (change)
-            {
-                ecatStatusLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
-                for (int i = 0; i < MODEL_DOF; i++)
-                {
-                    ecatStatusLog << elmoStatus_now[i] << "  ";
-                }
-                ecatStatusLog << std::endl;
-            }
-
-            std::copy(elmoStatus_now, elmoStatus_now + MODEL_DOF, elmoStatus_before);
-        }
-    }
-
-    ecatStatusLog.close();
-    torqueLog.close();
-    torqueCommandLog.close();
-    torqueActualLog.close();
-    maskLog.close();
-    posLog.close();
-    velLog.close();
-
-    std::cout << "Logger : END!" << std::endl;
     return (void *)NULL;
 }
 
@@ -974,33 +797,16 @@ void StateManager::MeasureTime(int currentCount, int nanoseconds1, int nanosecon
 
 void StateManager::StoreState(RobotData &rd_dst)
 {
+    dc_.state_locker_.producer_lock();
 
-    memcpy(&rd_dst.model_, &model_global_, sizeof(RigidBodyDynamics::Model));
+    rd_.CopyKinematicsData(rd_dst);
 
-    for (int i = 0; i < (LINK_NUMBER + 1); i++)
-    {
-        memcpy(&rd_dst.link_[i].jac, &link_[i].jac, sizeof(Matrix6Vf));
-        memcpy(&rd_dst.link_[i].jac_com, &link_[i].jac_com, sizeof(Matrix6Vf));
-
-        memcpy(&rd_dst.link_[i].xpos, &link_[i].xpos, sizeof(Vector3d));
-        memcpy(&rd_dst.link_[i].xipos, &link_[i].xipos, sizeof(Vector3d));
-        memcpy(&rd_dst.link_[i].rotm, &link_[i].rotm, sizeof(Matrix3d));
-        memcpy(&rd_dst.link_[i].v, &link_[i].v, sizeof(Vector3d));
-        memcpy(&rd_dst.link_[i].w, &link_[i].w, sizeof(Vector3d));
-
-        // xpos xipos rotm v w
-    }
-
-    memcpy(&rd_dst.A_, &A_, sizeof(MatrixVVd));
-    memcpy(&rd_dst.A_inv_, &A_inv_, sizeof(MatrixVVd));
-    memcpy(&rd_dst.Motor_inertia, &Motor_inertia, sizeof(MatrixVVd));
-    memcpy(&rd_dst.Motor_inertia_inverse, &Motor_inertia_inverse, sizeof(MatrixVVd));
-    memcpy(&rd_dst.q_, &q_, sizeof(VectorQd));
-    memcpy(&rd_dst.q_dot_, &q_dot_, sizeof(VectorQd));
-    memcpy(&rd_dst.q_virtual_, &q_virtual_, sizeof(VectorQVQd));
-    memcpy(&rd_dst.q_dot_virtual_, &q_dot_virtual_, sizeof(VectorVQd));
-    memcpy(&rd_dst.q_ddot_virtual_, &q_ddot_virtual_, sizeof(VectorVQd));
-    memcpy(&rd_dst.torque_elmo_, &torque_elmo_, sizeof(VectorQd));
+    rd_dst.q_ = q_;
+    rd_dst.q_dot_ = q_dot_;
+    rd_dst.q_virtual_ = q_virtual_;
+    rd_dst.q_dot_virtual_ = q_dot_virtual_;
+    rd_dst.q_ddot_virtual_ = q_ddot_virtual_;
+    rd_dst.torque_elmo_ = torque_elmo_;
 
     rd_dst.CMM = rd_.CMM;
 
@@ -1008,26 +814,19 @@ void StateManager::StoreState(RobotData &rd_dst)
     rd_dst.pitch = rd_.pitch;
     rd_dst.yaw = rd_.yaw;
 
-    if (!rd_dst.firstCalc)
-    {
-
-        memcpy(&rd_dst.link_, link_, (LINK_NUMBER + 1) * sizeof(LinkData));
-
-        rd_dst.firstCalc = true;
-    }
-
     rd_dst.control_time_ = control_time_;
 
     rd_dst.tp_state_ = rd_.tp_state_;
 
     rd_dst.LF_FT = LF_FT;
+    rd_dst.RF_FT = RF_FT;
 
     rd_dst.LF_CF_FT = LF_CF_FT;
     rd_dst.RF_CF_FT = RF_CF_FT;
 
-    rd_dst.RF_FT = RF_FT;
+    // std::cout << "Command to TocabiController" << std::endl;
 
-    dc_.triggerThread1 = true;
+    dc_.state_locker_.producer_ready();
 }
 
 void StateManager::UpdateKinematics_local(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual_f, const Eigen::VectorXd &q_dot_virtual_f, const Eigen::VectorXd &q_ddot_virtual_f)
@@ -1137,20 +936,20 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
 
     Eigen::Matrix3d c_product_;
 
-    for (int i = 0; i < LINK_NUMBER; i++)
-    {
-        x_com_ = link_p[i].xpos - link_p[COM_id].xpos;
+    // for (int i = 0; i < LINK_NUMBER; i++)
+    // {
+    //     x_com_ = link_p[i].xpos - link_p[COM_id].xpos;
 
-        c_product_.setZero();
+    //     c_product_.setZero();
 
-        c_product_.block(0, 0, 3, 1) = x_com_ * x_com_(0);
-        c_product_.block(0, 1, 3, 1) = x_com_ * x_com_(1);
-        c_product_.block(0, 2, 3, 1) = x_com_ * x_com_(2);
+    //     c_product_.block(0, 0, 3, 1) = x_com_ * x_com_(0);
+    //     c_product_.block(0, 1, 3, 1) = x_com_ * x_com_(1);
+    //     c_product_.block(0, 2, 3, 1) = x_com_ * x_com_(2);
 
-        i_com_ += link_p[i].rotm * link_p[i].inertia * link_[i].rotm.transpose() + link_p[i].mass * (Eigen::Matrix3d::Identity() * (x_com_(0) * x_com_(0) + x_com_(1) * x_com_(1) + x_com_(2) * x_com_(2)) - c_product_);
-    }
+    //     i_com_ += link_p[i].rotm * link_p[i].inertia * link_[i].rotm.transpose() + link_p[i].mass * (Eigen::Matrix3d::Identity() * (x_com_(0) * x_com_(0) + x_com_(1) * x_com_(1) + x_com_(2) * x_com_(2)) - c_product_);
+    // }
 
-    link_[COM_id].inertia = i_com_;
+    // link_[COM_id].inertia = i_com_;
 
     // link_p[COM_id].xpos(2) = link_p[Pelvis].xpos(2);
     //  sector 4 end : 3 us
@@ -1251,8 +1050,11 @@ void StateManager::StateEstimate()
         Eigen::Vector6d RF_fixed_contact_vel, LF_fixed_contact_vel;
         Eigen::Vector3d RF_P_cpm, LF_P_cpm;
 
-        link_[Right_Foot].GetPointPos(model_global_, q_virtual_, q_dot_virtual_, RF_contactpoint_internal_pos, RF_global_contact_pos, RF_global_contact_vel);
-        link_[Left_Foot].GetPointPos(model_global_, q_virtual_, q_dot_virtual_, LF_contactpoint_internal_pos, LF_global_contact_pos, LF_global_contact_vel);
+        rd_.link_[Right_Foot].GetPointPos(rd_.model_, q_virtual_, q_dot_virtual_, RF_contactpoint_internal_pos, RF_global_contact_pos);
+        rd_.link_[Left_Foot].GetPointPos(rd_.model_, q_virtual_, q_dot_virtual_, LF_contactpoint_internal_pos, LF_global_contact_pos);
+
+        // link_[Right_Foot].GetPointPos(model_global_, q_virtual_, q_dot_virtual_, RF_contactpoint_internal_pos, RF_global_contact_pos, RF_global_contact_vel);
+        // link_[Left_Foot].GetPointPos(model_global_, q_virtual_, q_dot_virtual_, LF_contactpoint_internal_pos, LF_global_contact_pos, LF_global_contact_vel);
 
         link_local_[Right_Foot].GetPointPos(model_local_, q_virtual_local_yaw_initialized, q_dot_virtual_local_, RF_contactpoint_internal_pos, RF_fixed_contact_pos, RF_fixed_contact_vel);
         link_local_[Left_Foot].GetPointPos(model_local_, q_virtual_local_yaw_initialized, q_dot_virtual_local_, LF_contactpoint_internal_pos, LF_fixed_contact_pos, LF_fixed_contact_vel);
@@ -1266,8 +1068,8 @@ void StateManager::StateEstimate()
         // }
         // else
         {
-            local_LF_contact = rd_gl_.ee_[0].contact;
-            local_RF_Contact = rd_gl_.ee_[1].contact;
+            local_LF_contact = rd_gl_.cc_[0].contact;
+            local_RF_Contact = rd_gl_.cc_[1].contact;
         }
 
         bool left_change, right_change;
@@ -1306,7 +1108,6 @@ void StateManager::StateEstimate()
 
         if (ss_switch2)
         {
-
             LF_contact_pos_holder(2) = 0.0;
             RF_contact_pos_holder(2) = 0.0;
             ss_switch2 = false;
@@ -1545,11 +1346,6 @@ void StateManager::StateEstimate()
     }
 }
 
-void StateManager::CalcNonlinear()
-{
-    // RigidBodyDynamics::NonlinearEffects(model_local_,)
-}
-
 void StateManager::PublishData()
 {
     timer_msg_.data = control_time_;
@@ -1585,75 +1381,75 @@ void StateManager::PublishData()
 
     point_pub_msg_.header.stamp = ros::Time::now();
 
-    point_pub_msg_.polygon.points[0].x = link_[COM_id].xpos(0);
-    point_pub_msg_.polygon.points[0].y = link_[COM_id].xpos(1);
-    point_pub_msg_.polygon.points[0].z = link_[COM_id].xpos(2);
+    point_pub_msg_.polygon.points[0].x = rd_.link_[COM_id].xpos(0);
+    point_pub_msg_.polygon.points[0].y = rd_.link_[COM_id].xpos(1);
+    point_pub_msg_.polygon.points[0].z = rd_.link_[COM_id].xpos(2);
 
-    point_pub_msg_.polygon.points[1].x = link_[Right_Foot].xpos(0);
-    point_pub_msg_.polygon.points[1].y = link_[Right_Foot].xpos(1);
-    point_pub_msg_.polygon.points[1].z = link_[Right_Foot].xpos(2);
+    point_pub_msg_.polygon.points[1].x = rd_.link_[Right_Foot].xpos(0);
+    point_pub_msg_.polygon.points[1].y = rd_.link_[Right_Foot].xpos(1);
+    point_pub_msg_.polygon.points[1].z = rd_.link_[Right_Foot].xpos(2);
 
-    point_pub_msg_.polygon.points[2].x = link_[Left_Foot].xpos(0);
-    point_pub_msg_.polygon.points[2].y = link_[Left_Foot].xpos(1);
-    point_pub_msg_.polygon.points[2].z = link_[Left_Foot].xpos(2);
+    point_pub_msg_.polygon.points[2].x = rd_.link_[Left_Foot].xpos(0);
+    point_pub_msg_.polygon.points[2].y = rd_.link_[Left_Foot].xpos(1);
+    point_pub_msg_.polygon.points[2].z = rd_.link_[Left_Foot].xpos(2);
 
-    point_pub_msg_.polygon.points[3].x = link_[Pelvis].xpos(0);
-    point_pub_msg_.polygon.points[3].y = link_[Pelvis].xpos(1);
-    point_pub_msg_.polygon.points[3].z = link_[Pelvis].xpos(2);
+    point_pub_msg_.polygon.points[3].x = rd_.link_[Pelvis].xpos(0);
+    point_pub_msg_.polygon.points[3].y = rd_.link_[Pelvis].xpos(1);
+    point_pub_msg_.polygon.points[3].z = rd_.link_[Pelvis].xpos(2);
 
     double tr_, tp_, ty_;
 
-    DyrosMath::rot2Euler_tf2(link_[Pelvis].rotm, tr_, tp_, ty_);
+    DyrosMath::rot2Euler_tf2(rd_.link_[Pelvis].rotm, tr_, tp_, ty_);
 
     point_pub_msg_.polygon.points[4].x = tr_; // rpy
     point_pub_msg_.polygon.points[4].y = tp_; // rpy
     point_pub_msg_.polygon.points[4].z = ty_; // rpy
 
-    point_pub_msg_.polygon.points[5].x = link_[Right_Hand].xpos(0);
-    point_pub_msg_.polygon.points[5].y = link_[Right_Hand].xpos(1);
-    point_pub_msg_.polygon.points[5].z = link_[Right_Hand].xpos(2);
+    point_pub_msg_.polygon.points[5].x = rd_.link_[Right_Hand].xpos(0);
+    point_pub_msg_.polygon.points[5].y = rd_.link_[Right_Hand].xpos(1);
+    point_pub_msg_.polygon.points[5].z = rd_.link_[Right_Hand].xpos(2);
 
-    point_pub_msg_.polygon.points[6].x = link_[Left_Hand].xpos(0);
-    point_pub_msg_.polygon.points[6].y = link_[Left_Hand].xpos(1);
-    point_pub_msg_.polygon.points[6].z = link_[Left_Hand].xpos(2);
+    point_pub_msg_.polygon.points[6].x = rd_.link_[Left_Hand].xpos(0);
+    point_pub_msg_.polygon.points[6].y = rd_.link_[Left_Hand].xpos(1);
+    point_pub_msg_.polygon.points[6].z = rd_.link_[Left_Hand].xpos(2);
 
     point_pub_msg_.polygon.points[7].x = rd_gl_.zmp_global_(0);
     point_pub_msg_.polygon.points[7].y = rd_gl_.zmp_global_(1);
     point_pub_msg_.polygon.points[7].z = 0.0;
 
-    DyrosMath::rot2Euler_tf2(link_[Left_Foot].rotm, tr_, tp_, ty_);
+    DyrosMath::rot2Euler_tf2(rd_.link_[Left_Foot].rotm, tr_, tp_, ty_);
     point_pub_msg_.polygon.points[8].x = tr_;
     point_pub_msg_.polygon.points[8].y = tp_;
     point_pub_msg_.polygon.points[8].z = ty_;
 
-    DyrosMath::rot2Euler_tf2(link_[Right_Foot].rotm, tr_, tp_, ty_);
+    DyrosMath::rot2Euler_tf2(rd_.link_[Right_Foot].rotm, tr_, tp_, ty_);
     point_pub_msg_.polygon.points[9].x = tr_;
     point_pub_msg_.polygon.points[9].y = tp_;
     point_pub_msg_.polygon.points[9].z = ty_;
 
-    DyrosMath::rot2Euler_tf2(link_[Upper_Body].rotm, tr_, tp_, ty_);
+    DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].rotm, tr_, tp_, ty_);
     point_pub_msg_.polygon.points[10].x = tr_;
     point_pub_msg_.polygon.points[10].y = tp_;
     point_pub_msg_.polygon.points[10].z = ty_;
 
     // geometry_msgs::Point32 p_vel, p_vel_virtual_;
 
-    point_pub_msg_.polygon.points[11].x = link_[Pelvis].v(0);
-    point_pub_msg_.polygon.points[11].y = link_[Pelvis].v(1);
-    point_pub_msg_.polygon.points[11].z = link_[Pelvis].v(2);
+    point_pub_msg_.polygon.points[11].x = rd_.link_[Pelvis].v(0);
+    point_pub_msg_.polygon.points[11].y = rd_.link_[Pelvis].v(1);
+    point_pub_msg_.polygon.points[11].z = rd_.link_[Pelvis].v(2);
 
     point_pub_msg_.polygon.points[12].x = dc_.tc_shm_->vel_virtual[0];
     point_pub_msg_.polygon.points[12].y = dc_.tc_shm_->vel_virtual[1];
     point_pub_msg_.polygon.points[12].z = dc_.tc_shm_->vel_virtual[2];
 
-    point_pub_msg_.polygon.points[13].x = rd_gl_.ee_[0].xpos_contact(0) - LF_CF_FT(4) / LF_CF_FT(2);
-    point_pub_msg_.polygon.points[13].y = rd_gl_.ee_[0].xpos_contact(1) + LF_CF_FT(3) / LF_CF_FT(2);
+    point_pub_msg_.polygon.points[13].x = rd_gl_.cc_[0].xc_pos(0) - LF_CF_FT(4) / LF_CF_FT(2);
+    point_pub_msg_.polygon.points[13].y = rd_gl_.cc_[0].xc_pos(1) + LF_CF_FT(3) / LF_CF_FT(2);
     point_pub_msg_.polygon.points[13].z = 0.0;
 
     // std::cout << LF_CF_FT.transpose() << rd_gl_.ee_[0].xpos_contact.transpose() << std::endl;
 
-    point_pub_msg_.polygon.points[14].x = rd_gl_.ee_[1].xpos_contact(0) - RF_CF_FT(4) / RF_CF_FT(2);
-    point_pub_msg_.polygon.points[14].y = rd_gl_.ee_[1].xpos_contact(1) + RF_CF_FT(3) / RF_CF_FT(2);
+    point_pub_msg_.polygon.points[14].x = rd_gl_.cc_[1].xc_pos(0) - RF_CF_FT(4) / RF_CF_FT(2);
+    point_pub_msg_.polygon.points[14].y = rd_gl_.cc_[1].xc_pos(1) + RF_CF_FT(3) / RF_CF_FT(2);
     point_pub_msg_.polygon.points[14].z = 0.0;
 
     point_pub_msg_.polygon.points[15].x = LF_CF_FT(0);
@@ -1676,7 +1472,7 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[18].y = RF_CF_FT(4);
     point_pub_msg_.polygon.points[18].z = RF_CF_FT(5);
 
-    point_pub_msg_.polygon.points[19].x = link_[COM_id].v(1);
+    point_pub_msg_.polygon.points[19].x = rd_.link_[COM_id].v(1);
     point_pub_msg_.polygon.points[19].y = -link_local_[Left_Foot].v(1);
     point_pub_msg_.polygon.points[19].z = -link_local_[Right_Foot].v(1);
 
@@ -1690,7 +1486,7 @@ void StateManager::PublishData()
 
     point_pub_.publish(point_pub_msg_);
 
-    Eigen::Quaterniond q_head_(DyrosMath::rotateWithZ(-rd_.yaw) * link_[Head].rotm);
+    Eigen::Quaterniond q_head_(DyrosMath::rotateWithZ(-rd_.yaw) * rd_.link_[Head].rotm);
 
     head_pose_msg_.orientation.w = q_head_.w();
     head_pose_msg_.orientation.x = q_head_.x();
@@ -2029,4 +1825,210 @@ void StateManager::StatusPub(const char *str, ...)
     // std::cout<<str_;
 
     va_end(lst);
+}
+
+void *StateManager::LoggerThread()
+{
+    bool activateLogger = false;
+    bool startLogger = false;
+
+    dc_.nh.getParam("/tocabi_controller/log", activateLogger);
+
+    // wait for both ecat are in control mode !
+    //  while (!dc_.tc_shm_->shutdown)
+    //  {
+    //      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    //      if (dc_.tc_shm_->controlModeLower && dc_.tc_shm_->controlModeUpper)
+    //      {
+    //          std::cout << "Logger : Both ECAT is now on CONTROL MODE! Logging start..." << std::endl;
+    //          break;
+    //      }
+    //  }
+
+    std::string torqueLogFile = "/home/dyros/tocabi_log/torque_elmo_log";
+    std::string ecatStatusFile = "/home/dyros/tocabi_log/ecat_status_log";
+    std::string torqueclogFile = "/home/dyros/tocabi_log/torque_command_log";
+    std::string torqueActualLogFile = "/home/dyros/tocabi_log/torque_actual_log";
+    std::string posLogFile = "/home/dyros/tocabi_log/pos_log";
+    std::string velLogFile = "/home/dyros/tocabi_log/vel_log";
+    std::string maskLogFile = "/home/dyros/tocabi_log/mask_log";
+
+    ofstream torqueLog;
+    ofstream torqueCommandLog;
+    ofstream torqueActualLog;
+    ofstream maskLog;
+    ofstream ecatStatusLog;
+    ofstream posLog;
+    ofstream velLog;
+
+    int log_count = 0;
+    int pub_count = 0;
+    int s_count = 0;
+
+    timespec ts;
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+
+    int record_seconds = 120;
+
+    int record_tick = record_seconds * 2000;
+
+    long current_time = rd_gl_.control_time_us_;
+
+    while (!dc_.tc_shm_->shutdown)
+    {
+        pub_count++;
+        if (pub_count % 33 == 0)
+        {
+            if (current_time < rd_gl_.control_time_us_)
+            {
+                PublishData();
+                current_time = rd_gl_.control_time_us_;
+            }
+        }
+        ros::spinOnce();
+
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
+
+        ts.tv_nsec += 500000;
+
+        if (ts.tv_nsec >= 1000000000)
+        {
+            ts.tv_nsec -= 1000000000;
+            ts.tv_sec++;
+        }
+
+        if (activateLogger && (!startLogger))
+        {
+            if (dc_.tc_shm_->controlModeLower && dc_.tc_shm_->controlModeUpper)
+            {
+                startLogger = true;
+            }
+        }
+
+        if (startLogger)
+        {
+            if (log_count % record_tick == 0)
+            {
+                std::string apd_;
+                std::string cpd_;
+                if (s_count % 2 == 0)
+                {
+                    apd_ = "0";
+                    cpd_ = "1";
+                    std::cout << "LOGGER : Open Log Files : 0" << std::endl;
+                }
+                else
+                {
+                    apd_ = "1";
+                    cpd_ = "0";
+                    std::cout << "LOGGER : Open Log Files : 1" << std::endl;
+                }
+
+                if (s_count > 0)
+                {
+                    torqueLog.close();
+                    torqueCommandLog.close();
+                    torqueActualLog.close();
+                    maskLog.close();
+                    ecatStatusLog.close();
+                    posLog.close();
+                    velLog.close();
+                }
+
+                torqueLog.open((torqueLogFile + apd_).c_str());
+                torqueLog.fill(' ');
+                torqueCommandLog.open((torqueclogFile + apd_).c_str());
+                torqueActualLog.open((torqueActualLogFile + apd_).c_str());
+                maskLog.open((maskLogFile + apd_).c_str());
+                ecatStatusLog.open((ecatStatusFile + apd_).c_str());
+                posLog.open((posLogFile + apd_).c_str());
+                velLog.open((velLogFile + apd_).c_str());
+                s_count++;
+            }
+            log_count++;
+
+            torqueLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                torqueLog << (int)dc_.tc_shm_->elmo_torque[i] << " ";
+            }
+            torqueLog << std::endl;
+
+            torqueCommandLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                torqueCommandLog << dc_.torque_command[i] << " ";
+            }
+            torqueCommandLog << std::endl;
+
+            posLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                posLog << rd_gl_.q_[i] << " ";
+            }
+            posLog << std::endl;
+
+            velLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                velLog << rd_gl_.q_dot_[i] << " ";
+            }
+            velLog << std::endl;
+
+            torqueActualLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                torqueActualLog << (int)dc_.tc_shm_->torqueActual[i] << " ";
+            }
+            torqueActualLog << std::endl;
+
+            maskLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            for (int i = 0; i < 10; i++)
+            {
+                maskLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->e1_m[i] << " ";
+            }
+            for (int i = 0; i < 10; i++)
+            {
+                maskLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->e2_m[i] << " ";
+            }
+            maskLog << std::endl;
+
+            bool change = false;
+
+            static int elmoStatus_before[MODEL_DOF];
+            int elmoStatus_now[MODEL_DOF];
+
+            std::copy(dc_.tc_shm_->ecat_status, dc_.tc_shm_->ecat_status + MODEL_DOF, elmoStatus_now);
+
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                if (elmoStatus_now[i] != elmoStatus_before[i])
+                    change = true;
+            }
+
+            if (change)
+            {
+                ecatStatusLog << (float)rd_gl_.control_time_us_ / 1000000.0 << "\t ";
+                for (int i = 0; i < MODEL_DOF; i++)
+                {
+                    ecatStatusLog << elmoStatus_now[i] << "  ";
+                }
+                ecatStatusLog << std::endl;
+            }
+
+            std::copy(elmoStatus_now, elmoStatus_now + MODEL_DOF, elmoStatus_before);
+        }
+    }
+
+    ecatStatusLog.close();
+    torqueLog.close();
+    torqueCommandLog.close();
+    torqueActualLog.close();
+    maskLog.close();
+    posLog.close();
+    velLog.close();
+
+    std::cout << "Logger : END!" << std::endl;
+    return (void *)NULL;
 }

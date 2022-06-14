@@ -30,46 +30,12 @@ void SIGINT_handler(int sig)
     *prog_shutdown = true;
 }
 
-// static int latency_target_fd = -1;
-// static int32_t latency_target_value = 0;
-// static void set_latency_target(void)
-// {
-//     struct stat s;
-//     int err;
-//     int errno;
-//     errno = 0;
-//     err = stat("/dev/cpu_dma_latency", &s);
-//     if (err == -1)
-//     {
-//         std::cout << "WARN: stat /dev/cpu_dma_latency failed" << std::endl;
-//         return;
-//     }
-
-//     errno = 0;
-//     latency_target_fd = open("/dev/cpu_dma_latency", O_RDWR);
-//     if (latency_target_fd == -1)
-//     {
-//         std::cout << "WARN: open /dev/cpu_dma_latency" << std::endl;
-//         return;
-//     }
-
-//     errno = 0;
-//     err = write(latency_target_fd, &latency_target_value, 4);
-//     if (err < 1)
-//     {
-//         std::cout << "# error setting cpu_dma_latency to %d!" << latency_target_value << std::endl;
-//         close(latency_target_fd);
-//         return;
-//     }
-//     printf("# /dev/cpu_dma_latency set to %dus\n", latency_target_value);
-// }
-
 int main(int argc, char **argv)
 {
     cout << std::endl
          << "=====================================" << std::endl;
     cout << " CNTRL : Starting TOCABI CONTROLLER! " << endl;
-    // set_latency_target();
+
     signal(SIGINT, SIGINT_handler);
 
 #ifdef COMPILE_REALROBOT

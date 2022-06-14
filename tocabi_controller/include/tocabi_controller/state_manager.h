@@ -46,7 +46,6 @@ public:
     void InitYaw();
     void GetSensorData();
     void StoreState(RobotData &robotd_);
-    void CalcNonlinear();
 
     void StateEstimate();
     //private functions
@@ -59,7 +58,7 @@ public:
 
     void PublishData();
 
-    LinkData link_[LINK_NUMBER + 1];
+    // LinkData link_[LINK_NUMBER + 1];
     LinkData link_local_[LINK_NUMBER + 1];
     int link_id_[LINK_NUMBER + 1];
 

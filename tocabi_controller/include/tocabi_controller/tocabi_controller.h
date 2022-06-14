@@ -2,7 +2,7 @@
 #define TOCABI_CONTROLLER_H
 
 #include "tocabi_controller/state_manager.h"
-#include "wholebody_functions.h"
+// #include "wholebody_functions.h"
 
 #include "tocabi_msgs/TaskGainCommand.h"
 
