@@ -443,19 +443,78 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             {
 
                 static ofstream task_log;
-
+                static Vector3d com_desired;
+                static int init_qp_;
                 if (rd_.tc_init)
                 {
 
-                    std::string output_file = "/home/dyros/tocabi_log/output";
+                    // std::string output_file = "/home/dyros/tocabi_log/output";
 
-                    task_log.open(output_file.c_str(), fstream::out | fstream::app);
-                    task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z fstar_x fstar_y fstar_z lambda_x lambda_y lambda_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z" << std::endl;
+                    // task_log.open(output_file.c_str(), fstream::out | fstream::app);
+                    // task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z fstar_x fstar_y fstar_z lambda_x lambda_y lambda_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z" << std::endl;
                     std::cout << "mode 0 init" << std::endl;
                     rd_.tc_init = false;
 
+                    com_desired = rd_.tc_.ratio * dc_.rd_holder_.link_[Left_Foot].xpos + (1 - rd_.tc_.ratio) * dc_.rd_holder_.link_[Right_Foot].xpos;
+
+                    com_desired(2) = rd_.tc_.height;
+
+                    dc_.rd_holder_.ClearTaskSpace();
+
+                    std::cout << "name" << std::endl;
+                    std::cout << dc_.rd_holder_.link_[COM_id].name_ << std::endl;
+                    std::cout << "jac com" << std::endl;
+                    std::cout << dc_.rd_holder_.link_[COM_id].jac_com_ << std::endl;
+                    std::cout << "  " << std::endl;
+
+                    dc_.rd_holder_.AddTaskSpace(DWBC::TASK_LINK_POSITION, COM_id, Vector3d(0, 0, 0), true);
+
+                    dc_.rd_holder_.AddTaskSpace(DWBC::TASK_LINK_ROTATION, Upper_Body, Vector3d(0, 0, 0), true);
+
+                    dc_.rd_holder_.ts_[0].SetTrajectoryQuintic(rd_.control_time_, rd_.control_time_ + rd_.tc_.time, dc_.rd_holder_.link_[COM_id].xpos, dc_.rd_holder_.link_[COM_id].v, com_desired, Vector3d(0, 0, 0));
+
+                    dc_.rd_holder_.ts_[0].SetTaskGain(Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1), Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1));
+
+                    dc_.rd_holder_.ts_[1].SetTrajectoryRotation(rd_.control_time_, rd_.control_time_ + rd_.tc_.time, dc_.rd_holder_.link_[Upper_Body].rotm, Vector3d(0, 0, 0), Matrix3d::Identity(), Vector3d(0, 0, 0));
+
+                    dc_.rd_holder_.ts_[1].SetTaskGain(Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1), Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1));
+
+                    std::cout << com_desired.transpose() << std::endl;
+
+                    std::cout << dc_.rd_holder_.link_[COM_id].jac_ << std::endl;
                     // rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
+                    init_qp_ = true;
                 }
+
+                // dc_.rd_holder_.UpdateKinematics(dc_.rd_holder_.q_system_,dc_.rd_holder_.q_ddot_system_,dc_.rd_holder_.q_ddot_system_);
+
+                dc_.rd_holder_.SetContact(true, true);
+
+                // std::cout << "sc" << std::endl;
+                dc_.rd_holder_.CalcGravCompensation();
+
+                dc_.rd_holder_.CalcTaskSpace();
+
+                // dc_.rd_holder_.ts_[0].f_star_ = Vector3d(0, 20, 0);
+
+                // std::cout << "ct" << std::endl;
+                dc_.rd_holder_.CalcTaskControlTorque(init_qp_, true, false);
+
+                // std::cout << "tc" << std::endl;
+                int cc_s = dc_.rd_holder_.CalcContactRedistribute(init_qp_);
+                // std::cout << "com pos : " << dc_.rd_holder_.link_[COM_id].xpos.transpose() << std::endl;
+
+                // std::cout << "com pos : " << dc_.rd_holder_.link_[COM_id].xpos.transpose() << std::endl;
+                // std::cout << "fstar : " << dc_.rd_holder_.ts_[0].f_star_.transpose() << std::endl;
+                // std::cout << "fstar qp :" << dc_.rd_holder_.ts_[0].f_star_qp_.transpose() << std::endl;
+
+                // std::cout << "rd" << std::endl;
+                if (cc_s == 0)
+                    rd_.positionControlSwitch = true;
+
+                init_qp_ = false;
+
+                rd_.torque_desired = dc_.rd_holder_.torque_grav_ + dc_.rd_holder_.torque_task_ + dc_.rd_holder_.torque_contact_;
 
                 // WBC::SetContact(rd_, rd_.tc_.left_foot, rd_.tc_.right_foot, rd_.tc_.left_hand, rd_.tc_.right_hand);
 
@@ -563,33 +622,14 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
             dc_.rd_holder_.CalcGravCompensation();
 
-            dc_.rd_holder_.CalcContactRedistribute(dc_.rd_holder_.torque_grav_);
+            int qpcont_res = dc_.rd_holder_.CalcContactRedistribute(dc_.rd_holder_.torque_grav_);
+
+            if (qpcont_res == 0)
+            {
+                rd_.positionControlSwitch = true;
+            }
+
             rd_.torque_desired = dc_.rd_holder_.torque_grav_ + dc_.rd_holder_.torque_contact_;
-
-            std::cout << "torque grav " << std::endl;
-            std::cout << dc_.rd_holder_.torque_grav_.transpose() << std::endl;
-
-            std::cout << "contact redis torque" << std::endl;
-            std::cout << dc_.rd_holder_.torque_contact_.transpose() << std::endl;
-
-            std::cout << " contact force after : " << std::endl;
-            std::cout << dc_.rd_holder_.getContactForce(dc_.rd_holder_.torque_grav_ + dc_.rd_holder_.torque_contact_).transpose() << std::endl;
-
-            VectorQd torque_redis2 = contact_redis_test(dc_.rd_holder_, dc_.rd_holder_.torque_grav_);
-
-            std::cout << " contact redis mode 2 :" << std::endl;
-            std::cout << torque_redis2.transpose() << std::endl;
-
-            std::cout << " contact force after 2: " << std::endl;
-            std::cout << dc_.rd_holder_.getContactForce(dc_.rd_holder_.torque_grav_ + torque_redis2).transpose() << std::endl;
-
-            VectorQd torque_redis3 = ContactForceRedistributionTorque(dc_.rd_holder_, dc_.rd_holder_.torque_grav_, 0.9);
-
-            std::cout << " contact redis mode 3 :" << std::endl;
-            std::cout << torque_redis3.transpose() << std::endl;
-
-            std::cout << " contact force after 3: " << std::endl;
-            std::cout << dc_.rd_holder_.getContactForce(dc_.rd_holder_.torque_grav_ + torque_redis3).transpose() << std::endl;
 
             // rd_.SetContact(true, true);
             // rd_.CalcGravCompensation();
@@ -602,8 +642,6 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
         // Send Data To thread2
 
         // Data2Thread2
-
-        // std::cout << torque_task_.norm() << "\t" << torque_grav_.norm() << "\t" << torque_contact_.norm() << std::endl;
 
         static std::chrono::steady_clock::time_point t_c_ = std::chrono::steady_clock::now();
 

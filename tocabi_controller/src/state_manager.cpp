@@ -68,6 +68,11 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     rd_.AddContactConstraint(Left_Hand, DWBC::CONTACT_6D, hand_contact_point, foot_contact_vector, 0.04, 0.04);
     rd_.AddContactConstraint(Right_Hand, DWBC::CONTACT_6D, hand_contact_point, foot_contact_vector, 0.04, 0.04);
 
+    // dc_.rd_holder_.AddContactConstraint(6, DWBC::CONTACT_6D, foot_contact_point, foot_contact_vector, 0.15, 0.075);
+    // dc_.rd_holder_.AddContactConstraint(12, DWBC::CONTACT_6D, foot_contact_point, foot_contact_vector, 0.15, 0.075);
+    // dc_.rd_holder_.AddContactConstraint(Left_Hand, DWBC::CONTACT_6D, hand_contact_point, foot_contact_vector, 0.04, 0.04);
+    // dc_.rd_holder_.AddContactConstraint(Right_Hand, DWBC::CONTACT_6D, hand_contact_point, foot_contact_vector, 0.04, 0.04);
+
     if (dc_.simMode)
     {
         mujoco_sim_command_pub_ = dc_.nh.advertise<std_msgs::String>("/mujoco_ros_interface/sim_command_con2sim", 100);
