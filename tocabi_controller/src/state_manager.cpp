@@ -697,6 +697,16 @@ void StateManager::GetSensorData()
         RF_FT(i) = dc_.tc_shm_->ftSensor[i + 6];
     }
 
+    static Vector6d RF_FT_LPF = RF_FT;
+    static Vector6d LF_FT_LPF = LF_FT;
+
+    for (int i = 0; i < 6; i++)
+    {
+        LF_FT_LPF(i) = DyrosMath::lpf(LF_FT(i), LF_FT_LPF(i), 2000, 60);
+
+        RF_FT_LPF(i) = DyrosMath::lpf(RF_FT(i), RF_FT_LPF(i), 2000, 60);
+    }
+
     double foot_plate_mass = 2.326;
 
     Matrix6d adt;
@@ -718,7 +728,7 @@ void StateManager::GetSensorData()
     Wrench_foot_plate.setZero();
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
 
-    RF_CF_FT = rotrf * adt * RF_FT - adt2 * Wrench_foot_plate;
+    RF_CF_FT = rotrf * adt * RF_FT_LPF - adt2 * Wrench_foot_plate;
     // rd_gl_.ee_[1].contact_force_ft = RF_CF_FT;
 
     // RF_CF_FT_local = rotrf.inverse() * RF_CF_FT;
@@ -739,7 +749,7 @@ void StateManager::GetSensorData()
     Wrench_foot_plate.setZero();
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
 
-    LF_CF_FT = rotrf * adt * LF_FT - adt2 * Wrench_foot_plate;
+    LF_CF_FT = rotrf * adt * LF_FT_LPF - adt2 * Wrench_foot_plate;
 
     // dc.tocabi_.ee_[0].contact_force_ft = LF_CF_FT;
 
@@ -1447,14 +1457,28 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[12].y = dc_.tc_shm_->vel_virtual[1];
     point_pub_msg_.polygon.points[12].z = dc_.tc_shm_->vel_virtual[2];
 
-    point_pub_msg_.polygon.points[13].x = rd_gl_.cc_[0].xc_pos(0) - LF_CF_FT(4) / LF_CF_FT(2);
-    point_pub_msg_.polygon.points[13].y = rd_gl_.cc_[0].xc_pos(1) + LF_CF_FT(3) / LF_CF_FT(2);
+    double zx, zy;
+
+    zx = -LF_CF_FT(4) / LF_CF_FT(2);
+    zy = LF_CF_FT(3) / LF_CF_FT(2);
+
+    zx = DyrosMath::minmax_cut(zx, -0.3, 0.3);
+    zy = DyrosMath::minmax_cut(zy, -0.3, 0.3);
+
+    point_pub_msg_.polygon.points[13].x = rd_gl_.cc_[0].xc_pos(0) + zx;
+    point_pub_msg_.polygon.points[13].y = rd_gl_.cc_[0].xc_pos(1) + zy;
     point_pub_msg_.polygon.points[13].z = 0.0;
 
     // std::cout << LF_CF_FT.transpose() << rd_gl_.ee_[0].xpos_contact.transpose() << std::endl;
 
-    point_pub_msg_.polygon.points[14].x = rd_gl_.cc_[1].xc_pos(0) - RF_CF_FT(4) / RF_CF_FT(2);
-    point_pub_msg_.polygon.points[14].y = rd_gl_.cc_[1].xc_pos(1) + RF_CF_FT(3) / RF_CF_FT(2);
+    zx = -RF_CF_FT(4) / RF_CF_FT(2);
+    zy = RF_CF_FT(3) / RF_CF_FT(2);
+
+    zx = DyrosMath::minmax_cut(zx, -0.3, 0.3);
+    zy = DyrosMath::minmax_cut(zy, -0.3, 0.3);
+
+    point_pub_msg_.polygon.points[14].x = rd_gl_.cc_[1].xc_pos(0) + zx;
+    point_pub_msg_.polygon.points[14].y = rd_gl_.cc_[1].xc_pos(1) + zy;
     point_pub_msg_.polygon.points[14].z = 0.0;
 
     point_pub_msg_.polygon.points[15].x = LF_CF_FT(0);

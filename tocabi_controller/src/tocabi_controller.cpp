@@ -377,10 +377,6 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
         dc_.state_locker_.consumer_done();
 
-        if (dc_.stateEstimateSwitch)
-        {
-            std::cout << "start tc" << std::endl;
-        }
         thread1_count++;
         if (dc_.tc_shm_->shutdown)
             break;
@@ -441,10 +437,16 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
         {
             if (rd_.tc_.mode == 0)
             {
+                static double total_time_ = 0;
 
                 static ofstream task_log;
                 static Vector3d com_desired;
-                static int init_qp_;
+                static bool init_qp_;
+                static int count = 0;
+                count++;
+
+                auto t_start = std::chrono::steady_clock::now();
+
                 if (rd_.tc_init)
                 {
 
@@ -461,59 +463,90 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     dc_.rd_holder_.ClearTaskSpace();
 
-                    std::cout << "name" << std::endl;
-                    std::cout << dc_.rd_holder_.link_[COM_id].name_ << std::endl;
-                    std::cout << "jac com" << std::endl;
-                    std::cout << dc_.rd_holder_.link_[COM_id].jac_com_ << std::endl;
-                    std::cout << "  " << std::endl;
+                    // std::cout << "name" << std::endl;
+                    // std::cout << dc_.rd_holder_.link_[COM_id].name_ << std::endl;
+                    // std::cout << "jac com" << std::endl;
+                    // std::cout << dc_.rd_holder_.link_[COM_id].jac_com_ << std::endl;
+                    // std::cout << "  " << std::endl;
 
-                    dc_.rd_holder_.AddTaskSpace(DWBC::TASK_LINK_POSITION, COM_id, Vector3d(0, 0, 0), true);
+                    dc_.rd_holder_.AddTaskSpace(DWBC::TASK_COM_POSITION, COM_id, Vector3d(0, 0, 0), true);
+
+                    dc_.rd_holder_.AddTaskSpace(DWBC::TASK_LINK_ROTATION, Pelvis, Vector3d(0, 0, 0), true);
 
                     dc_.rd_holder_.AddTaskSpace(DWBC::TASK_LINK_ROTATION, Upper_Body, Vector3d(0, 0, 0), true);
 
                     dc_.rd_holder_.ts_[0].SetTrajectoryQuintic(rd_.control_time_, rd_.control_time_ + rd_.tc_.time, dc_.rd_holder_.link_[COM_id].xpos, dc_.rd_holder_.link_[COM_id].v, com_desired, Vector3d(0, 0, 0));
 
-                    dc_.rd_holder_.ts_[0].SetTaskGain(Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1), Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1));
+                    dc_.rd_holder_.ts_[1].SetTrajectoryRotation(rd_.control_time_, rd_.control_time_ + rd_.tc_.time, dc_.rd_holder_.link_[Pelvis].rotm, Vector3d(0, 0, 0), Matrix3d::Identity(), Vector3d(0, 0, 0));
 
-                    dc_.rd_holder_.ts_[1].SetTrajectoryRotation(rd_.control_time_, rd_.control_time_ + rd_.tc_.time, dc_.rd_holder_.link_[Upper_Body].rotm, Vector3d(0, 0, 0), Matrix3d::Identity(), Vector3d(0, 0, 0));
+                    dc_.rd_holder_.ts_[2].SetTrajectoryRotation(rd_.control_time_, rd_.control_time_ + rd_.tc_.time, dc_.rd_holder_.link_[Upper_Body].rotm, Vector3d(0, 0, 0), Matrix3d::Identity(), Vector3d(0, 0, 0));
+                    if (rd_.tc_.customTaskGain)
+                    {
+                        Vector3d pos_p_gain(rd_.tc_.pos_p, rd_.tc_.pos_p, rd_.tc_.pos_p);
+                        Vector3d pos_d_gain(rd_.tc_.pos_d, rd_.tc_.pos_d, rd_.tc_.pos_d);
+                        Vector3d pos_a_gain(rd_.tc_.acc_p, rd_.tc_.acc_p, rd_.tc_.acc_p);
 
-                    dc_.rd_holder_.ts_[1].SetTaskGain(Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1), Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1));
+                        Vector3d rot_p_gain(rd_.tc_.ang_p, rd_.tc_.ang_p, rd_.tc_.ang_p);
+                        Vector3d rot_d_gain(rd_.tc_.ang_d, rd_.tc_.ang_d, rd_.tc_.ang_d);
+                        Vector3d rot_a_gain(rd_.tc_.acc_p, rd_.tc_.acc_p, rd_.tc_.acc_p);
 
+                        dc_.rd_holder_.ts_[0].SetTaskGain(pos_p_gain, pos_d_gain, pos_a_gain, rot_p_gain, rot_d_gain, rot_a_gain);
+                        dc_.rd_holder_.ts_[1].SetTaskGain(pos_p_gain, pos_d_gain, pos_a_gain, rot_p_gain, rot_d_gain, rot_a_gain);
+                        dc_.rd_holder_.ts_[2].SetTaskGain(pos_p_gain, pos_d_gain, pos_a_gain, rot_p_gain, rot_d_gain, rot_a_gain);
+                    }
+                    else
+                    {
+                        dc_.rd_holder_.ts_[0].SetTaskGain(Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1), Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1));
+                        dc_.rd_holder_.ts_[1].SetTaskGain(Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1), Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1));
+                        dc_.rd_holder_.ts_[2].SetTaskGain(Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1), Vector3d(400, 400, 400), Vector3d(40, 40, 40), Vector3d(1, 1, 1));
+                    }
                     std::cout << com_desired.transpose() << std::endl;
 
-                    std::cout << dc_.rd_holder_.link_[COM_id].jac_ << std::endl;
+                    // std::cout << dc_.rd_holder_.link_[COM_id].jac_ << std::endl;
                     // rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
                     init_qp_ = true;
                 }
 
                 // dc_.rd_holder_.UpdateKinematics(dc_.rd_holder_.q_system_,dc_.rd_holder_.q_ddot_system_,dc_.rd_holder_.q_ddot_system_);
 
-                dc_.rd_holder_.SetContact(true, true);
-
-                // std::cout << "sc" << std::endl;
+                // std::cout << "cc!" << std::endl;
+                dc_.rd_holder_.SetContact(rd_.tc_.left_foot, rd_.tc_.right_foot);
                 dc_.rd_holder_.CalcGravCompensation();
-
-                dc_.rd_holder_.CalcTaskSpace();
-
-                // dc_.rd_holder_.ts_[0].f_star_ = Vector3d(0, 20, 0);
-
-                // std::cout << "ct" << std::endl;
-                dc_.rd_holder_.CalcTaskControlTorque(init_qp_, true, false);
-
-                // std::cout << "tc" << std::endl;
-                int cc_s = dc_.rd_holder_.CalcContactRedistribute(init_qp_);
-                // std::cout << "com pos : " << dc_.rd_holder_.link_[COM_id].xpos.transpose() << std::endl;
-
-                // std::cout << "com pos : " << dc_.rd_holder_.link_[COM_id].xpos.transpose() << std::endl;
-                // std::cout << "fstar : " << dc_.rd_holder_.ts_[0].f_star_.transpose() << std::endl;
-                // std::cout << "fstar qp :" << dc_.rd_holder_.ts_[0].f_star_qp_.transpose() << std::endl;
-
-                // std::cout << "rd" << std::endl;
-                if (cc_s == 0)
+                int tc_s = dc_.rd_holder_.CalcTaskControlTorque(init_qp_, true);
+                if (tc_s == 0)
+                {
+                    std::cout << "position control due to task control qp unsolvable" << std::endl;
                     rd_.positionControlSwitch = true;
+                }
+                int cc_s = dc_.rd_holder_.CalcContactRedistribute(init_qp_);
+
+                if (cc_s == 0)
+                {
+                    std::cout << "position control due to contact control qp unsolvable" << std::endl;
+                    rd_.positionControlSwitch = true;
+                }
 
                 init_qp_ = false;
 
+                VectorQd torque_contact_custom;
+
+                auto t_end = std::chrono::steady_clock::now();
+
+                static long tto_ = 0;
+
+                auto time_s = std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_start).count();
+
+                tto_ += time_s;
+
+                if (count % 2000 == 0)
+                {
+                    double time_avg_ = tto_ / 2000;
+                    std::cout << "avg : " << time_avg_ << std::endl;
+
+                    tto_ = 0;
+                }
+                // torque_contact_custom = dc_.rd_holder_.NwJw * dc_.rd_holder_.ts_.back().contact_qp_;
+                // rd_.torque_desired = dc_.rd_holder_.torque_grav_ + dc_.rd_holder_.torque_task_ + torque_contact_custom;
                 rd_.torque_desired = dc_.rd_holder_.torque_grav_ + dc_.rd_holder_.torque_task_ + dc_.rd_holder_.torque_contact_;
 
                 // WBC::SetContact(rd_, rd_.tc_.left_foot, rd_.tc_.right_foot, rd_.tc_.left_hand, rd_.tc_.right_hand);
@@ -656,6 +689,39 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
         auto d1 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - t1).count();            // 150us without march=native
         auto d2 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - rd_.tp_state_).count(); // 150us without march=native
 
+        Vector3d zmp_pos;
+        Vector3d P_;
+        zmp_pos.setZero();
+        P_.setZero();
+
+        Vector3d zmp_r, zmp_l;
+
+        zmp_l(0) = dc_.rd_holder_.cc_[0].xc_pos(0) + (-rd_.LF_CF_FT(4) - rd_.LF_CF_FT(0) * (dc_.rd_holder_.cc_[0].xc_pos(2) - dc_.rd_holder_.cc_[0].xc_pos(2))) / rd_.LF_CF_FT(2);
+        zmp_l(1) = dc_.rd_holder_.cc_[0].xc_pos(1) + (rd_.LF_CF_FT(3) - rd_.LF_CF_FT(1) * (dc_.rd_holder_.cc_[0].xc_pos(2) - dc_.rd_holder_.cc_[0].xc_pos(2))) / rd_.LF_CF_FT(2);
+
+        zmp_r(0) = dc_.rd_holder_.cc_[1].xc_pos(0) + (-rd_.RF_CF_FT(4) - rd_.RF_CF_FT(0) * (dc_.rd_holder_.cc_[1].xc_pos(2) - dc_.rd_holder_.cc_[1].xc_pos(2))) / rd_.RF_CF_FT(2);
+        zmp_r(1) = dc_.rd_holder_.cc_[1].xc_pos(1) + (rd_.RF_CF_FT(3) - rd_.RF_CF_FT(1) * (dc_.rd_holder_.cc_[1].xc_pos(2) - dc_.rd_holder_.cc_[1].xc_pos(2))) / rd_.RF_CF_FT(2);
+
+        if (dc_.rd_holder_.cc_[0].contact && dc_.rd_holder_.cc_[1].contact)
+        {
+            zmp_pos(0) = (zmp_l(0) * rd_.LF_CF_FT(2) + zmp_r(0) * rd_.RF_CF_FT(2)) / (rd_.LF_CF_FT(2) + rd_.RF_CF_FT(2));
+            zmp_pos(1) = (zmp_l(1) * rd_.LF_CF_FT(2) + zmp_r(1) * rd_.RF_CF_FT(2)) / (rd_.LF_CF_FT(2) + rd_.RF_CF_FT(2));
+        }
+        else if (dc_.rd_holder_.cc_[0].contact) // left contact
+        {
+            zmp_pos(0) = zmp_l(0);
+            zmp_pos(1) = zmp_l(1);
+        }
+        else if (dc_.rd_holder_.cc_[1].contact) // right contact
+        {
+            zmp_pos(0) = zmp_r(0);
+            zmp_pos(1) = zmp_r(1);
+        }
+
+        // rd_.zmp_feedback_control
+        rd_.zmp_global_ = zmp_pos;
+
+        // std::cout << rd_.zmp_global_ << std::endl;
         // zmp calculation
         // rd_.zmp_global_ = WBC::GetZMPpos_fromFT(rd_);
 

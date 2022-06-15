@@ -255,7 +255,7 @@
                             <joint name="Neck_Joint" pos="0 0 0" axis="0 0 1" limited="true" range="-1.54 1.54" class="csf_11_100_2xh_f"/>
                             <geom class="viz" rgba="0.20313 0.20313 0.20313 1" mesh="neck" />
                             <body name="Head_Link" pos="0 0 0.0275">
-                                <inertial pos="0.037 0 0.071" mass="1.417" fullinertia="0.0079 0.012 0.01 0.0 0.0025 0.0" />
+                                <inertial pos="0.05 0 0.071" mass="1.417" fullinertia="0.0079 0.012 0.01 0.0 0.0025 0.0" />
                                 <joint name="Head_Joint" pos="0 0 0" axis="0 1 0" limited="true" range="-1.54 1.54" class="csf_11_100_2xh_f"/>
                                 <geom class="viz" rgba="0.85938 0.07813 0.23438 1" pos="0.02 0 -0.6" mesh="head" />
                                 <geom class="cls" size="0.08 0.06 0.086" pos="0.02 0 0.14" type="box" />
