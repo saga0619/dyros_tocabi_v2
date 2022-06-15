@@ -15,6 +15,7 @@ SensorManager::SensorManager()
 {
     gui_command_sub_ = nh_.subscribe("/tocabi/command", 100, &SensorManager::GuiCommandCallback, this);
     gui_state_pub_ = nh_.advertise<std_msgs::Int8MultiArray>("/tocabi/systemstate", 100);
+    imu_pub = nh_.advertise<sensor_msgs::Imu>("/tocabi/imu", 100);
 }
 
 void SensorManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
@@ -34,7 +35,7 @@ void SensorManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     }
     else if (msg->data == "E1")
     {
-        //pos
+        // pos
     }
 }
 
@@ -100,7 +101,7 @@ void *SensorManager::SensorThread(void)
             std::this_thread::sleep_until(t_begin + cycle_count * std::chrono::microseconds(1000));
             cycle_count++;
 
-            //if signal_ imu reset
+            // if signal_ imu reset
 
             if (imu_reset_signal_)
             {
@@ -133,7 +134,9 @@ void *SensorManager::SensorThread(void)
                 shm_->imu_acc[0] = imu_msg.linear_acceleration.x;
                 shm_->imu_acc[1] = imu_msg.linear_acceleration.y;
                 shm_->imu_acc[2] = imu_msg.linear_acceleration.z;
-                //std::cout<<shm_->pos_virtual[3]<<shm_->pos_virtual[4]<<shm_->pos_virtual[5]<<shm_->pos_virtual[6]<<std::endl;
+                // std::cout<<shm_->pos_virtual[3]<<shm_->pos_virtual[4]<<shm_->pos_virtual[5]<<shm_->pos_virtual[6]<<std::endl;
+
+                imu_pub.publish(imu_msg);
                 shm_->imuWriting = false;
             }
 
@@ -150,7 +153,7 @@ void *SensorManager::SensorThread(void)
                 mx5.packet_num = 0;
             }
 
-            //FT sensor related functions ...
+            // FT sensor related functions ...
             ft.analogOversample();
             std::string tmp;
             int i = 0;
@@ -187,9 +190,9 @@ void *SensorManager::SensorThread(void)
                 }
             }
 
-            if (ft_calib_signal_) //enabled by gui
+            if (ft_calib_signal_) // enabled by gui
             {
-                //dc.ft_state = 1;
+                // dc.ft_state = 1;
                 shm_->ft_state = 1;
                 if (ft_calib_init == false)
                 {
@@ -203,7 +206,7 @@ void *SensorManager::SensorThread(void)
                     }
                     std::cout << "    FT : start calibration ..." << std::endl;
                     // ROS_INFO("FT : start calibration ...");
-                    //pub_to_gui(dc, "ft sensor : calibration ... ");
+                    // pub_to_gui(dc, "ft sensor : calibration ... ");
                 }
                 if (cycle_count < 5 * SAMPLE_RATE + ft_cycle_count)
                 {
@@ -254,7 +257,7 @@ void *SensorManager::SensorThread(void)
 
             shm_->ftWriting = true;
 
-            //Write FT data to shm here
+            // Write FT data to shm here
             for (int i = 0; i < 6; i++)
             {
                 shm_->ftSensor[i] = ft.leftFootAxisData[i];
@@ -263,10 +266,10 @@ void *SensorManager::SensorThread(void)
 
             shm_->ftWriting = false;
 
-            //std::cout << "while end" << std::endl;
+            // std::cout << "while end" << std::endl;
         }
 
-        //std::cout << "imu end" << std::endl;
+        // std::cout << "imu end" << std::endl;
 
         mx5.endIMU();
     }
@@ -291,7 +294,7 @@ int main(int argc, char **argv)
     param.sched_priority = 80;
     // cpu_set_t cpusets[thread_number];
 
-    //set_latency_target();
+    // set_latency_target();
 
     /* Initialize pthread attributes (default values) */
 

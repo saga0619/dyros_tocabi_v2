@@ -140,11 +140,11 @@ sensor_msgs::Imu MX5IMU::getIMU(int &imu_state)
                 }
                 if (dataPoint.channelName() == "estLinearAccelY")
                 {
-                    imu_pub_msg.linear_acceleration.x = -dataPoint.as_float();
+                    imu_pub_msg.linear_acceleration.x = dataPoint.as_float();
                 }
                 if (dataPoint.channelName() == "estLinearAccelZ")
                 {
-                    imu_pub_msg.linear_acceleration.z = dataPoint.as_float();
+                    imu_pub_msg.linear_acceleration.z = -dataPoint.as_float();
                 }
 
                 if (dataPoint.channelName() == "estAngularRateX")
@@ -153,11 +153,11 @@ sensor_msgs::Imu MX5IMU::getIMU(int &imu_state)
                 }
                 if (dataPoint.channelName() == "estAngularRateY")
                 {
-                    imu_pub_msg.angular_velocity.x = -dataPoint.as_float();
+                    imu_pub_msg.angular_velocity.x = dataPoint.as_float();
                 }
                 if (dataPoint.channelName() == "estAngularRateZ")
                 {
-                    imu_pub_msg.angular_velocity.z = dataPoint.as_float();
+                    imu_pub_msg.angular_velocity.z = -dataPoint.as_float();
                 }
             }
             //cout << dataPoint.channelName() << ": ";
