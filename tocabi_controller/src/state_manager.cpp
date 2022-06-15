@@ -172,9 +172,15 @@ void *StateManager::StateThread()
         auto t2 = chrono::steady_clock::now();
         StateEstimate();
 
+        auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
+
+        auto t3 = chrono::steady_clock::now();
         // global kinematics update : 127 us //w/o march native 125 us
         UpdateKinematics(model_global_, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
 
+        auto d3 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t3).count();
+
+        auto t4 = chrono::steady_clock::now();
         UpdateCMM(rd_, link_);
 
         StoreState(rd_gl_); // 6.2 us //w/o march native 8us
@@ -185,15 +191,8 @@ void *StateManager::StateThread()
         rd_gl_.control_time_us_ = dur_start_;
         dc_.tc_shm_->control_time_us_ = dur_start_;
 
-        auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
-
-        auto t3 = chrono::steady_clock::now();
         // dc_.tc_shm_->t_cnt2 = dc_.stm_cnt;
         // dc_.tc_shm_->t_cnt2 = cnt3;
-
-        auto d3 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t3).count();
-
-        auto t4 = chrono::steady_clock::now();
 
         dc_.tc_shm_->stloopCount.store(dc_.stm_cnt);
 
@@ -287,6 +286,7 @@ void *StateManager::LoggerThread()
     std::string posLogFile = "/home/dyros/tocabi_log/pos_log";
     std::string velLogFile = "/home/dyros/tocabi_log/vel_log";
     std::string maskLogFile = "/home/dyros/tocabi_log/mask_log";
+    std::string posDesiredLogFile = "/home/dyros/tocabi_log/pos_des_log";
 
     ofstream torqueLog;
     ofstream torqueCommandLog;
@@ -295,6 +295,7 @@ void *StateManager::LoggerThread()
     ofstream ecatStatusLog;
     ofstream posLog;
     ofstream velLog;
+    ofstream posDesiredLog;
 
     int log_count = 0;
     int pub_count = 0;
@@ -368,6 +369,7 @@ void *StateManager::LoggerThread()
                     maskLog.close();
                     ecatStatusLog.close();
                     posLog.close();
+                    posDesiredLog.close();
                     velLog.close();
                 }
 
@@ -378,12 +380,13 @@ void *StateManager::LoggerThread()
                 maskLog.open((maskLogFile + apd_).c_str());
                 ecatStatusLog.open((ecatStatusFile + apd_).c_str());
                 posLog.open((posLogFile + apd_).c_str());
+                posDesiredLog.open((posDesiredLogFile + apd_).c_str());
                 velLog.open((velLogFile + apd_).c_str());
                 s_count++;
             }
             log_count++;
 
-            torqueLog  << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            torqueLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
                 torqueLog << (int)dc_.tc_shm_->elmo_torque[i] << " ";
@@ -403,6 +406,13 @@ void *StateManager::LoggerThread()
                 posLog << rd_gl_.q_[i] << " ";
             }
             posLog << std::endl;
+
+            posDesiredLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                posDesiredLog << rd_gl_.q_desired[i] << " ";
+            }
+            posDesiredLog << std::endl;
 
             velLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
@@ -462,6 +472,7 @@ void *StateManager::LoggerThread()
     torqueActualLog.close();
     maskLog.close();
     posLog.close();
+    posDesiredLog.close();
     velLog.close();
 
     std::cout << "Logger : END!" << std::endl;
@@ -801,7 +812,6 @@ void StateManager::GetJointData()
 
     q_virtual_local_.segment(6, MODEL_DOF) = q_;
     q_dot_virtual_local_.segment(6, MODEL_DOF) = q_dot_;
-
 
     torque_elmo_ = Map<VectorQf>(torqueActual_a_, MODEL_DOF).cast<double>();
 
@@ -1683,15 +1693,15 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[18].y = RF_CF_FT(4);
     point_pub_msg_.polygon.points[18].z = RF_CF_FT(5);
 
-    point_pub_msg_.polygon.points[19].x = link_[COM_id].v(1);
-    point_pub_msg_.polygon.points[19].y = -link_local_[Left_Foot].v(1);
-    point_pub_msg_.polygon.points[19].z = -link_local_[Right_Foot].v(1);
+    point_pub_msg_.polygon.points[19].x = link_local_[Left_Foot].v(0);
+    point_pub_msg_.polygon.points[19].y = link_local_[Left_Foot].v(1);
+    point_pub_msg_.polygon.points[19].z = link_local_[Left_Foot].v(2);
 
     // static double com_pos_before = 0;
 
-    point_pub_msg_.polygon.points[20].x = pelvis_velocity_estimate_(1);
-    point_pub_msg_.polygon.points[20].y = link_local_[Left_Foot].v(1);
-    point_pub_msg_.polygon.points[20].z = link_local_[Right_Foot].v(1);
+    point_pub_msg_.polygon.points[20].x = link_local_[Right_Foot].v(0);
+    point_pub_msg_.polygon.points[20].y = link_local_[Right_Foot].v(1);
+    point_pub_msg_.polygon.points[20].z = link_local_[Right_Foot].v(2);
 
     // com_pos_before = link_[COM_id].xpos(1);
 

@@ -172,11 +172,20 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     {
 
                         std::string output_file = "/home/dyros/tocabi_log/output";
-
-                        task_log.open(output_file.c_str(), fstream::out | fstream::app);
-                        // task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z fstar_x fstar_y fstar_z lambda_x lambda_y lambda_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z q0 q1 q2 q3 q4 q5 qdot0 qdot1 qdot2 qdot3 qdot4 qdot5 qe0 qe1 qe2 qe3 qe4 qe5" << std::endl;
-                        task_log << "time com_pos_x com_pos_y com_pos_z ft0 ft1 ft2 ft3 ft4 ft5 ft6 ft7 ft8 ft9 ft10 ft11" << std::endl;
-                        
+                        if (task_log.is_open())
+                        {
+                            std::cout << "file already opened " << std::endl;
+                        }
+                        else
+                        {
+                            task_log.open(output_file.c_str(), fstream::out | fstream::app);
+                            task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z fstar_x fstar_y fstar_z lambda_x lambda_y lambda_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z atraj_x atraj_y atraz_z q0 q1 q2 q3 q4 q5 qdot0 qdot1 qdot2 qdot3 qdot4 qdot5 qe0 qe1 qe2 qe3 qe4 qe5 zmpx zmpy" << std::endl;
+                            // task_log << "time com_pos_x com_pos_y com_pos_z ft0 ft1 ft2 ft3 ft4 ft5 ft6 ft7 ft8 ft9 ft10 ft11" << std::endl;
+                            if (task_log.is_open())
+                            {
+                                std::cout << "open success " << std::endl;
+                            }
+                        }
                         std::cout << "mode 0 init" << std::endl;
                         rd_.tc_init = false;
 
@@ -217,24 +226,25 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     task_log << rd_.control_time_ << " "
                              << rd_.link_[COM_id].xpos(0) << " " << rd_.link_[COM_id].xpos(1) << " " << rd_.link_[COM_id].xpos(2) << " "
-                             << rd_.LF_CF_FT(0) << " " << rd_.LF_CF_FT(1) << " " << rd_.LF_CF_FT(2) << " "
-                             << rd_.LF_CF_FT(3) << " " << rd_.LF_CF_FT(4) << " " << rd_.LF_CF_FT(5) << " "
-                             << rd_.RF_CF_FT(0) << " " << rd_.RF_CF_FT(1) << " " << rd_.RF_CF_FT(2) << " "
-                             << rd_.RF_CF_FT(3) << " " << rd_.RF_CF_FT(4) << " " << rd_.RF_CF_FT(5) << " ";
-                    //          << rd_.link_[COM_id].v(0) << " " << rd_.link_[COM_id].v(1) << " " << rd_.link_[COM_id].v(2) << " "
-                    //          << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
-                    //          << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
-                    //          << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
-                    //          << out(0) << " " << out(1) << " " << out(2) << " "
-                    //          << rd_.link_[COM_id].x_traj(0) << " " << rd_.link_[COM_id].x_traj(1) << " " << rd_.link_[COM_id].x_traj(2) << " "
-                    //          << rd_.link_[COM_id].v_traj(0) << " " << rd_.link_[COM_id].v_traj(1) << " " << rd_.link_[COM_id].v_traj(2) << " "
-                    //          << rd_.q_(0) <<" "<< rd_.q_(1) <<" "<< rd_.q_(2) <<" "<< rd_.q_(3) <<" "<< rd_.q_(4) <<" "<< rd_.q_(5) <<" "
-                    //          << rd_.q_dot_(0) <<" "<< rd_.q_dot_(1) <<" "<< rd_.q_dot_(2) <<" "<< rd_.q_dot_(3) <<" "<< rd_.q_dot_(4) <<" "<< rd_.q_dot_(5) <<" "
-                    //          << rd_.q_ext_(0) <<" "<< rd_.q_ext_(1) <<" "<< rd_.q_ext_(2) <<" "<< rd_.q_ext_(3) <<" "<< rd_.q_ext_(4) <<" "<< rd_.q_ext_(5) <<" "
-                    //          << std::endl;
+                             //  << rd_.LF_CF_FT(0) << " " << rd_.LF_CF_FT(1) << " " << rd_.LF_CF_FT(2) << " "
+                             //  << rd_.LF_CF_FT(3) << " " << rd_.LF_CF_FT(4) << " " << rd_.LF_CF_FT(5) << " "
+                             //  << rd_.RF_CF_FT(0) << " " << rd_.RF_CF_FT(1) << " " << rd_.RF_CF_FT(2) << " "
+                             //  << rd_.RF_CF_FT(3) << " " << rd_.RF_CF_FT(4) << " " << rd_.RF_CF_FT(5) << " ";
+                             << rd_.link_[COM_id].v(0) << " " << rd_.link_[COM_id].v(1) << " " << rd_.link_[COM_id].v(2) << " "
+                             << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
+                             << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
+                             << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
+                             << out(0) << " " << out(1) << " " << out(2) << " "
+                             << rd_.link_[COM_id].x_traj(0) << " " << rd_.link_[COM_id].x_traj(1) << " " << rd_.link_[COM_id].x_traj(2) << " "
+                             << rd_.link_[COM_id].v_traj(0) << " " << rd_.link_[COM_id].v_traj(1) << " " << rd_.link_[COM_id].v_traj(2) << " "
+                             << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
+                             << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
+                             << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
+                             << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
+                             << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
+                             << std::endl;
 
-
-                    std::cout << rd_.link_[COM_id].xpos(1) << std::endl;
+                    // std::cout << rd_.link_[COM_id].xpos(1) << std::endl;
 
                     /*
                     auto ts = std::chrono::steady_clock::now();
@@ -346,7 +356,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     RequestThread2();
                     ac_.computeSlow();
 
-                    if(rd_.tc_.mode == 11 || rd_.tc_.mode == 13)
+                    if (rd_.tc_.mode == 11 || rd_.tc_.mode == 13)
                     {
                         static int thread3_count = 1;
 
@@ -358,7 +368,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         }
                         thread3_count++;
                     }
-                
+
                     // If necessary, use
                     // To Enable Thread2, you need to fix the 50th line. Change EnableThread2(false) to EnableThread2(true).
                     // If not, thread2 is disabled, so that you cannot use thread2
