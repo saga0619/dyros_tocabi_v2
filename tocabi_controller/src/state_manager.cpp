@@ -790,12 +790,18 @@ void StateManager::GetJointData()
     memcpy(q_a_, dc_.tc_shm_->pos, sizeof(float) * MODEL_DOF);
     memcpy(q_dot_a_, dc_.tc_shm_->vel, sizeof(float) * MODEL_DOF);
     memcpy(torqueActual_a_, dc_.tc_shm_->torqueActual, sizeof(float) * MODEL_DOF);
+    memcpy(q_ext_a, dc_.tc_shm_->posExt, sizeof(float) * MODEL_DOF);
+
+    // memecy(q)
 
     q_ = Map<VectorQf>(q_a_, MODEL_DOF).cast<double>();
     q_dot_ = Map<VectorQf>(q_dot_a_, MODEL_DOF).cast<double>();
 
+    q_ext_ = Map<VectorQf>(q_ext_a, MODEL_DOF).cast<double>();
+
     q_virtual_local_.segment(6, MODEL_DOF) = q_;
     q_dot_virtual_local_.segment(6, MODEL_DOF) = q_dot_;
+
 
     torque_elmo_ = Map<VectorQf>(torqueActual_a_, MODEL_DOF).cast<double>();
 
@@ -997,6 +1003,7 @@ void StateManager::StoreState(RobotData &rd_dst)
     memcpy(&rd_dst.Motor_inertia_inverse, &Motor_inertia_inverse, sizeof(MatrixVVd));
     memcpy(&rd_dst.q_, &q_, sizeof(VectorQd));
     memcpy(&rd_dst.q_dot_, &q_dot_, sizeof(VectorQd));
+    memcpy(&rd_dst.q_ext_, &q_ext_, sizeof(VectorQd));
     memcpy(&rd_dst.q_virtual_, &q_virtual_, sizeof(VectorQVQd));
     memcpy(&rd_dst.q_dot_virtual_, &q_dot_virtual_, sizeof(VectorVQd));
     memcpy(&rd_dst.q_ddot_virtual_, &q_ddot_virtual_, sizeof(VectorVQd));
