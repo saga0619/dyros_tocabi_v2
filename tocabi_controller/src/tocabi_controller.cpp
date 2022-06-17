@@ -165,7 +165,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             {
                 static ofstream task_log;
 
-                std::string output_file = "/home/dyros/tocabi_log/output";
+                std::string output_file = "/home/saga/tocabi_log/output";
                 if (rd_.tc_.mode == 0)
                 {
 
@@ -215,7 +215,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
 
-                    //rd_.link_[COM_id].SetTrajectoryCubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+                    // rd_.link_[COM_id].SetTrajectoryCubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
 
                     rd_.link_[Upper_Body].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
 
@@ -746,10 +746,13 @@ void *TocabiController::Thread3()
             if (triggerThread3)
             {
                 triggerThread3 = false;
-                /////////////////////////////////////////////
-                /////////////Do something in Thread3 !!!!!!!
+/////////////////////////////////////////////
+/////////////Do something in Thread3 !!!!!!!
+#ifdef COMPILE_TOCABI_AVATAR
                 ac_.computeThread3();
-                /////////////////////////////////////////////
+#endif
+
+                                /////////////////////////////////////////////
             }
             else
             {

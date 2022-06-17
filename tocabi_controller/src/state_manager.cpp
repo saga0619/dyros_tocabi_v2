@@ -81,7 +81,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
 
     com_status_msg_.data.resize(17);
 
-    point_pub_msg_.polygon.points.resize(21);
+    point_pub_msg_.polygon.points.resize(24);
     syspub_msg.data.resize(8);
     elmo_status_msg_.data.resize(MODEL_DOF * 3);
 }
@@ -1792,6 +1792,18 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[20].x = link_local_[Right_Foot].v(0);
     point_pub_msg_.polygon.points[20].y = link_local_[Right_Foot].v(1);
     point_pub_msg_.polygon.points[20].z = link_local_[Right_Foot].v(2);
+
+    point_pub_msg_.polygon.points[21].x = rd_gl_.link_[COM_id].x_traj(0);
+    point_pub_msg_.polygon.points[21].y = rd_gl_.link_[COM_id].x_traj(1);
+    point_pub_msg_.polygon.points[21].z = rd_gl_.link_[COM_id].x_traj(2);
+
+    point_pub_msg_.polygon.points[22].x = rd_gl_.link_[COM_id].v_traj(0);
+    point_pub_msg_.polygon.points[22].y = rd_gl_.link_[COM_id].v_traj(1);
+    point_pub_msg_.polygon.points[22].z = rd_gl_.link_[COM_id].v_traj(2);
+
+    point_pub_msg_.polygon.points[23].x = rd_gl_.link_[COM_id].a_traj(0);
+    point_pub_msg_.polygon.points[23].y = rd_gl_.link_[COM_id].a_traj(1);
+    point_pub_msg_.polygon.points[23].z = rd_gl_.link_[COM_id].a_traj(2);
 
     // com_pos_before = link_[COM_id].xpos(1);
 
