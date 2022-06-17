@@ -163,15 +163,15 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             }
             else if (rd_.tc_run)
             {
+                static ofstream task_log;
+
+                std::string output_file = "/home/dyros/tocabi_log/output";
                 if (rd_.tc_.mode == 0)
                 {
-
-                    static ofstream task_log;
 
                     if (rd_.tc_init)
                     {
 
-                        std::string output_file = "/home/dyros/tocabi_log/output";
                         if (task_log.is_open())
                         {
                             std::cout << "file already opened " << std::endl;
@@ -179,7 +179,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         else
                         {
                             task_log.open(output_file.c_str(), fstream::out | fstream::app);
-                            task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z fstar_x fstar_y fstar_z lambda_x lambda_y lambda_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z atraj_x atraj_y atraz_z q0 q1 q2 q3 q4 q5 qdot0 qdot1 qdot2 qdot3 qdot4 qdot5 qe0 qe1 qe2 qe3 qe4 qe5 zmpx zmpy" << std::endl;
+                            task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z fstar_x fstar_y fstar_z lambda_x lambda_y lambda_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z atraj_x atraj_y atraz_z q0 q1 q2 q3 q4 q5 qdot0 qdot1 qdot2 qdot3 qdot4 qdot5 qe0 qe1 qe2 qe3 qe4 qe5 zmp_x zmp_y zmpes_x zmpes_y imux imuy imuz" << std::endl;
                             // task_log << "time com_pos_x com_pos_y com_pos_z ft0 ft1 ft2 ft3 ft4 ft5 ft6 ft7 ft8 ft9 ft10 ft11" << std::endl;
                             if (task_log.is_open())
                             {
@@ -214,6 +214,9 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     }
 
                     rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                    //rd_.link_[COM_id].SetTrajectoryCubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
                     rd_.link_[Upper_Body].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
 
                     fstar.setZero(6);
@@ -223,6 +226,10 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + WBC::TaskControlTorque(rd_, fstar));
 
                     VectorXd out = rd_.lambda * fstar;
+
+                    Vector12d cf_est = WBC::getContactForce(rd_, rd_.torque_desired);
+
+                    Vector3d zmp_got = WBC::GetZMPpos_from_ContactForce(rd_, cf_est);
 
                     task_log << rd_.control_time_ << " "
                              << rd_.link_[COM_id].xpos(0) << " " << rd_.link_[COM_id].xpos(1) << " " << rd_.link_[COM_id].xpos(2) << " "
@@ -242,6 +249,8 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                              << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
                              << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
                              << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
+                             << zmp_got(0) << " " << zmp_got(1) << " "
+                             << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
                              << std::endl;
 
                     // std::cout << rd_.link_[COM_id].xpos(1) << std::endl;
@@ -273,13 +282,31 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                 }
                 else if (rd_.tc_.mode == 1)
                 {
+
                     if (rd_.tc_init)
                     {
-                        std::cout << "mode 1 init" << std::endl;
+
+                        if (task_log.is_open())
+                        {
+                            std::cout << "file already opened " << std::endl;
+                        }
+                        else
+                        {
+                            task_log.open(output_file.c_str(), fstream::out | fstream::app);
+                            task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z fstar_x fstar_y fstar_z lambda_x lambda_y lambda_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z atraj_x atraj_y atraz_z q0 q1 q2 q3 q4 q5 qdot0 qdot1 qdot2 qdot3 qdot4 qdot5 qe0 qe1 qe2 qe3 qe4 qe5 zmp_x zmp_y zmpes_x zmpes_y imux imuy imuz" << std::endl;
+                            // task_log << "time com_pos_x com_pos_y com_pos_z ft0 ft1 ft2 ft3 ft4 ft5 ft6 ft7 ft8 ft9 ft10 ft11" << std::endl;
+                            if (task_log.is_open())
+                            {
+                                std::cout << "open success " << std::endl;
+                            }
+                        }
+                        std::cout << "mode 0 init" << std::endl;
+                        rd_.tc_init = false;
+
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
                     }
 
-                    WBC::SetContact(rd_, 1, 1);
+                    WBC::SetContact(rd_, rd_.tc_.left_foot, rd_.tc_.right_foot, rd_.tc_.left_hand, rd_.tc_.right_hand);
 
                     rd_.J_task.setZero(6, MODEL_DOF_VIRTUAL);
                     rd_.J_task.block(0, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[COM_id].Jac().block(0, 0, 3, MODEL_DOF_VIRTUAL);
@@ -288,27 +315,200 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     rd_.link_[COM_id].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
                     rd_.link_[COM_id].x_desired(2) = rd_.tc_.height;
 
-                    rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll, rd_.tc_.pitch, rd_.tc_.yaw + rd_.link_[Pelvis].yaw_init);
+                    double ang2rad = 0.0174533;
+
+                    rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll * ang2rad, rd_.tc_.pitch * ang2rad, rd_.tc_.yaw * ang2rad + rd_.link_[Pelvis].yaw_init);
 
                     Eigen::VectorXd fstar;
-                    rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                    if (rd_.tc_.customTaskGain)
+                    {
+                        rd_.link_[COM_id].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
+                        rd_.link_[Upper_Body].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
+                    }
+
+                    // rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                    rd_.link_[COM_id].SetTrajectoryCubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
                     rd_.link_[Upper_Body].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
 
                     fstar.setZero(6);
-                    fstar.segment(0, 3) = WBC::GetFstarPos(rd_.link_[COM_id]);
+                    fstar.segment(0, 3) = WBC::GetFstarPos(rd_.link_[COM_id], true);
                     fstar.segment(3, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
 
-                    // rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) );
+                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + WBC::TaskControlTorque(rd_, fstar));
 
-                    VectorQd task_torque_qp = WBC::TaskControlTorqueQP(rd_, fstar, rd_.tc_init);
+                    VectorXd out = rd_.lambda * fstar;
 
-                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + task_torque_qp);
+                    Vector12d cf_est = WBC::getContactForce(rd_, rd_.torque_desired);
 
-                    // std::cout << (task_torque_qp - task_torque_qp2).transpose() << std::endl;
+                    Vector3d zmp_got = WBC::GetZMPpos_from_ContactForce(rd_, cf_est);
 
-                    rd_.tc_init = false;
+                    task_log << rd_.control_time_ << " "
+                             << rd_.link_[COM_id].xpos(0) << " " << rd_.link_[COM_id].xpos(1) << " " << rd_.link_[COM_id].xpos(2) << " "
+                             //  << rd_.LF_CF_FT(0) << " " << rd_.LF_CF_FT(1) << " " << rd_.LF_CF_FT(2) << " "
+                             //  << rd_.LF_CF_FT(3) << " " << rd_.LF_CF_FT(4) << " " << rd_.LF_CF_FT(5) << " "
+                             //  << rd_.RF_CF_FT(0) << " " << rd_.RF_CF_FT(1) << " " << rd_.RF_CF_FT(2) << " "
+                             //  << rd_.RF_CF_FT(3) << " " << rd_.RF_CF_FT(4) << " " << rd_.RF_CF_FT(5) << " ";
+                             << rd_.link_[COM_id].v(0) << " " << rd_.link_[COM_id].v(1) << " " << rd_.link_[COM_id].v(2) << " "
+                             << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
+                             << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
+                             << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
+                             << out(0) << " " << out(1) << " " << out(2) << " "
+                             << rd_.link_[COM_id].x_traj(0) << " " << rd_.link_[COM_id].x_traj(1) << " " << rd_.link_[COM_id].x_traj(2) << " "
+                             << rd_.link_[COM_id].v_traj(0) << " " << rd_.link_[COM_id].v_traj(1) << " " << rd_.link_[COM_id].v_traj(2) << " "
+                             << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
+                             << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
+                             << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
+                             << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
+                             << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
+                             << zmp_got(0) << " " << zmp_got(1) << " "
+                             << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
+                             << std::endl;
+
+                    // std::cout << rd_.link_[COM_id].xpos(1) << std::endl;
+
+                    /*
+                    auto ts = std::chrono::steady_clock::now();
+                    WBC::GetJKT1(rd_, rd_.J_task);
+                    auto ds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - ts).count();
+
+                    auto ts2 = std::chrono::steady_clock::now();
+                    WBC::GetJKT2(rd_, rd_.J_task);
+                    auto ds2 = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - ts2).count();
+
+                    rd_.time_for_inverse += ds;
+                    rd_.time_for_inverse_total += ds2;
+
+                    rd_.count_for_inverse++;
+                    rd_.count_for_inverse_total++;
+
+                    if (rd_.count_for_inverse == 2000)
+                    {
+                        std::cout << "avg 1 : " << rd_.time_for_inverse / rd_.count_for_inverse << " 2 : " << rd_.time_for_inverse_total / rd_.count_for_inverse_total << std::endl;
+
+                        rd_.time_for_inverse = 0;
+                        rd_.time_for_inverse_total = 0;
+                        rd_.count_for_inverse = 0;
+                        rd_.count_for_inverse_total = 0;
+                    }*/
                 }
                 else if (rd_.tc_.mode == 2)
+                {
+
+                    if (rd_.tc_init)
+                    {
+
+                        if (task_log.is_open())
+                        {
+                            std::cout << "file already opened " << std::endl;
+                        }
+                        else
+                        {
+                            task_log.open(output_file.c_str(), fstream::out | fstream::app);
+                            task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z fstar_x fstar_y fstar_z lambda_x lambda_y lambda_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z atraj_x atraj_y atraz_z q0 q1 q2 q3 q4 q5 qdot0 qdot1 qdot2 qdot3 qdot4 qdot5 qe0 qe1 qe2 qe3 qe4 qe5 zmp_x zmp_y zmpes_x zmpes_y imux imuy imuz" << std::endl;
+                            // task_log << "time com_pos_x com_pos_y com_pos_z ft0 ft1 ft2 ft3 ft4 ft5 ft6 ft7 ft8 ft9 ft10 ft11" << std::endl;
+                            if (task_log.is_open())
+                            {
+                                std::cout << "open success " << std::endl;
+                            }
+                        }
+                        std::cout << "mode 0 init" << std::endl;
+                        rd_.tc_init = false;
+
+                        rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
+                    }
+
+                    WBC::SetContact(rd_, rd_.tc_.left_foot, rd_.tc_.right_foot, rd_.tc_.left_hand, rd_.tc_.right_hand);
+
+                    rd_.J_task.setZero(6, MODEL_DOF_VIRTUAL);
+                    rd_.J_task.block(0, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[COM_id].Jac().block(0, 0, 3, MODEL_DOF_VIRTUAL);
+                    rd_.J_task.block(3, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[Upper_Body].Jac().block(3, 0, 3, MODEL_DOF_VIRTUAL);
+
+                    rd_.link_[COM_id].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
+                    rd_.link_[COM_id].x_desired(2) = rd_.tc_.height;
+
+                    double ang2rad = 0.0174533;
+
+                    rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll * ang2rad, rd_.tc_.pitch * ang2rad, rd_.tc_.yaw * ang2rad + rd_.link_[Pelvis].yaw_init);
+
+                    Eigen::VectorXd fstar;
+
+                    if (rd_.tc_.customTaskGain)
+                    {
+                        rd_.link_[COM_id].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
+                        rd_.link_[Upper_Body].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
+                    }
+
+                    // rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                    rd_.link_[COM_id].SetTrajectoryLinear(rd_.control_time_, rd_.tc_.time * 0.1, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                    rd_.link_[Upper_Body].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                    fstar.setZero(6);
+                    fstar.segment(0, 3) = WBC::GetFstarPos(rd_.link_[COM_id], true);
+                    fstar.segment(3, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
+
+                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + WBC::TaskControlTorque(rd_, fstar));
+
+                    VectorXd out = rd_.lambda * fstar;
+
+                    Vector12d cf_est = WBC::getContactForce(rd_, rd_.torque_desired);
+
+                    Vector3d zmp_got = WBC::GetZMPpos_from_ContactForce(rd_, cf_est);
+
+                    task_log << rd_.control_time_ << " "
+                             << rd_.link_[COM_id].xpos(0) << " " << rd_.link_[COM_id].xpos(1) << " " << rd_.link_[COM_id].xpos(2) << " "
+                             //  << rd_.LF_CF_FT(0) << " " << rd_.LF_CF_FT(1) << " " << rd_.LF_CF_FT(2) << " "
+                             //  << rd_.LF_CF_FT(3) << " " << rd_.LF_CF_FT(4) << " " << rd_.LF_CF_FT(5) << " "
+                             //  << rd_.RF_CF_FT(0) << " " << rd_.RF_CF_FT(1) << " " << rd_.RF_CF_FT(2) << " "
+                             //  << rd_.RF_CF_FT(3) << " " << rd_.RF_CF_FT(4) << " " << rd_.RF_CF_FT(5) << " ";
+                             << rd_.link_[COM_id].v(0) << " " << rd_.link_[COM_id].v(1) << " " << rd_.link_[COM_id].v(2) << " "
+                             << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
+                             << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
+                             << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
+                             << out(0) << " " << out(1) << " " << out(2) << " "
+                             << rd_.link_[COM_id].x_traj(0) << " " << rd_.link_[COM_id].x_traj(1) << " " << rd_.link_[COM_id].x_traj(2) << " "
+                             << rd_.link_[COM_id].v_traj(0) << " " << rd_.link_[COM_id].v_traj(1) << " " << rd_.link_[COM_id].v_traj(2) << " "
+                             << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
+                             << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
+                             << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
+                             << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
+                             << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
+                             << zmp_got(0) << " " << zmp_got(1) << " "
+                             << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
+                             << std::endl;
+
+                    // std::cout << rd_.link_[COM_id].xpos(1) << std::endl;
+
+                    /*
+                    auto ts = std::chrono::steady_clock::now();
+                    WBC::GetJKT1(rd_, rd_.J_task);
+                    auto ds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - ts).count();
+
+                    auto ts2 = std::chrono::steady_clock::now();
+                    WBC::GetJKT2(rd_, rd_.J_task);
+                    auto ds2 = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - ts2).count();
+
+                    rd_.time_for_inverse += ds;
+                    rd_.time_for_inverse_total += ds2;
+
+                    rd_.count_for_inverse++;
+                    rd_.count_for_inverse_total++;
+
+                    if (rd_.count_for_inverse == 2000)
+                    {
+                        std::cout << "avg 1 : " << rd_.time_for_inverse / rd_.count_for_inverse << " 2 : " << rd_.time_for_inverse_total / rd_.count_for_inverse_total << std::endl;
+
+                        rd_.time_for_inverse = 0;
+                        rd_.time_for_inverse_total = 0;
+                        rd_.count_for_inverse = 0;
+                        rd_.count_for_inverse_total = 0;
+                    }*/
+                }
+                else if (rd_.tc_.mode == 3)
                 {
                     if (rd_.tc_init)
                     {
