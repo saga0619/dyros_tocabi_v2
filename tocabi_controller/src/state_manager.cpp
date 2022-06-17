@@ -287,6 +287,7 @@ void *StateManager::LoggerThread()
     std::string velLogFile = "/home/dyros/tocabi_log/vel_log";
     std::string maskLogFile = "/home/dyros/tocabi_log/mask_log";
     std::string posDesiredLogFile = "/home/dyros/tocabi_log/pos_des_log";
+    std::string sensorLogFile = "/home/dyros/tocabi_log/sensor_log";
 
     ofstream torqueLog;
     ofstream torqueCommandLog;
@@ -296,6 +297,7 @@ void *StateManager::LoggerThread()
     ofstream posLog;
     ofstream velLog;
     ofstream posDesiredLog;
+    ofstream sensorLog;
 
     int log_count = 0;
     int pub_count = 0;
@@ -346,19 +348,28 @@ void *StateManager::LoggerThread()
         {
             if (log_count % record_tick == 0)
             {
+                auto t = std::time(nullptr);
+                auto tm = *std::localtime(&t);
+
+                std::ostringstream oss;
+                oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
+                auto t_str = oss.str();
+
+                // std::cout << str << std::endl;
+
                 std::string apd_;
                 std::string cpd_;
                 if (s_count % 2 == 0)
                 {
                     apd_ = "0";
                     cpd_ = "1";
-                    std::cout << "LOGGER : Open Log Files : 0" << std::endl;
+                    std::cout << "LOGGER : Open Log Files : 0 " << t_str << std::endl;
                 }
                 else
                 {
                     apd_ = "1";
                     cpd_ = "0";
-                    std::cout << "LOGGER : Open Log Files : 1" << std::endl;
+                    std::cout << "LOGGER : Open Log Files : 1" << t_str << std::endl;
                 }
 
                 if (s_count > 0)
@@ -371,17 +382,71 @@ void *StateManager::LoggerThread()
                     posLog.close();
                     posDesiredLog.close();
                     velLog.close();
+                    sensorLog.close();
                 }
 
                 torqueLog.open((torqueLogFile + apd_).c_str());
                 torqueLog.fill(' ');
+                torqueLog << t_str << " Direct command input(CNT) to elmo" << std::endl;
+                torqueLog << "time ";
+                for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
+                {
+                    torqueLog << "t" + to_string(i) << " ";
+                }
+                torqueLog << std::endl;
+
                 torqueCommandLog.open((torqueclogFile + apd_).c_str());
+                torqueCommandLog << t_str << " torque command(NM) to elmo" << std::endl;
+                torqueCommandLog << "time ";
+                for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
+                {
+                    torqueCommandLog << "tcom" + to_string(i) << " ";
+                }
+                torqueCommandLog << std::endl;
+
                 torqueActualLog.open((torqueActualLogFile + apd_).c_str());
+                torqueActualLog << t_str << " Actual torque from elmo" << std::endl;
+                torqueActualLog << "time ";
+                for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
+                {
+                    torqueActualLog << "treal" + to_string(i) << " ";
+                }
+                torqueActualLog << std::endl;
+
                 maskLog.open((maskLogFile + apd_).c_str());
+
                 ecatStatusLog.open((ecatStatusFile + apd_).c_str());
+
                 posLog.open((posLogFile + apd_).c_str());
+                posLog << t_str << std::endl;
+                posLog << "time ";
+                for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
+                {
+                    posLog << "q" + to_string(i) << " ";
+                }
+                posLog << std::endl;
+
                 posDesiredLog.open((posDesiredLogFile + apd_).c_str());
+                posDesiredLog << t_str << std::endl;
+                posDesiredLog << "time ";
+                for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
+                {
+                    posDesiredLog << "qdes" + to_string(i) << " ";
+                }
+                posDesiredLog << std::endl;
+
                 velLog.open((velLogFile + apd_).c_str());
+                velLog << t_str << std::endl;
+                velLog << "time ";
+                for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
+                {
+                    velLog << "qdot" + to_string(i) << " ";
+                }
+                velLog << std::endl;
+
+                sensorLog.open((sensorLogFile + apd_).c_str());
+                sensorLog << t_str << std::endl;
+                sensorLog << "time lfx lfy lfz ltx lty ltz rfx rfy rfz rtx rty rtz imu_r imu_p imu_y w_r w_y w_z a_x a_y a_z" << std::endl;
                 s_count++;
             }
             log_count++;
@@ -401,9 +466,9 @@ void *StateManager::LoggerThread()
             torqueCommandLog << std::endl;
 
             posLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
-            for (int i = 0; i < MODEL_DOF; i++)
+            for (int i = 0; i < MODEL_DOF_QVIRTUAL; i++)
             {
-                posLog << rd_gl_.q_[i] << " ";
+                posLog << rd_gl_.q_virtual_[i] << " ";
             }
             posLog << std::endl;
 
@@ -415,16 +480,16 @@ void *StateManager::LoggerThread()
             posDesiredLog << std::endl;
 
             velLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
-            for (int i = 0; i < MODEL_DOF; i++)
+            for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
             {
-                velLog << rd_gl_.q_dot_[i] << " ";
+                velLog << q_dot_virtual_[i + 6] << " ";
             }
             velLog << std::endl;
 
             torqueActualLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
-                torqueActualLog << (int)dc_.tc_shm_->torqueActual[i] << " ";
+                torqueActualLog << dc_.tc_shm_->torqueActual[i] << " ";
             }
             torqueActualLog << std::endl;
 
@@ -438,6 +503,20 @@ void *StateManager::LoggerThread()
                 maskLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->e2_m[i] << " ";
             }
             maskLog << std::endl;
+
+            sensorLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            for (int i = 0; i < 6; i++)
+            {
+                sensorLog << rd_gl_.LF_CF_FT(i) << " ";
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                sensorLog << rd_gl_.RF_CF_FT(i) << " ";
+            }
+            sensorLog << rd_gl_.roll << " " << rd_gl_.pitch << " " << rd_gl_.yaw << " ";
+            sensorLog << rd_gl_.imu_ang_vel(0) << " " << rd_gl_.imu_ang_vel(1) << " " << rd_gl_.imu_ang_vel(2) << " ";
+            sensorLog << rd_gl_.imu_lin_acc(0) << " " << rd_gl_.imu_lin_acc(1) << " " << rd_gl_.imu_lin_acc(2) << " ";
+            sensorLog << std::endl;
 
             bool change = false;
 
@@ -885,6 +964,15 @@ void StateManager::GetSensorData()
         RF_FT(i) = dc_.tc_shm_->ftSensor[i + 6];
     }
 
+    static Vector6d LF_FT_LPF = LF_FT;
+    static Vector6d RF_FT_LPF = RF_FT;
+
+    for (int i = 0; i < 6; i++)
+    {
+        LF_FT_LPF(i) = DyrosMath::lpf(LF_FT(i), LF_FT_LPF(i), 2000, 60);
+        RF_FT_LPF(i) = DyrosMath::lpf(RF_FT(i), RF_FT_LPF(i), 2000, 60);
+    }
+
     double foot_plate_mass = 2.326;
 
     Matrix6d adt;
@@ -906,7 +994,7 @@ void StateManager::GetSensorData()
     Wrench_foot_plate.setZero();
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
 
-    RF_CF_FT = rotrf * adt * RF_FT - adt2 * Wrench_foot_plate;
+    RF_CF_FT = rotrf * adt * RF_FT_LPF - adt2 * Wrench_foot_plate;
     // rd_gl_.ee_[1].contact_force_ft = RF_CF_FT;
 
     // RF_CF_FT_local = rotrf.inverse() * RF_CF_FT;
@@ -927,7 +1015,7 @@ void StateManager::GetSensorData()
     Wrench_foot_plate.setZero();
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
 
-    LF_CF_FT = rotrf * adt * LF_FT - adt2 * Wrench_foot_plate;
+    LF_CF_FT = rotrf * adt * LF_FT_LPF - adt2 * Wrench_foot_plate;
 
     // dc.tocabi_.ee_[0].contact_force_ft = LF_CF_FT;
 
@@ -1469,13 +1557,15 @@ void StateManager::StateEstimate()
         // mod_base_vel
 
         pelvis_velocity_estimate_ = pelv_v;
+        static Vector3d base_vel_lpf = mod_base_vel;
+        base_vel_lpf = DyrosMath::lpf(mod_base_vel, base_vel_lpf, 2000, 7);
 
         for (int i = 0; i < 3; i++)
         {
             q_virtual_(i) = -mod_base_pos(i);
             // q_dot_virtual_(i) = pelv_v(i);
 
-            q_dot_virtual_(i) = mod_base_vel(i);
+            q_dot_virtual_(i) = base_vel_lpf(i);
 
             q_ddot_virtual_(i) = imu_acc_dat(i);
             q_ddot_virtual_(i + 3) = pelv_anga(i);
