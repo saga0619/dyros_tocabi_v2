@@ -124,6 +124,8 @@ public:
     double total_mass_ = 0;
     tf2_ros::TransformBroadcaster br;
 
+    std::atomic<int64_t> control_time_us_l_;
+
     //Calc performance measuring...
 
     void MeasureTime(int currentCount, int nanoseconds1, int nanoseconds2 = 0);

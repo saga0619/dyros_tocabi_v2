@@ -1,6 +1,7 @@
 #include "tocabi_controller/state_manager.h"
 #include "fstream"
 #include "algorithm"
+#include <iomanip>
 
 using namespace std;
 using namespace TOCABI;
@@ -190,6 +191,7 @@ void *StateManager::StateThread()
         rd_gl_.control_time_ = dur_start_ / 1000000.0;
         rd_gl_.control_time_us_ = dur_start_;
         dc_.tc_shm_->control_time_us_ = dur_start_;
+        control_time_us_l_ = dur_start_;
 
         // dc_.tc_shm_->t_cnt2 = dc_.stm_cnt;
         // dc_.tc_shm_->t_cnt2 = cnt3;
@@ -305,6 +307,11 @@ void *StateManager::LoggerThread()
 
     timespec ts;
 
+    while (dc_.stm_cnt == 0)
+    {
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
+    }
+
     clock_gettime(CLOCK_MONOTONIC, &ts);
 
     int record_seconds = 120;
@@ -346,6 +353,14 @@ void *StateManager::LoggerThread()
 
         if (startLogger)
         {
+            static long local_control_time = 0;
+
+            while (local_control_time == control_time_us_l_)
+            {
+                std::this_thread::sleep_for(std::chrono::microseconds(10));
+            }
+            local_control_time = control_time_us_l_;
+
             if (log_count % record_tick == 0)
             {
                 auto t = std::time(nullptr);
@@ -451,49 +466,49 @@ void *StateManager::LoggerThread()
             }
             log_count++;
 
-            torqueLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            torqueLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
                 torqueLog << (int)dc_.tc_shm_->elmo_torque[i] << " ";
             }
             torqueLog << std::endl;
 
-            torqueCommandLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            torqueCommandLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
                 torqueCommandLog << dc_.torque_command[i] << " ";
             }
             torqueCommandLog << std::endl;
 
-            posLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            posLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF_QVIRTUAL; i++)
             {
                 posLog << rd_gl_.q_virtual_[i] << " ";
             }
             posLog << std::endl;
 
-            posDesiredLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            posDesiredLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
                 posDesiredLog << rd_gl_.q_desired[i] << " ";
             }
             posDesiredLog << std::endl;
 
-            velLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            velLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
             {
-                velLog << q_dot_virtual_[i + 6] << " ";
+                velLog << q_dot_virtual_[i] << " ";
             }
             velLog << std::endl;
 
-            torqueActualLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            torqueActualLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
                 torqueActualLog << dc_.tc_shm_->torqueActual[i] << " ";
             }
             torqueActualLog << std::endl;
 
-            maskLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            maskLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < 10; i++)
             {
                 maskLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->e1_m[i] << " ";
@@ -504,7 +519,7 @@ void *StateManager::LoggerThread()
             }
             maskLog << std::endl;
 
-            sensorLog << (float)rd_gl_.control_time_us_ / 1000000.0 << " ";
+            sensorLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < 6; i++)
             {
                 sensorLog << rd_gl_.LF_CF_FT(i) << " ";
@@ -1179,6 +1194,9 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
      * */
 
     // Update Kinematics : Total 127 us
+    static int uk_loop = 0;
+
+    auto t1 = std::chrono::steady_clock::now();
 
     // sector 1 Start : rbdl update
     A_temp_.setZero();
@@ -1186,6 +1204,8 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
     RigidBodyDynamics::CompositeRigidBodyAlgorithm(model_l, q_virtual_f, A_temp_, false);
     A_ = A_temp_;
     // sector 1 End : 30 us
+
+    auto t2 = std::chrono::steady_clock::now();
 
     // sector 2 start : link pos/vel/jac update
     for (int i = 0; i < MODEL_DOF + 1; i++)
@@ -1195,11 +1215,13 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
     }
     // sector 2 end : 57 us
 
+    auto t3 = std::chrono::steady_clock::now();
     // sector 3 start : mass matrix inverse
-    // A_inv_ = A_.inverse();
-    A_inv_ = A_.llt().solve(Eigen::MatrixVVd::Identity());
+    A_inv_ = A_.inverse();
+    // A_inv_ = A_.llt().solve(Eigen::MatrixVVd::Identity());
     // sector 3 end : 39 us
 
+    auto t4 = std::chrono::steady_clock::now();
     // sector 4 start : com calculation
     Eigen::Matrix3Vf jacobian_com;
     Eigen::Matrix3Vf jacobian_com_r;
@@ -1257,6 +1279,52 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
 
     link_[COM_id].inertia = i_com_;
 
+    auto t5 = std::chrono::steady_clock::now();
+    uk_loop++;
+
+    static long d1 = 0;
+    static long d2 = 0;
+    static long d3 = 0;
+    static long d4 = 0;
+
+    static int max[4] = {0, 0, 0, 0};
+    static int min[4] = {1000, 1000, 1000, 1000};
+    static int dur[4];
+
+    dur[0] = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    dur[1] = std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+    dur[2] = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count();
+    dur[3] = std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count();
+
+    d1 += dur[0];
+    d2 += dur[1];
+    d3 += dur[2];
+    d4 += dur[3];
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (max[i] < dur[i])
+        {
+            max[i] = dur[i];
+        }
+
+        if (min[i] > dur[i])
+        {
+            min[i] = dur[i];
+        }
+    }
+
+    if (uk_loop >= 2000)
+    {
+        uk_loop = 0;
+
+        // std::cout << "d1 : " << d1 / 2000 << " min : " << min[0] << " max : " << max[0] << " | d2 : " << d2 / 2000 << " min : " << min[1] << " max : " << max[1] << " | d3 : " << d3 / 2000 << " min : " << min[2] << " max : " << max[2] << " | d4 : " << d4 / 2000 << " min : " << min[3] << " max : " << max[3] << std::endl;
+
+        d1 = 0;
+        d2 = 0;
+        d3 = 0;
+        d4 = 0;
+    }
     // link_p[COM_id].xpos(2) = link_p[Pelvis].xpos(2);
     //  sector 4 end : 3 us
 }
@@ -1558,14 +1626,14 @@ void StateManager::StateEstimate()
 
         pelvis_velocity_estimate_ = pelv_v;
         static Vector3d base_vel_lpf = mod_base_vel;
-        base_vel_lpf = DyrosMath::lpf(mod_base_vel, base_vel_lpf, 2000, 7);
+        base_vel_lpf = DyrosMath::lpf(mod_base_vel, base_vel_lpf, 2000, 3);
 
         for (int i = 0; i < 3; i++)
         {
             q_virtual_(i) = -mod_base_pos(i);
-            // q_dot_virtual_(i) = pelv_v(i);
+            q_dot_virtual_(i) = pelv_v(i);
 
-            q_dot_virtual_(i) = base_vel_lpf(i);
+            // q_dot_virtual_(i) = base_vel_lpf(i);
 
             q_ddot_virtual_(i) = imu_acc_dat(i);
             q_ddot_virtual_(i + 3) = pelv_anga(i);
@@ -1686,7 +1754,7 @@ void StateManager::PublishData()
     {
         joint_state_msg_.position[i] = q_virtual_local_[i + 6];
         joint_state_msg_.velocity[i] = q_dot_virtual_local_[i + 6];
-        joint_state_msg_.effort[i] = rd_gl_.torque_desired[i];
+        joint_state_msg_.effort[i] = rd_gl_.torque_elmo_[i];
     }
     joint_state_pub_.publish(joint_state_msg_);
 

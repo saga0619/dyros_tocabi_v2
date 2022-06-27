@@ -1,9 +1,9 @@
 /*
-* Dyros Tocabi Controller
-* (C) 2021 JuneWhee Ahn <june992@snu.ac.kr>
-*
-*  ** CC Divided Version **
-*/
+ * Dyros Tocabi Controller
+ * (C) 2021 JuneWhee Ahn <june992@snu.ac.kr>
+ *
+ *  ** CC Divided Version **
+ */
 
 #include "tocabi_controller/tocabi_controller.h"
 #include <signal.h>
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
         if (dc_.simMode)
             cout << "Simulation Mode" << endl;
 
-        //set_latency_target();
+        // set_latency_target();
 
         /* Initialize pthread attributes (default values) */
 
@@ -234,13 +234,15 @@ int main(int argc, char **argv)
     {
         std::time_t t_clock_end = std::time(0);
 
+        int max_us = 30;
+
         int h_1 = 4;
         int h_2 = 10;
 
-        int setw_up[20];
-        int setw_low[20];
+        int setw_up[max_us];
+        int setw_low[max_us];
 
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < max_us; i++)
         {
             int j = 0;
             while (pow(10, j) < dc_.tc_shm_->lat_h[i])
@@ -285,35 +287,35 @@ int main(int argc, char **argv)
 
         if (hr > 0)
         {
-            system_log << "Running Time : "<<hr<<" h : "<<mr<<" m : " << fixed << setprecision(3) << sr <<" s"<< std::endl;
+            system_log << "Running Time : " << hr << " h : " << mr << " m : " << fixed << setprecision(3) << sr << " s" << std::endl;
         }
         else if (mr > 0)
         {
-            system_log << "Running Time : " <<mr<<" m : "<< fixed << setprecision(3) << sr <<" s"<< std::endl;
+            system_log << "Running Time : " << mr << " m : " << fixed << setprecision(3) << sr << " s" << std::endl;
         }
         else
         {
-            system_log << "Running Time : " << fixed << setprecision(3) << dc_.rd_.control_time_ <<" s"<< std::endl;
+            system_log << "Running Time : " << fixed << setprecision(3) << dc_.rd_.control_time_ << " s" << std::endl;
         }
         system_log << "ECAT UPPER REPORT | TOTAL COUNT : " << dc_.tc_shm_->statusCount << std::endl;
         system_log << "Latency    avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->lat_avg / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->lat_max / 1000.0 << std::endl;
         system_log << "ec_receive avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->send_avg / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->send_max / 1000.0 << " ovf : " << dc_.tc_shm_->send_ovf << std::endl;
         system_log << "ec_send    avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->rcv_avg / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->rcv_max / 1000.0 << std::endl;
         system_log << "Histogram : ";
-        for (int i = 0; i < 19; i++)
+        for (int i = 0; i < 29; i++)
             system_log << std::setfill(' ') << std::setw(setw_up[i]) << i << "  ";
         system_log << " +";
         system_log << std::endl;
         system_log << "latency   : ";
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 30; i++)
             system_log << std::setfill(' ') << std::setw(setw_up[i]) << dc_.tc_shm_->lat_h[i] << "  ";
         system_log << std::endl;
         system_log << "ec_recv   : ";
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 30; i++)
             system_log << std::setfill(' ') << std::setw(setw_up[i]) << dc_.tc_shm_->rcv_h[i] << "  ";
         system_log << std::endl;
         system_log << "ec_send   : ";
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 30; i++)
             system_log << std::setfill(' ') << std::setw(setw_up[i]) << dc_.tc_shm_->send_h[i] << "  ";
         system_log << std::endl;
 
@@ -322,20 +324,20 @@ int main(int argc, char **argv)
         system_log << "ec_receive avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->send_avg2 / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->send_max2 / 1000.0 << " ovf : " << dc_.tc_shm_->send_ovf2 << std::endl;
         system_log << "ec_send    avg : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->rcv_avg2 / 1000.0 << " max : " << fixed << setprecision(3) << setw(6) << dc_.tc_shm_->rcv_max2 / 1000.0 << std::endl;
         system_log << "Histogram : ";
-        for (int i = 0; i < 19; i++)
+        for (int i = 0; i < 29; i++)
             system_log << std::setfill(' ') << std::setw(setw_up[i]) << i << "  ";
         system_log << " +";
         system_log << std::endl;
         system_log << "latency   : ";
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 30; i++)
             system_log << std::setfill(' ') << std::setw(setw_up[i]) << dc_.tc_shm_->lat2_h[i] << "  ";
         system_log << std::endl;
         system_log << "ec_recv   : ";
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 30; i++)
             system_log << std::setfill(' ') << std::setw(setw_up[i]) << dc_.tc_shm_->rcv2_h[i] << "  ";
         system_log << std::endl;
         system_log << "ec_send   : ";
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 30; i++)
             system_log << std::setfill(' ') << std::setw(setw_up[i]) << dc_.tc_shm_->send2_h[i] << "  ";
         system_log << std::endl
                    << std::endl;

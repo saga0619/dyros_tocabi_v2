@@ -60,7 +60,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
     WBC::SetContactInit(rd_);
 
     EnableThread2(true);  // Set true for Thread2
-    EnableThread3(false); // True for thread3 ...
+    EnableThread3(true); // True for thread3 ...
 
     if (dc_.simMode)
     {
@@ -87,7 +87,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             rd_.link_[i].rot_d_gain << 16, 16, 16;
             rd_.link_[i].rot_a_gain << 1, 1, 1;
         }
-        std::cout << "set with realrobot gain" << std::endl;
+        // std::cout << " CNTRL : Set with realrobot gain" << std::endl;
     }
 
     // std::cout<<"21"<<std::endl;
@@ -165,7 +165,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             {
                 static ofstream task_log;
 
-                std::string output_file = "/home/saga/tocabi_log/output";
+                std::string output_file = "/home/dyros/tocabi_log/output";
                 if (rd_.tc_.mode == 0)
                 {
 
@@ -209,8 +209,8 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     if (rd_.tc_.customTaskGain)
                     {
-                        rd_.link_[COM_id].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
-                        rd_.link_[Upper_Body].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
+                        rd_.link_[COM_id].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, 200, 20, 1);
+                        rd_.link_[Upper_Body].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, 200, 20, 1);
                     }
 
                     rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
@@ -222,6 +222,18 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     fstar.setZero(6);
                     fstar.segment(0, 3) = WBC::GetFstarPos(rd_.link_[COM_id], true);
                     fstar.segment(3, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
+
+                    if (rd_.link_[COM_id].a_traj(1) != 0)
+                    {
+                        if (rd_.link_[COM_id].v_traj(1) > 0)
+                        {
+                            fstar(1) += rd_.tc_.ang_p;
+                        }
+                        else if (rd_.link_[COM_id].v_traj(1) < 0)
+                        {
+                            fstar(1) -= rd_.tc_.ang_p;
+                        }
+                    }
 
                     rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + WBC::TaskControlTorque(rd_, fstar));
 
@@ -720,7 +732,7 @@ void *TocabiController::Thread2()
     }
     else
     {
-        std::cout << "thread2 disabled" << std::endl;
+        std::cout << " CNTRL : thread2 disabled" << std::endl;
     }
 
     // std::cout << "thread2 terminate" << std::endl;
@@ -739,7 +751,7 @@ void *TocabiController::Thread3()
     }
     if (enableThread3)
     {
-        std::cout << "thread3_entered" << std::endl;
+        // std::cout << " CNTRL : Thread3_entered" << std::endl;
 
         while (!dc_.tc_shm_->shutdown)
         {
@@ -752,7 +764,7 @@ void *TocabiController::Thread3()
                 ac_.computeThread3();
 #endif
 
-                                /////////////////////////////////////////////
+                /////////////////////////////////////////////
             }
             else
             {
@@ -762,10 +774,10 @@ void *TocabiController::Thread3()
     }
     else
     {
-        std::cout << "thread3 disabled" << std::endl;
+        std::cout << " CNTRL : thread3 disabled" << std::endl;
     }
 
-    std::cout << "thread3 terminate" << std::endl;
+    std::cout << " CNTRL : thread3 terminate" << std::endl;
     return (void *)NULL;
 }
 
