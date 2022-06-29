@@ -27,7 +27,7 @@ endif()
 
 ##endif()
 
-#if(${COMPILE_REAL})
+if(${COMPILE_REAL})
 
 find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
@@ -73,4 +73,4 @@ add_dependencies(mx5_lib ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 
 
-#endif()
+endif()
