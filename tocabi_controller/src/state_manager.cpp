@@ -2,6 +2,7 @@
 #include "fstream"
 #include "algorithm"
 #include <iomanip>
+#include <unistd.h>
 
 using namespace std;
 using namespace TOCABI;
@@ -281,15 +282,23 @@ void *StateManager::LoggerThread()
     //      }
     //  }
 
-    std::string torqueLogFile = "/home/dyros/tocabi_log/torque_elmo_log";
-    std::string ecatStatusFile = "/home/dyros/tocabi_log/ecat_status_log";
-    std::string torqueclogFile = "/home/dyros/tocabi_log/torque_command_log";
-    std::string torqueActualLogFile = "/home/dyros/tocabi_log/torque_actual_log";
-    std::string posLogFile = "/home/dyros/tocabi_log/pos_log";
-    std::string velLogFile = "/home/dyros/tocabi_log/vel_log";
-    std::string maskLogFile = "/home/dyros/tocabi_log/mask_log";
-    std::string posDesiredLogFile = "/home/dyros/tocabi_log/pos_des_log";
-    std::string sensorLogFile = "/home/dyros/tocabi_log/sensor_log";
+    std::string username = getlogin();
+    // std::cout << "username : " << username << std::endl;
+
+    std::string log_folder = "/home/" + username + "/tocabi_log/";
+
+    std::cout << "Logger : log folder : " << log_folder << std::endl;
+
+    std::string torqueLogFile = "torque_elmo_log";
+    std::string ecatStatusFile = "ecat_status_log";
+    std::string torqueclogFile = "torque_command_log";
+    std::string torqueActualLogFile = "torque_actual_log";
+    std::string posLogFile = "pos_log";
+    std::string velLogFile = "vel_log";
+    std::string maskLogFile = "mask_log";
+    std::string posDesiredLogFile = "pos_des_log";
+    std::string velDesiredLogFile = "vel_des_log";
+    std::string sensorLogFile = "sensor_log";
 
     ofstream torqueLog;
     ofstream torqueCommandLog;
@@ -299,6 +308,7 @@ void *StateManager::LoggerThread()
     ofstream posLog;
     ofstream velLog;
     ofstream posDesiredLog;
+    ofstream velDesiredLog;
     ofstream sensorLog;
 
     int log_count = 0;
@@ -314,14 +324,50 @@ void *StateManager::LoggerThread()
 
     clock_gettime(CLOCK_MONOTONIC, &ts);
 
-    int record_seconds = 120;
+    int record_seconds = 60;
 
     int record_tick = record_seconds * 2000;
 
     long current_time = rd_gl_.control_time_us_;
 
-    while (!dc_.tc_shm_->shutdown)
+    std::string apd_;
+    std::string cpd_;
+
+    std::ostringstream start_time;
+
+    auto t_ = std::time(nullptr);
+    auto tm_ = *std::localtime(&t_);
+    start_time << std::put_time(&tm_, "%d-%m-%Y--%H-%M-%S");
+
+    while (true)
     {
+        if (dc_.tc_shm_->shutdown)
+        {
+            if (s_count > 0)
+            {
+                torqueLog.close();
+                torqueCommandLog.close();
+                torqueActualLog.close();
+                maskLog.close();
+                ecatStatusLog.close();
+                posLog.close();
+                posDesiredLog.close();
+                velLog.close();
+                velDesiredLog.close();
+                sensorLog.close();
+
+                std::stringstream sstr;
+
+                sstr << " zip -j -q " << log_folder << "log_" << start_time.str() << "___" << s_count << ".zip " << log_folder << apd_ << "* &";
+
+                int status = system(sstr.str().c_str());
+
+                std::cout << " log file compressed : " << s_count << std::endl;
+            }
+
+            break;
+        }
+
         pub_count++;
         if (pub_count % 33 == 0)
         {
@@ -365,26 +411,23 @@ void *StateManager::LoggerThread()
             {
                 auto t = std::time(nullptr);
                 auto tm = *std::localtime(&t);
-
                 std::ostringstream oss;
-                oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
+                oss << std::put_time(&tm, "%d-%m-%Y--%H-%M-%S");
                 auto t_str = oss.str();
 
                 // std::cout << str << std::endl;
 
-                std::string apd_;
-                std::string cpd_;
                 if (s_count % 2 == 0)
                 {
-                    apd_ = "0";
-                    cpd_ = "1";
-                    std::cout << "LOGGER : Open Log Files : 0 " << t_str << std::endl;
+                    apd_ = "0/";
+                    cpd_ = "1/";
+                    std::cout << "LOGGER : Open Log Files : 0  " << t_str << std::endl;
                 }
                 else
                 {
-                    apd_ = "1";
-                    cpd_ = "0";
-                    std::cout << "LOGGER : Open Log Files : 1" << t_str << std::endl;
+                    apd_ = "1/";
+                    cpd_ = "0/";
+                    std::cout << "LOGGER : Open Log Files : 1  " << t_str << std::endl;
                 }
 
                 if (s_count > 0)
@@ -396,11 +439,20 @@ void *StateManager::LoggerThread()
                     ecatStatusLog.close();
                     posLog.close();
                     posDesiredLog.close();
+                    velDesiredLog.close();
                     velLog.close();
                     sensorLog.close();
+
+                    std::stringstream sstr;
+
+                    sstr << " zip -j -q " << log_folder << "log_" << start_time.str() << "___" << s_count << ".zip " << log_folder << cpd_ << "* &";
+
+                    int status = system(sstr.str().c_str());
+
+                    std::cout << " log file compressed : " << s_count << std::endl;
                 }
 
-                torqueLog.open((torqueLogFile + apd_).c_str());
+                torqueLog.open((log_folder + apd_ + torqueLogFile).c_str());
                 torqueLog.fill(' ');
                 torqueLog << t_str << " Direct command input(CNT) to elmo" << std::endl;
                 torqueLog << "time ";
@@ -410,7 +462,7 @@ void *StateManager::LoggerThread()
                 }
                 torqueLog << std::endl;
 
-                torqueCommandLog.open((torqueclogFile + apd_).c_str());
+                torqueCommandLog.open((log_folder + apd_ + torqueclogFile).c_str());
                 torqueCommandLog << t_str << " torque command(NM) to elmo" << std::endl;
                 torqueCommandLog << "time ";
                 for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
@@ -419,7 +471,7 @@ void *StateManager::LoggerThread()
                 }
                 torqueCommandLog << std::endl;
 
-                torqueActualLog.open((torqueActualLogFile + apd_).c_str());
+                torqueActualLog.open((log_folder + apd_ + torqueActualLogFile).c_str());
                 torqueActualLog << t_str << " Actual torque from elmo" << std::endl;
                 torqueActualLog << "time ";
                 for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
@@ -428,11 +480,11 @@ void *StateManager::LoggerThread()
                 }
                 torqueActualLog << std::endl;
 
-                maskLog.open((maskLogFile + apd_).c_str());
+                maskLog.open((log_folder + apd_ + maskLogFile).c_str());
 
-                ecatStatusLog.open((ecatStatusFile + apd_).c_str());
+                ecatStatusLog.open((log_folder + apd_ + ecatStatusFile).c_str());
 
-                posLog.open((posLogFile + apd_).c_str());
+                posLog.open((log_folder + apd_ + posLogFile).c_str());
                 posLog << t_str << std::endl;
                 posLog << "time ";
                 for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
@@ -441,7 +493,7 @@ void *StateManager::LoggerThread()
                 }
                 posLog << std::endl;
 
-                posDesiredLog.open((posDesiredLogFile + apd_).c_str());
+                posDesiredLog.open((log_folder + apd_ + posDesiredLogFile).c_str());
                 posDesiredLog << t_str << std::endl;
                 posDesiredLog << "time ";
                 for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
@@ -450,7 +502,16 @@ void *StateManager::LoggerThread()
                 }
                 posDesiredLog << std::endl;
 
-                velLog.open((velLogFile + apd_).c_str());
+                velDesiredLog.open((log_folder + apd_ + velDesiredLogFile).c_str());
+                velDesiredLog << t_str << std::endl;
+                velDesiredLog << "time ";
+                for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
+                {
+                    velDesiredLog << "qddes" + to_string(i) << " ";
+                }
+                velDesiredLog << std::endl;
+
+                velLog.open((log_folder + apd_ + velLogFile).c_str());
                 velLog << t_str << std::endl;
                 velLog << "time ";
                 for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
@@ -459,7 +520,7 @@ void *StateManager::LoggerThread()
                 }
                 velLog << std::endl;
 
-                sensorLog.open((sensorLogFile + apd_).c_str());
+                sensorLog.open((log_folder + apd_ + sensorLogFile).c_str());
                 sensorLog << t_str << std::endl;
                 sensorLog << "time lfx lfy lfz ltx lty ltz rfx rfy rfz rtx rty rtz imu_r imu_p imu_y w_r w_y w_z a_x a_y a_z" << std::endl;
                 s_count++;
@@ -493,6 +554,13 @@ void *StateManager::LoggerThread()
                 posDesiredLog << rd_gl_.q_desired[i] << " ";
             }
             posDesiredLog << std::endl;
+
+            velDesiredLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
+            for (int i = 0; i < MODEL_DOF; i++)
+            {
+                velDesiredLog << rd_gl_.q_dot_desired[i] << " ";
+            }
+            velDesiredLog << std::endl;
 
             velLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
@@ -566,6 +634,7 @@ void *StateManager::LoggerThread()
     torqueActualLog.close();
     maskLog.close();
     posLog.close();
+    velDesiredLog.close();
     posDesiredLog.close();
     velLog.close();
 

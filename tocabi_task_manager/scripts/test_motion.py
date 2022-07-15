@@ -10,7 +10,7 @@ rospy.init_node('test_motion_generator')
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--time', help='trajectory time', type=float, default=5.0)
 
-parser.add_argument('--mode',help='command type', type=int, deafult =0)
+parser.add_argument('--mode',help='command type', type=int, default =0)
 
 args = parser.parse_args()
 

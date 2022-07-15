@@ -60,7 +60,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
     WBC::SetContactInit(rd_);
 
     EnableThread2(true);  // Set true for Thread2
-    EnableThread3(true); // True for thread3 ...
+    EnableThread3(false); // True for thread3 ...
 
     if (dc_.simMode)
     {
@@ -761,7 +761,7 @@ void *TocabiController::Thread3()
 /////////////////////////////////////////////
 /////////////Do something in Thread3 !!!!!!!
 #ifdef COMPILE_TOCABI_AVATAR
-                ac_.computeThread3();
+                // ac_.computeThread3();
 #endif
 
                 /////////////////////////////////////////////
