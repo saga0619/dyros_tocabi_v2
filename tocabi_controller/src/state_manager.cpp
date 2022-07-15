@@ -287,7 +287,13 @@ void *StateManager::LoggerThread()
 
     std::string log_folder = "/home/" + username + "/tocabi_log/";
 
-    std::cout << "Logger : log folder : " << log_folder << std::endl;
+    std::ostringstream start_time;
+
+    auto t_ = std::time(nullptr);
+    auto tm_ = *std::localtime(&t_);
+    start_time << std::put_time(&tm_, "%Y%m%d-%H%M%S");
+
+    std::cout << "Logger : log folder : " << log_folder <<"  Start Time : "<<start_time.str() << std::endl;
 
     std::string torqueLogFile = "torque_elmo_log";
     std::string ecatStatusFile = "ecat_status_log";
@@ -333,11 +339,6 @@ void *StateManager::LoggerThread()
     std::string apd_;
     std::string cpd_;
 
-    std::ostringstream start_time;
-
-    auto t_ = std::time(nullptr);
-    auto tm_ = *std::localtime(&t_);
-    start_time << std::put_time(&tm_, "%d-%m-%Y--%H-%M-%S");
 
     while (true)
     {
@@ -358,11 +359,10 @@ void *StateManager::LoggerThread()
 
                 std::stringstream sstr;
 
-                sstr << " zip -j -q " << log_folder << "log_" << start_time.str() << "___" << s_count << ".zip " << log_folder << apd_ << "* &";
+                sstr << " zip -j -q " << log_folder << "log_" << start_time.str() << "_" << std::setfill('0') << std::setw(3) << s_count << std::setw(0) << ".zip " << log_folder << apd_ << "* &";
 
                 int status = system(sstr.str().c_str());
-
-                std::cout << " log file compressed : " << s_count << std::endl;
+                // std::cout << " log file compressed : " << s_count << std::endl;
             }
 
             break;
@@ -412,7 +412,7 @@ void *StateManager::LoggerThread()
                 auto t = std::time(nullptr);
                 auto tm = *std::localtime(&t);
                 std::ostringstream oss;
-                oss << std::put_time(&tm, "%d-%m-%Y--%H-%M-%S");
+                oss << std::put_time(&tm, "%Y%m%d-%H%M%S");
                 auto t_str = oss.str();
 
                 // std::cout << str << std::endl;
@@ -421,13 +421,13 @@ void *StateManager::LoggerThread()
                 {
                     apd_ = "0/";
                     cpd_ = "1/";
-                    std::cout << "LOGGER : Open Log Files : 0  " << t_str << std::endl;
+                    std::cout << "LOGGER : Open Log Files : " << s_count <<" "<< t_str << std::endl;
                 }
                 else
                 {
                     apd_ = "1/";
                     cpd_ = "0/";
-                    std::cout << "LOGGER : Open Log Files : 1  " << t_str << std::endl;
+                    std::cout << "LOGGER : Open Log Files : " <<s_count<<" " << t_str << std::endl;
                 }
 
                 if (s_count > 0)
@@ -444,12 +444,10 @@ void *StateManager::LoggerThread()
                     sensorLog.close();
 
                     std::stringstream sstr;
-
-                    sstr << " zip -j -q " << log_folder << "log_" << start_time.str() << "___" << s_count << ".zip " << log_folder << cpd_ << "* &";
-
+                    sstr << " zip -j -q " << log_folder << "log_" << start_time.str() << "_" << std::setfill('0') << std::setw(3) << s_count << std::setw(0) << ".zip " << log_folder << cpd_ << "* &";
                     int status = system(sstr.str().c_str());
 
-                    std::cout << " log file compressed : " << s_count << std::endl;
+                    // std::cout << " log file compressed : " << s_count << std::endl;
                 }
 
                 torqueLog.open((log_folder + apd_ + torqueLogFile).c_str());
@@ -1008,10 +1006,16 @@ void StateManager::GetJointData()
     q_dot_virtual_local_(4) = dc_.tc_shm_->vel_virtual[4];
     q_dot_virtual_local_(5) = dc_.tc_shm_->vel_virtual[5];
 
+
+    
+
+
     q_virtual_local_(3) = dc_.tc_shm_->pos_virtual[3];
     q_virtual_local_(4) = dc_.tc_shm_->pos_virtual[4];
     q_virtual_local_(5) = dc_.tc_shm_->pos_virtual[5];
     q_virtual_local_(MODEL_DOF_VIRTUAL) = dc_.tc_shm_->pos_virtual[6];
+
+
 
     // memcpy(joint_state_, dc_.tc_shm_->status, sizeof(int) * MODEL_DOF);
     memcpy(state_elmo_, dc_.tc_shm_->ecat_status, sizeof(int8_t) * MODEL_DOF);
@@ -1934,13 +1938,13 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[21].y = rd_gl_.link_[COM_id].x_traj(1);
     point_pub_msg_.polygon.points[21].z = rd_gl_.link_[COM_id].x_traj(2);
 
-    point_pub_msg_.polygon.points[22].x = rd_gl_.link_[COM_id].v_traj(0);
-    point_pub_msg_.polygon.points[22].y = rd_gl_.link_[COM_id].v_traj(1);
+    point_pub_msg_.polygon.points[22].x = rd_gl_.zmp_global_(0) - link_[COM_id].xpos(0);
+    point_pub_msg_.polygon.points[22].y = rd_gl_.zmp_global_(1) - link_[COM_id].xpos(1);
     point_pub_msg_.polygon.points[22].z = rd_gl_.link_[COM_id].v_traj(2);
 
-    point_pub_msg_.polygon.points[23].x = rd_gl_.link_[COM_id].a_traj(0);
-    point_pub_msg_.polygon.points[23].y = rd_gl_.link_[COM_id].a_traj(1);
-    point_pub_msg_.polygon.points[23].z = rd_gl_.link_[COM_id].a_traj(2);
+    point_pub_msg_.polygon.points[23].x = rd_.imu_lin_acc(0);
+    point_pub_msg_.polygon.points[23].y = rd_.imu_lin_acc(1);
+    point_pub_msg_.polygon.points[23].z = rd_.imu_lin_acc(2);
 
     // com_pos_before = link_[COM_id].xpos(1);
 
