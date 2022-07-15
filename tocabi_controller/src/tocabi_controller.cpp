@@ -419,7 +419,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         else
                         {
                             task_log.open(output_file.c_str(), fstream::out | fstream::app);
-                            task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z fstar_x fstar_y fstar_z lambda_x lambda_y lambda_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z atraj_x atraj_y atraz_z q0 q1 q2 q3 q4 q5 qdot0 qdot1 qdot2 qdot3 qdot4 qdot5 qe0 qe1 qe2 qe3 qe4 qe5 zmp_x zmp_y zmpes_x zmpes_y imux imuy imuz" << std::endl;
+                            task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z" << std::endl;
                             // task_log << "time com_pos_x com_pos_y com_pos_z ft0 ft1 ft2 ft3 ft4 ft5 ft6 ft7 ft8 ft9 ft10 ft11" << std::endl;
                             if (task_log.is_open())
                             {
@@ -463,7 +463,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     fstar.segment(0, 3) = WBC::GetFstarPos(rd_.link_[COM_id], true);
                     fstar.segment(3, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
 
-                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + WBC::TaskControlTorque(rd_, fstar));
+                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_));
 
                     VectorXd out = rd_.lambda * fstar;
 
@@ -480,17 +480,17 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                              << rd_.link_[COM_id].v(0) << " " << rd_.link_[COM_id].v(1) << " " << rd_.link_[COM_id].v(2) << " "
                              << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
                              << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
-                             << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
-                             << out(0) << " " << out(1) << " " << out(2) << " "
-                             << rd_.link_[COM_id].x_traj(0) << " " << rd_.link_[COM_id].x_traj(1) << " " << rd_.link_[COM_id].x_traj(2) << " "
-                             << rd_.link_[COM_id].v_traj(0) << " " << rd_.link_[COM_id].v_traj(1) << " " << rd_.link_[COM_id].v_traj(2) << " "
-                             << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
-                             << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
-                             << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
-                             << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
-                             << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
-                             << zmp_got(0) << " " << zmp_got(1) << " "
-                             << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
+                            //  << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
+                            //  << out(0) << " " << out(1) << " " << out(2) << " "
+                            //  << rd_.link_[COM_id].x_traj(0) << " " << rd_.link_[COM_id].x_traj(1) << " " << rd_.link_[COM_id].x_traj(2) << " "
+                            //  << rd_.link_[COM_id].v_traj(0) << " " << rd_.link_[COM_id].v_traj(1) << " " << rd_.link_[COM_id].v_traj(2) << " "
+                            //  << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
+                            //  << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
+                            //  << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
+                            //  << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
+                            //  << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
+                            //  << zmp_got(0) << " " << zmp_got(1) << " "
+                            //  << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
                              << std::endl;
 
                     // std::cout << rd_.link_[COM_id].xpos(1) << std::endl;
