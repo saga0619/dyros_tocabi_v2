@@ -23,7 +23,7 @@
         <rosparam command="load" file="$(find tocabi_description)/setting/setting_realrobot_parameters.yaml"/>
     </node>
 
-    <node name="tocabi_sensor" pkg="tocabi_sensor" type="tocabi_sensor" output="screen" respawn="true" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <node name="tocabi_sensor" pkg="tocabi_sensor" type="tocabi_sensor" output="screen" respawn="false" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
 
     </node>
 

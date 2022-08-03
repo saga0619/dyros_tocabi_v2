@@ -54,6 +54,7 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
         memcpy(link_local_, link_, sizeof(LinkData) * LINK_NUMBER);
     }
 
+
     if (dc_.simMode)
     {
         mujoco_sim_command_pub_ = dc_.nh.advertise<std_msgs::String>("/mujoco_ros_interface/sim_command_con2sim", 100);
@@ -77,15 +78,16 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     timer_pub_ = dc_.nh.advertise<std_msgs::Float32>("/tocabi/time", 100);
     head_pose_pub_ = dc_.nh.advertise<geometry_msgs::Pose>("/tocabi/headpose", 100);
 
+    stop_tocabi_sub_ = dc_.nh.subscribe("/tocabi/stopper", 100, &StateManager::StopCallback, this);
     elmo_status_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/ecatstates", 100);
-
     com_status_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/comstates", 100);
 
     com_status_msg_.data.resize(17);
-
     point_pub_msg_.polygon.points.resize(24);
     syspub_msg.data.resize(8);
     elmo_status_msg_.data.resize(MODEL_DOF * 3);
+
+
 }
 
 StateManager::~StateManager()
@@ -115,6 +117,9 @@ void *StateManager::StateThread()
     timespec tv_us1;
     tv_us1.tv_sec = 0;
     tv_us1.tv_nsec = 10000;
+
+    initializeJointMLP();
+    loadJointVelNetwork("/home/dyros/catkin_ws/src/tocabi_avatar/joint_vel_net/original/");
 
     while (true)
     {
@@ -293,7 +298,7 @@ void *StateManager::LoggerThread()
     auto tm_ = *std::localtime(&t_);
     start_time << std::put_time(&tm_, "%Y%m%d-%H%M%S");
 
-    std::cout << "Logger : log folder : " << log_folder <<"  Start Time : "<<start_time.str() << std::endl;
+    std::cout << "Logger : log folder : " << log_folder << "  Start Time : " << start_time.str() << std::endl;
 
     std::string torqueLogFile = "torque_elmo_log";
     std::string ecatStatusFile = "ecat_status_log";
@@ -338,7 +343,6 @@ void *StateManager::LoggerThread()
 
     std::string apd_;
     std::string cpd_;
-
 
     while (true)
     {
@@ -421,13 +425,13 @@ void *StateManager::LoggerThread()
                 {
                     apd_ = "0/";
                     cpd_ = "1/";
-                    std::cout << "LOGGER : Open Log Files : " << s_count <<" "<< t_str << std::endl;
+                    std::cout << "LOGGER : Open Log Files : " << s_count << " " << t_str << std::endl;
                 }
                 else
                 {
                     apd_ = "1/";
                     cpd_ = "0/";
-                    std::cout << "LOGGER : Open Log Files : " <<s_count<<" " << t_str << std::endl;
+                    std::cout << "LOGGER : Open Log Files : " << s_count << " " << t_str << std::endl;
                 }
 
                 if (s_count > 0)
@@ -656,6 +660,15 @@ void StateManager::SendCommand()
     static int rcv_c_count = dc_.control_command_count;
 
     dc_.t_c_ = false;
+
+    if (dc_.tc_shm_->lower_disabled)
+    {
+        for (int i = 0; i < 12; i++)
+        {
+            torque_command[i] = 0.0;
+        }
+    }
+
     static int rcv_c_count_before;
     static int warning_cnt = 0;
     if (rcv_c_count_before == rcv_c_count)
@@ -964,10 +977,20 @@ void StateManager::GetJointData()
     memcpy(torqueActual_a_, dc_.tc_shm_->torqueActual, sizeof(float) * MODEL_DOF);
     memcpy(q_ext_a, dc_.tc_shm_->posExt, sizeof(float) * MODEL_DOF);
 
+    // q_dot_a : actual qdot from elmo with float
+
+    calculateJointVelMlpInput();
+
+    calculateJointVelMlpOutput();
+
+    // q_dot_ =
+
     // memecy(q)
 
     q_ = Map<VectorQf>(q_a_, MODEL_DOF).cast<double>();
-    q_dot_ = Map<VectorQf>(q_dot_a_, MODEL_DOF).cast<double>();
+    // q_dot_ = Map<VectorQf>(q_dot_a_, MODEL_DOF).cast<double>();
+
+    q_dot_ = nn_estimated_q_dot_fast_;
 
     q_ext_ = Map<VectorQf>(q_ext_a, MODEL_DOF).cast<double>();
 
@@ -1006,16 +1029,10 @@ void StateManager::GetJointData()
     q_dot_virtual_local_(4) = dc_.tc_shm_->vel_virtual[4];
     q_dot_virtual_local_(5) = dc_.tc_shm_->vel_virtual[5];
 
-
-    
-
-
     q_virtual_local_(3) = dc_.tc_shm_->pos_virtual[3];
     q_virtual_local_(4) = dc_.tc_shm_->pos_virtual[4];
     q_virtual_local_(5) = dc_.tc_shm_->pos_virtual[5];
     q_virtual_local_(MODEL_DOF_VIRTUAL) = dc_.tc_shm_->pos_virtual[6];
-
-
 
     // memcpy(joint_state_, dc_.tc_shm_->status, sizeof(int) * MODEL_DOF);
     memcpy(state_elmo_, dc_.tc_shm_->ecat_status, sizeof(int8_t) * MODEL_DOF);
@@ -1524,14 +1541,14 @@ void StateManager::StateEstimate()
             right_change = true;
             if (local_RF_Contact)
             {
-                std::cout << control_time_ << " STATE : right foot contact initialized" << std::endl;
+                // std::cout << control_time_ << " STATE : right foot contact initialized" << std::endl;
                 RF_contact_pos_holder = RF_global_contact_pos;
                 RF_CP_est_holder_before = RF_CP_est_holder;
                 RF_CP_est_holder = RF_CP_est;
             }
             else
             {
-                std::cout << control_time_ << " STATE : right foot contact disabled" << std::endl;
+                // std::cout << control_time_ << " STATE : right foot contact disabled" << std::endl;
             }
         }
         if (contact_left != local_LF_contact)
@@ -1539,14 +1556,14 @@ void StateManager::StateEstimate()
             left_change = true;
             if (local_LF_contact)
             {
-                std::cout << control_time_ << " STATE : left foot contact initialized" << std::endl;
+                // std::cout << control_time_ << " STATE : left foot contact initialized" << std::endl;
                 LF_contact_pos_holder = LF_global_contact_pos;
                 LF_CP_est_holder_before = LF_CP_est_holder;
                 LF_CP_est_holder = LF_CP_est;
             }
             else
             {
-                std::cout << control_time_ << " STATE : left foot contact disabled" << std::endl;
+                // std::cout << control_time_ << " STATE : left foot contact disabled" << std::endl;
             }
         }
 
@@ -1705,6 +1722,7 @@ void StateManager::StateEstimate()
         {
             q_virtual_(i) = -mod_base_pos(i);
             q_dot_virtual_(i) = pelv_v(i);
+            // q_dot_virtual_(i) = mod_base_vel(i);
 
             // q_dot_virtual_(i) = base_vel_lpf(i);
 
@@ -2125,6 +2143,14 @@ void StateManager::SimCommandCallback(const std_msgs::StringConstPtr &msg)
         dc_.tc_shm_->shutdown = true;
     }
 }
+void StateManager::StopCallback(const std_msgs::StringConstPtr &msg)
+{
+
+    if (msg->data == "stop_tocabi")
+    {
+        dc_.tc_shm_->shutdown = true;
+    }
+}
 
 void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
 {
@@ -2289,4 +2315,216 @@ void StateManager::StatusPub(const char *str, ...)
     // std::cout<<str_;
 
     va_end(lst);
+}
+
+void StateManager::initializeJointMLP()
+{
+    // network weights
+    W1.setZero(20, 100);
+    W2.setZero(100, 100);
+    W3.setZero(100, 1);
+    b1.setZero(100);
+    b2.setZero(100);
+    // b3.setZero(1);
+    h1.setZero(100);
+    h2.setZero(100);
+
+    q_dot_buffer_slow_.setZero(20, 33);
+    q_dot_buffer_fast_.setZero(20, 33);
+    q_dot_buffer_thread_.setZero(20, 33);
+
+    nn_estimated_q_dot_slow_.setZero();
+    nn_estimated_q_dot_fast_.setZero();
+    nn_estimated_q_dot_thread_.setZero();
+    nn_estimated_q_dot_pre_.setZero();
+}
+void StateManager::loadJointVelNetwork(std::string folder_path)
+{
+    std::string W_1_path("weight[0].txt");
+    std::string W_2_path("weight[2].txt");
+    std::string W_3_path("weight[4].txt");
+
+    std::string b_1_path("weight[1].txt");
+    std::string b_2_path("weight[3].txt");
+    std::string b_3_path("weight[5].txt");
+
+    W_1_path = folder_path + W_1_path;
+    W_2_path = folder_path + W_2_path;
+    W_3_path = folder_path + W_3_path;
+
+    b_1_path = folder_path + b_1_path;
+    b_2_path = folder_path + b_2_path;
+    b_3_path = folder_path + b_3_path;
+
+    joint_vel_net_weights_file_[0].open(W_1_path, ios::in);
+    joint_vel_net_weights_file_[1].open(b_1_path, ios::in);
+    joint_vel_net_weights_file_[2].open(W_2_path, ios::in);
+    joint_vel_net_weights_file_[3].open(b_2_path, ios::in);
+    joint_vel_net_weights_file_[4].open(W_3_path, ios::in);
+    joint_vel_net_weights_file_[5].open(b_3_path, ios::in);
+
+    int index = 0;
+    float temp;
+
+    // W1
+    if (!joint_vel_net_weights_file_[0].is_open())
+    {
+        std::cout << "Can not find the weight[0].txt file" << std::endl;
+    }
+    for (int i = 0; i < 20; i++)
+    {
+        for (int j = 0; j < 100; j++)
+        {
+            joint_vel_net_weights_file_[0] >> W1(i, j);
+        }
+    }
+    joint_vel_net_weights_file_[0].close();
+    // cout<<"W1: \n"<<W1<<endl;
+
+    // b1
+    if (!joint_vel_net_weights_file_[1].is_open())
+    {
+        std::cout << "Can not find the weight[1].txt file" << std::endl;
+    }
+    for (int i = 0; i < 100; i++)
+    {
+        joint_vel_net_weights_file_[1] >> b1(i);
+    }
+    joint_vel_net_weights_file_[1].close();
+    // cout<<"b1: \n"<<b1.transpose()<<endl;
+
+    // W2
+    if (!joint_vel_net_weights_file_[2].is_open())
+    {
+        std::cout << "Can not find the weight[2].txt file" << std::endl;
+    }
+    for (int i = 0; i < 100; i++)
+    {
+        for (int j = 0; j < 100; j++)
+        {
+            joint_vel_net_weights_file_[2] >> W2(i, j);
+        }
+    }
+    joint_vel_net_weights_file_[2].close();
+    // cout<<"W2: \n"<<W2<<endl;
+
+    // b2
+    if (!joint_vel_net_weights_file_[3].is_open())
+    {
+        std::cout << "Can not find the weight[3].txt file" << std::endl;
+    }
+    for (int i = 0; i < 100; i++)
+    {
+        joint_vel_net_weights_file_[3] >> b2(i);
+    }
+    joint_vel_net_weights_file_[3].close();
+    // cout<<"b2: \n"<<b2.transpose()<<endl;
+
+    // W3
+    if (!joint_vel_net_weights_file_[4].is_open())
+    {
+        std::cout << "Can not find the weight[4].txt file" << std::endl;
+    }
+    for (int i = 0; i < 100; i++)
+    {
+        for (int j = 0; j < 1; j++)
+        {
+            joint_vel_net_weights_file_[4] >> W3(i, j);
+        }
+    }
+    joint_vel_net_weights_file_[4].close();
+    // cout<<"W3: \n"<<W3<<endl;
+
+    // b3
+    if (!joint_vel_net_weights_file_[5].is_open())
+    {
+        std::cout << "Can not find the weight[5].txt file" << std::endl;
+    }
+    for (int i = 0; i < 1; i++)
+    {
+        joint_vel_net_weights_file_[5] >> b3;
+    }
+    joint_vel_net_weights_file_[5].close();
+    // cout<<"b3: \n"<<b3<<endl;
+}
+void StateManager::calculateJointVelMlpInput()
+{
+    // 최근 20개 속도 임시 저장하는 변수
+    for (int i = 0; i < MODEL_DOF; i++)
+    {
+        for (int j = 1; j < 20; j++)
+        {
+            q_dot_buffer_slow_(20 - j, i) = q_dot_buffer_slow_(19 - j, i);
+        }
+    }
+
+    VectorQd qdot_actual_double = Map<VectorQf>(q_dot_a_, MODEL_DOF).cast<double>();
+
+    // q_dot_ = Map<VectorQf>(q_dot_a_, MODEL_DOF).cast<double>();
+
+    for (int joint = 0; joint < MODEL_DOF; joint++)
+    {
+        q_dot_buffer_slow_(0, joint) = qdot_actual_double(joint) * 101;
+    }
+
+    if (atb_mlp_input_update_ == false)
+    {
+        atb_mlp_input_update_ = true;
+        q_dot_buffer_thread_ = q_dot_buffer_slow_;
+        atb_mlp_input_update_ = false;
+    }
+}
+void StateManager::calculateJointVelMlpOutput()
+{
+    if (atb_mlp_input_update_ == false)
+    {
+        atb_mlp_input_update_ = true;
+        q_dot_buffer_fast_ = q_dot_buffer_thread_;
+        atb_mlp_input_update_ = false;
+    }
+
+    nn_estimated_q_dot_fast_.setZero();
+
+    for (int joint = 0; joint < MODEL_DOF; joint++)
+    {
+        h1.setZero();
+        h2.setZero();
+
+        // Input -> Hidden Layer 1
+        h1 = W1.transpose() * q_dot_buffer_fast_.block(0, joint, 20, 1) + b1;
+
+        for (int i = 0; i < 100; i++)
+        {
+            if (h1(i) < 0)
+            {
+                h1(i) = 0;
+            }
+        }
+        // Hidden Layer1 -> Hidden Layer2
+        h2 = W2.transpose() * h1 + b2;
+        for (int i = 0; i < 100; i++)
+        {
+            if (h2(i) < 0)
+            {
+                h2(i) = 0;
+            }
+        }
+
+        // Hidden Layer2 -> output (Dense)
+        nn_estimated_q_dot_fast_(joint) = (W3.transpose() * h2)(0) + b3;
+
+        nn_estimated_q_dot_fast_(joint) = 0.7*nn_estimated_q_dot_fast_(joint) + 0.3*q_dot_buffer_fast_(0, joint);
+        nn_estimated_q_dot_fast_(joint) = nn_estimated_q_dot_fast_(joint) / 101;
+    }
+    nn_estimated_q_dot_fast_ = DyrosMath::lpf<33>(nn_estimated_q_dot_fast_, nn_estimated_q_dot_pre_, 2000.0, 2*M_PI*200);
+    nn_estimated_q_dot_pre_ = nn_estimated_q_dot_fast_;
+
+    // q_dot_ = nn_estimated_q_dot_fast_;
+
+    if (atb_mlp_output_update_ == false)
+    {
+        atb_mlp_output_update_ = true;
+        nn_estimated_q_dot_thread_ = nn_estimated_q_dot_fast_;
+        atb_mlp_output_update_ = false;
+    }
 }

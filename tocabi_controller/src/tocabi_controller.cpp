@@ -60,7 +60,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
     WBC::SetContactInit(rd_);
 
     EnableThread2(true);  // Set true for Thread2
-    EnableThread3(false); // True for thread3 ...
+    EnableThread3(true); // True for thread3 ...
 
     if (dc_.simMode)
     {
@@ -305,7 +305,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         else
                         {
                             task_log.open(output_file.c_str(), fstream::out | fstream::app);
-                            task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z fstar_x fstar_y fstar_z lambda_x lambda_y lambda_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z atraj_x atraj_y atraz_z q0 q1 q2 q3 q4 q5 qdot0 qdot1 qdot2 qdot3 qdot4 qdot5 qe0 qe1 qe2 qe3 qe4 qe5 zmp_x zmp_y zmpes_x zmpes_y imux imuy imuz" << std::endl;
+                            task_log << "time com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z" << std::endl;
                             // task_log << "time com_pos_x com_pos_y com_pos_z ft0 ft1 ft2 ft3 ft4 ft5 ft6 ft7 ft8 ft9 ft10 ft11" << std::endl;
                             if (task_log.is_open())
                             {
@@ -364,19 +364,19 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                              //  << rd_.RF_CF_FT(0) << " " << rd_.RF_CF_FT(1) << " " << rd_.RF_CF_FT(2) << " "
                              //  << rd_.RF_CF_FT(3) << " " << rd_.RF_CF_FT(4) << " " << rd_.RF_CF_FT(5) << " ";
                              << rd_.link_[COM_id].v(0) << " " << rd_.link_[COM_id].v(1) << " " << rd_.link_[COM_id].v(2) << " "
-                             << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
-                             << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
-                             << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
-                             << out(0) << " " << out(1) << " " << out(2) << " "
+                             //  << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
+                             //  << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
+                             //  << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
+                             //  << out(0) << " " << out(1) << " " << out(2) << " "
                              << rd_.link_[COM_id].x_traj(0) << " " << rd_.link_[COM_id].x_traj(1) << " " << rd_.link_[COM_id].x_traj(2) << " "
                              << rd_.link_[COM_id].v_traj(0) << " " << rd_.link_[COM_id].v_traj(1) << " " << rd_.link_[COM_id].v_traj(2) << " "
-                             << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
-                             << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
-                             << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
-                             << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
-                             << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
-                             << zmp_got(0) << " " << zmp_got(1) << " "
-                             << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
+                             //  << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
+                             //  << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
+                             //  << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
+                             //  << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
+                             //  << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
+                             //  << zmp_got(0) << " " << zmp_got(1) << " "
+                             //  << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
                              << std::endl;
 
                     // std::cout << rd_.link_[COM_id].xpos(1) << std::endl;
@@ -434,12 +434,12 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     WBC::SetContact(rd_, rd_.tc_.left_foot, rd_.tc_.right_foot, rd_.tc_.left_hand, rd_.tc_.right_hand);
 
-                    rd_.J_task.setZero(6, MODEL_DOF_VIRTUAL);
-                    rd_.J_task.block(0, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[COM_id].Jac().block(0, 0, 3, MODEL_DOF_VIRTUAL);
-                    rd_.J_task.block(3, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[Upper_Body].Jac().block(3, 0, 3, MODEL_DOF_VIRTUAL);
+                    rd_.J_task.setZero(9, MODEL_DOF_VIRTUAL);
+                    rd_.J_task.block(0, 0, 6, MODEL_DOF_VIRTUAL) = rd_.link_[Pelvis].Jac();
+                    rd_.J_task.block(6, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[Upper_Body].Jac().block(3, 0, 3, MODEL_DOF_VIRTUAL);
 
-                    rd_.link_[COM_id].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
-                    rd_.link_[COM_id].x_desired(2) = rd_.tc_.height;
+                    rd_.link_[Pelvis].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
+                    rd_.link_[Pelvis].x_desired(2) = rd_.tc_.height;
 
                     double ang2rad = 0.0174533;
 
@@ -449,21 +449,22 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     if (rd_.tc_.customTaskGain)
                     {
-                        rd_.link_[COM_id].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
+                        rd_.link_[Pelvis].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
                         rd_.link_[Upper_Body].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
                     }
 
-                    // rd_.link_[COM_id].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+                    rd_.link_[Pelvis].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
 
-                    rd_.link_[COM_id].SetTrajectoryLinear(rd_.control_time_, rd_.tc_.time * 0.1, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+                    // rd_.link_[COM_id].SetTrajectoryLinear(rd_.control_time_, rd_.tc_.time * 0.1, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+                    // rd_.link_[COM_id].SetTrajectoryRotation(rd_.control_time_, rd_.tc_.time * 0.1, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
 
                     rd_.link_[Upper_Body].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
 
-                    fstar.setZero(6);
-                    fstar.segment(0, 3) = WBC::GetFstarPos(rd_.link_[COM_id], true);
-                    fstar.segment(3, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
+                    fstar.setZero(9);
+                    fstar.segment(0, 6) = WBC::GetFstar6d(rd_.link_[Pelvis], true);
+                    fstar.segment(6, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
 
-                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_));
+                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::TaskControlTorque(rd_, fstar) + WBC::GravityCompensationTorque(rd_));
 
                     VectorXd out = rd_.lambda * fstar;
 
@@ -472,25 +473,25 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     Vector3d zmp_got = WBC::GetZMPpos_from_ContactForce(rd_, cf_est);
 
                     task_log << rd_.control_time_ << " "
-                             << rd_.link_[COM_id].xpos(0) << " " << rd_.link_[COM_id].xpos(1) << " " << rd_.link_[COM_id].xpos(2) << " "
+                             << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
                              //  << rd_.LF_CF_FT(0) << " " << rd_.LF_CF_FT(1) << " " << rd_.LF_CF_FT(2) << " "
                              //  << rd_.LF_CF_FT(3) << " " << rd_.LF_CF_FT(4) << " " << rd_.LF_CF_FT(5) << " "
                              //  << rd_.RF_CF_FT(0) << " " << rd_.RF_CF_FT(1) << " " << rd_.RF_CF_FT(2) << " "
                              //  << rd_.RF_CF_FT(3) << " " << rd_.RF_CF_FT(4) << " " << rd_.RF_CF_FT(5) << " ";
-                             << rd_.link_[COM_id].v(0) << " " << rd_.link_[COM_id].v(1) << " " << rd_.link_[COM_id].v(2) << " "
+                             << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
                              << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
                              << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
-                            //  << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
-                            //  << out(0) << " " << out(1) << " " << out(2) << " "
-                            //  << rd_.link_[COM_id].x_traj(0) << " " << rd_.link_[COM_id].x_traj(1) << " " << rd_.link_[COM_id].x_traj(2) << " "
-                            //  << rd_.link_[COM_id].v_traj(0) << " " << rd_.link_[COM_id].v_traj(1) << " " << rd_.link_[COM_id].v_traj(2) << " "
-                            //  << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
-                            //  << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
-                            //  << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
-                            //  << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
-                            //  << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
-                            //  << zmp_got(0) << " " << zmp_got(1) << " "
-                            //  << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
+                             //  << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
+                             //  << out(0) << " " << out(1) << " " << out(2) << " "
+                             //  << rd_.link_[COM_id].x_traj(0) << " " << rd_.link_[COM_id].x_traj(1) << " " << rd_.link_[COM_id].x_traj(2) << " "
+                             //  << rd_.link_[COM_id].v_traj(0) << " " << rd_.link_[COM_id].v_traj(1) << " " << rd_.link_[COM_id].v_traj(2) << " "
+                             //  << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
+                             //  << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
+                             //  << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
+                             //  << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
+                             //  << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
+                             //  << zmp_got(0) << " " << zmp_got(1) << " "
+                             //  << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
                              << std::endl;
 
                     // std::cout << rd_.link_[COM_id].xpos(1) << std::endl;
@@ -610,8 +611,8 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             static std::chrono::steady_clock::time_point t_c_ = std::chrono::steady_clock::now();
 
             // Available at simMode for now ...
-            if (dc_.simMode)
-                WBC::CheckTorqueLimit(rd_, rd_.torque_desired);
+            // if (dc_.simMode)
+            // WBC::CheckTorqueLimit(rd_, rd_.torque_desired);
 
             SendCommand(rd_.torque_desired);
 
@@ -714,12 +715,12 @@ void *TocabiController::Thread2()
                         ac_.computeFast();
                     }
 #endif
-#ifdef COMPILE_TOCABI_CC
-                    // if (rd_.tc_.mode == 15)
-                    // {
-                    //     my_cc.computeFast();
-                    // }
-#endif
+// #ifdef COMPILE_TOCABI_CC
+//                     if (rd_.tc_.mode == 15)
+//                     {
+//                         my_cc.computeFast();
+//                     }
+// #endif
                 }
                 /////////////////////////////////////////////
                 std::this_thread::sleep_for(std::chrono::microseconds(10));
@@ -761,7 +762,7 @@ void *TocabiController::Thread3()
 /////////////////////////////////////////////
 /////////////Do something in Thread3 !!!!!!!
 #ifdef COMPILE_TOCABI_AVATAR
-                // ac_.computeThread3();
+                ac_.computeThread3();
 #endif
 
                 /////////////////////////////////////////////
@@ -949,6 +950,17 @@ void TocabiController::TaskGainCommandCallback(const tocabi_msgs::TaskGainComman
     else if (msg->mode == 3)
     {
         __id = Upper_Body;
+    }
+    else if (msg->mode == 5)
+    {
+
+        __id = Right_Foot;
+        std::cout << "Gain set on RightFoot" << std::endl;
+    }
+    else if (msg->mode == 6)
+    {
+        __id = Left_Foot;
+        std::cout << "Gain set on leftfoot" << std::endl;
     }
     else
     {
