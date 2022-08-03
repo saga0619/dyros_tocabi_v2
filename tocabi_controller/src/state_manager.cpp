@@ -118,8 +118,8 @@ void *StateManager::StateThread()
     tv_us1.tv_sec = 0;
     tv_us1.tv_nsec = 10000;
 
-    initializeJointMLP();
-    loadJointVelNetwork("/home/dyros/catkin_ws/src/tocabi_avatar/joint_vel_net/original/");
+    // initializeJointMLP();
+    // loadJointVelNetwork("/home/dyros/catkin_ws/src/tocabi_avatar/joint_vel_net/original/");
 
     while (true)
     {
@@ -979,18 +979,18 @@ void StateManager::GetJointData()
 
     // q_dot_a : actual qdot from elmo with float
 
-    calculateJointVelMlpInput();
+    // calculateJointVelMlpInput();
 
-    calculateJointVelMlpOutput();
+    // calculateJointVelMlpOutput();
 
     // q_dot_ =
 
     // memecy(q)
 
     q_ = Map<VectorQf>(q_a_, MODEL_DOF).cast<double>();
-    // q_dot_ = Map<VectorQf>(q_dot_a_, MODEL_DOF).cast<double>();
+    q_dot_ = Map<VectorQf>(q_dot_a_, MODEL_DOF).cast<double>();
 
-    q_dot_ = nn_estimated_q_dot_fast_;
+    // q_dot_ = nn_estimated_q_dot_fast_;
 
     q_ext_ = Map<VectorQf>(q_ext_a, MODEL_DOF).cast<double>();
 
@@ -1195,6 +1195,7 @@ void StateManager::StoreState(RobotData &rd_dst)
         memcpy(&rd_dst.link_[i].xipos, &link_[i].xipos, sizeof(Vector3d));
         memcpy(&rd_dst.link_[i].rotm, &link_[i].rotm, sizeof(Matrix3d));
         memcpy(&rd_dst.link_[i].v, &link_[i].v, sizeof(Vector3d));
+        memcpy(&rd_dst.link_[i].vi, &link_[i].vi, sizeof(Vector3d));
         memcpy(&rd_dst.link_[i].w, &link_[i].w, sizeof(Vector3d));
 
         // xpos xipos rotm v w
@@ -1721,8 +1722,8 @@ void StateManager::StateEstimate()
         for (int i = 0; i < 3; i++)
         {
             q_virtual_(i) = -mod_base_pos(i);
-            q_dot_virtual_(i) = pelv_v(i);
-            // q_dot_virtual_(i) = mod_base_vel(i);
+            // q_dot_virtual_(i) = pelv_v(i);
+            q_dot_virtual_(i) = mod_base_vel(i);
 
             // q_dot_virtual_(i) = base_vel_lpf(i);
 
