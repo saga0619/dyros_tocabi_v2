@@ -407,7 +407,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     {
                         init_qp = true;
 
-                        std::cout << "mode 0 init" << std::endl;
+                        std::cout << "mode 2 init" << std::endl;
                         rd_.tc_init = false;
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
                     }
@@ -434,46 +434,72 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     rd_.torque_grav = WBC::GravityCompensationTorque(rd_);
 
+                    TaskSpace ts_(6);
+
                     Eigen::MatrixXd Jtask = rd_.link_[Pelvis].JacCOM();
-                    Eigen::MatrixXd lambda_task;
-                    Eigen::MatrixXd Jkt = WBC::GetJKT1(rd_, Jtask, lambda_task);
                     Eigen::VectorXd fstar = WBC::GetFstar6d(rd_.link_[Pelvis], true, true);
-                    Eigen::MatrixXd task_null_ = Eigen::MatrixXd::Identity(MODEL_DOF, MODEL_DOF);
+                    // std::cout << "1" << std::endl;
+                    ts_.Update(Jtask, fstar);
+                    WBC::CalcJKT(rd_, ts_);
+                    // std::cout << "2" << std::endl;
+
+                    WBC::CalcTaskNull(rd_, ts_);
+                    // std::cout << "3" << std::endl;
 
                     static CQuadraticProgram task_qp_;
-                    Eigen::VectorXd fstar_qp, contact_qp;
+                    int hqp1_solve_result = WBC::TaskControlHQP(rd_, ts_, task_qp_, rd_.torque_grav, MatrixXd::Identity(MODEL_DOF, MODEL_DOF), init_qp);
 
-                    WBC::TaskControlHQP(rd_, task_qp_, Jtask, Jkt, fstar, lambda_task, rd_.torque_grav, task_null_, fstar_qp, contact_qp, init_qp);
+                    // std::cout << "4" << std::endl;
+                    // WBC::CalcTaskNull(rd_, ts2_);
+                    VectorQd torque_task_hqp_;
+                    if (hqp1_solve_result)
+                    {
+                        // std::cout << "5" << std::endl;
 
-                    VectorQd torque_task_hqp_ = Jkt * lambda_task * (fstar_qp + fstar);
+                        Eigen::MatrixXd Jtask2 = rd_.link_[Upper_Body].Jac().bottomRows(3);
+                        Eigen::VectorXd fstar2 = WBC::GetFstarRot(rd_.link_[Upper_Body]);
+                        TaskSpace ts2_(3);
+                        static CQuadraticProgram task_qp2_;
+                        ts2_.Update(Jtask2, fstar2);
+                        WBC::CalcJKT(rd_, ts2_);
+                        if (WBC::TaskControlHQP(rd_, ts2_, task_qp2_, rd_.torque_grav + ts_.torque_h_, ts_.Null_task, init_qp))
+                        {
+                            torque_task_hqp_ = rd_.torque_grav + ts_.torque_h_ + ts_.Null_task * ts2_.torque_h_;
+                        }
+                        else
+                        {
+                            torque_task_hqp_ = rd_.torque_grav + ts_.torque_h_; // + ts_.Null_task * ts2_.torque_h_;
+                        }
+                    }
+                    else
+                    {
+                        torque_task_hqp_ = rd_.torque_grav;
 
-                    Eigen::VectorXd fstar_qp2, contact_qp2;
+                        std::cout << "Solve Error, Disable Task Control" << std::endl;
+                        rd_.positionControlSwitch = true;
+                    }
+                    // std::cout << "6" << std::endl;
 
-                    Eigen::MatrixXd Jtask2 = rd_.link_[Upper_Body].Jac().bottomRows(3);
-                    Eigen::MatrixXd lambda_task2;
-                    Eigen::MatrixXd Jkt2 = WBC::GetJKT1(rd_, Jtask2, lambda_task2);
-                    Eigen::VectorXd fstar2 = WBC::GetFstarRot(rd_.link_[Upper_Body]);
-                    Eigen::MatrixXd task_null_2 = (task_null_ - Jkt * lambda_task * Jtask * rd_.A_inv_ * rd_.N_C.rightCols(MODEL_DOF));
+                    // WBC::TaskControlHQP(rd_, task_qp_2, Jtask2, Jkt2, fstar2, lambda_task2, torque_task_hqp_ + rd_.torque_grav, ts_.Null_task, fstar_qp2, contact_qp2, init_qp);
 
-                    static CQuadraticProgram task_qp_2;
-                    WBC::TaskControlHQP(rd_, task_qp_2, Jtask2, Jkt2, fstar2, lambda_task2, torque_task_hqp_ + rd_.torque_grav, task_null_2, fstar_qp2, contact_qp2, init_qp);
+                    // VectorQd torque_Task2 = ts_.torque_h_ + ts_.Null_task * ts2_.torque_h_;
+                    // VectorQd torque_Task2 = ts_.J_kt_ *ts_.Lambda_task_ * ts_.f_star_;
 
-                    VectorQd torque_Task2 = torque_task_hqp_ + task_null_2 * (Jkt2 * lambda_task2 * (fstar2 + fstar_qp2));
-
-                    static CQuadraticProgram contact_qp_;
-
-                    VectorXd torque_contact_qp_;
                     // WBC::CalcContactRedistributeHQP(rd_, contact_qp_, torque_Task2 + rd_.torque_grav, torque_contact_qp_, init_qp);
 
                     // rd_.torque_desired = torque_Task2 + rd_.torque_grav + torque_contact_qp_;
 
-                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, torque_Task2 + rd_.torque_grav);
+                    // rd_.torque_desired = torque_Task2 + rd_.torque_grav + rd_.NwJw * ts2_.contact_qp_;
+                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, torque_task_hqp_);
+
+                    // std::cout << "7" << std::endl;
 
                     VectorXd out = rd_.lambda * fstar;
 
                     Vector12d cf_est = WBC::getContactForce(rd_, rd_.torque_desired);
 
                     Vector3d zmp_got = WBC::GetZMPpos_from_ContactForce(rd_, cf_est);
+                    // std::cout << "8" << std::endl;
 
                     init_qp = false;
                 }
@@ -485,7 +511,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     {
                         init_qp = true;
 
-                        std::cout << "mode 0 init" << std::endl;
+                        std::cout << "mode 3 init" << std::endl;
                         rd_.tc_init = false;
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
                     }
@@ -553,6 +579,105 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     init_qp = false;
                 }
+                else if (rd_.tc_.mode == 4)
+                {
+                    double ang2rad = 0.0174533;
+
+                    static bool init_qp;
+                    if (rd_.tc_init)
+                    {
+                        init_qp = true;
+
+                        std::cout << "mode 4 init" << std::endl;
+                        rd_.tc_init = false;
+                        rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
+                    }
+
+                    WBC::SetContact(rd_, rd_.tc_.left_foot, rd_.tc_.right_foot, rd_.tc_.left_hand, rd_.tc_.right_hand);
+                    if (rd_.tc_.customTaskGain)
+                    {
+                        rd_.link_[Pelvis].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
+                        rd_.link_[Upper_Body].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
+                        rd_.link_[Right_Hand].SetGain(rd_.tc_.pos_p, rd_.tc_.pos_d, rd_.tc_.acc_p, rd_.tc_.ang_p, rd_.tc_.ang_d, 1);
+                    }
+
+                    rd_.link_[Pelvis].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
+                    rd_.link_[Pelvis].x_desired(2) = rd_.tc_.height;
+                    rd_.link_[Pelvis].rot_desired = DyrosMath::rotateWithY(rd_.tc_.pelv_pitch * ang2rad) * DyrosMath::rotateWithZ(rd_.link_[Pelvis].yaw_init);
+
+                    rd_.link_[Right_Hand].x_desired = rd_.link_[Right_Hand].x_init;
+                    rd_.link_[Right_Hand].x_desired(0) += rd_.tc_.r_x;
+                    rd_.link_[Right_Hand].x_desired(1) += rd_.tc_.r_y;
+                    rd_.link_[Right_Hand].x_desired(2) += rd_.tc_.r_z;
+                    rd_.link_[Right_Hand].rot_desired = DyrosMath::rotateWithX(rd_.tc_.r_roll * ang2rad) * DyrosMath::rotateWithY(rd_.tc_.r_pitch * ang2rad) * DyrosMath::rotateWithZ(rd_.tc_.r_yaw * ang2rad) * DyrosMath::Euler2rot(0, 1.5708, -1.5708).transpose();
+                    // rd_.link_[Right_Hand].rot_desired = DyrosMath::rotateWithX(rd_.tc_.r_roll * ang2rad) * DyrosMath::rotateWithY(rd_.tc_.r_pitch * ang2rad) * DyrosMath::rotateWithZ(rd_.tc_.r_yaw * ang2rad);
+
+                    rd_.link_[Upper_Body].rot_desired = DyrosMath::rotateWithX(rd_.tc_.roll * ang2rad) * DyrosMath::rotateWithY(rd_.tc_.pitch * ang2rad) * DyrosMath::rotateWithZ(rd_.tc_.yaw * ang2rad);
+
+                    rd_.link_[Pelvis].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[Pelvis].xi_init, rd_.link_[Pelvis].x_desired);
+                    rd_.link_[Pelvis].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                    rd_.link_[Right_Hand].SetTrajectoryQuintic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+                    rd_.link_[Right_Hand].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                    rd_.link_[Upper_Body].SetTrajectoryRotation(rd_.control_time_, rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time);
+
+                    rd_.torque_grav = WBC::GravityCompensationTorque(rd_);
+
+                    TaskSpace ts_(6);
+                    Eigen::MatrixXd Jtask = rd_.link_[Pelvis].JacCOM();
+                    Eigen::VectorXd fstar = WBC::GetFstar6d(rd_.link_[Pelvis], true, true);
+
+                    ts_.Update(Jtask, fstar);
+                    WBC::CalcJKT(rd_, ts_);
+                    WBC::CalcTaskNull(rd_, ts_);
+                    static CQuadraticProgram task_qp_;
+                    WBC::TaskControlHQP(rd_, ts_, task_qp_, rd_.torque_grav, MatrixXd::Identity(MODEL_DOF, MODEL_DOF), init_qp);
+
+                    VectorQd torque_Task2 = ts_.torque_h_ + rd_.torque_grav;
+
+                    TaskSpace ts1_(6);
+                    Eigen::MatrixXd Jtask1 = rd_.link_[Right_Hand].Jac();
+                    Eigen::VectorXd fstar1 = WBC::GetFstar6d(rd_.link_[Right_Hand], true);
+
+                    ts1_.Update(Jtask1, fstar1);
+                    WBC::CalcJKT(rd_, ts1_);
+                    WBC::CalcTaskNull(rd_, ts1_);
+                    static CQuadraticProgram task_qp1_;
+                    WBC::TaskControlHQP(rd_, ts1_, task_qp1_, torque_Task2, ts_.Null_task, init_qp);
+
+                    torque_Task2 = ts_.torque_h_ + ts_.Null_task * ts1_.torque_h_ + rd_.torque_grav;
+
+                    TaskSpace ts2_(3);
+                    Eigen::MatrixXd Jtask2 = rd_.link_[Upper_Body].Jac().bottomRows(3);
+                    Eigen::VectorXd fstar2 = WBC::GetFstarRot(rd_.link_[Upper_Body]);
+                    ts2_.Update(Jtask2, fstar2);
+                    WBC::CalcJKT(rd_, ts2_);
+
+                    static CQuadraticProgram task_qp2_;
+                    WBC::TaskControlHQP(rd_, ts2_, task_qp2_, torque_Task2, ts_.Null_task * ts1_.Null_task, init_qp);
+                    // WBC::TaskControlHQP(rd_, task_qp_2, Jtask2, Jkt2, fstar2, lambda_task2, torque_task_hqp_ + rd_.torque_grav, ts_.Null_task, fstar_qp2, contact_qp2, init_qp);
+
+                    // VectorQd torque_Task2 = ts_.J_kt_ *ts_.Lambda_task_ * ts_.f_star_;
+
+                    torque_Task2 = ts_.torque_h_ + ts_.Null_task * ts1_.torque_h_ + ts_.Null_task * ts1_.Null_task * ts2_.torque_h_ + rd_.torque_grav;
+
+                    VectorXd torque_contact_qp_;
+                    // WBC::CalcContactRedistributeHQP(rd_, contact_qp_, torque_Task2 + rd_.torque_grav, torque_contact_qp_, init_qp);
+
+                    // rd_.torque_desired = torque_Task2 + rd_.torque_grav + torque_contact_qp_;
+
+                    // rd_.torque_desired = torque_Task2 + rd_.torque_grav + rd_.NwJw * ts2_.contact_qp_;
+                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, torque_Task2);
+
+                    VectorXd out = rd_.lambda * fstar;
+
+                    Vector12d cf_est = WBC::getContactForce(rd_, rd_.torque_desired);
+
+                    Vector3d zmp_got = WBC::GetZMPpos_from_ContactForce(rd_, cf_est);
+
+                    init_qp = false;
+                }
 
 #ifdef COMPILE_TOCABI_AVATAR
                 if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
@@ -602,8 +727,8 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             static std::chrono::steady_clock::time_point t_c_ = std::chrono::steady_clock::now();
 
             // Available at simMode for now ...
-            if (dc_.simMode)
-                WBC::CheckTorqueLimit(rd_, rd_.torque_desired);
+            // if (dc_.simMode)
+            //     WBC::CheckTorqueLimit(rd_, rd_.torque_desired);
 
             SendCommand(rd_.torque_desired);
 
