@@ -67,7 +67,8 @@ void *SensorManager::SensorThread(void)
 
     sensoray826_dev ft = sensoray826_dev(1);
     is_ft_board_ok = ft.open();
-
+    optoforce hand_ft;
+ 
     if (!is_ft_board_ok)
     {
         std::cout << "ft connection error, error code" << std::endl;
