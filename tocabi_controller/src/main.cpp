@@ -104,6 +104,12 @@ int main(int argc, char **argv)
     init_shm(shm_msg_key, shm_id_, &dc_.tc_shm_);
 
     prog_shutdown = &dc_.tc_shm_->shutdown;
+    
+    bool lower_disable = false;
+
+    dc_.nh.param("/tocabi_controller/disablelower", lower_disable, false);
+
+    dc_.tc_shm_->lower_disabled = lower_disable;
 
     // std::cout << "process num : " << (int)dc_.tc_shm_->process_num << std::endl;
 

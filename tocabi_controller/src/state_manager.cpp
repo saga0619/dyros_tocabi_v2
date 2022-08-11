@@ -7,6 +7,8 @@
 using namespace std;
 using namespace TOCABI;
 
+volatile bool qdot_estimation_switch = false;
+
 StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc_global.rd_)
 {
     string urdf_path;
@@ -118,8 +120,8 @@ void *StateManager::StateThread()
     tv_us1.tv_sec = 0;
     tv_us1.tv_nsec = 10000;
 
-    // initializeJointMLP();
-    // loadJointVelNetwork("/home/dyros/catkin_ws/src/tocabi_avatar/joint_vel_net/original/");
+    initializeJointMLP();
+    loadJointVelNetwork("/home/dyros/joint_vel_net/");
 
     while (true)
     {
@@ -668,6 +670,15 @@ void StateManager::SendCommand()
             torque_command[i] = 0.0;
         }
     }
+    else{
+        if(dc_.locklower)
+        {
+            for (int i = 0; i < 12; i++)
+            {
+                torque_command[i] = rd_gl_.pos_kp_v[i] * (dc_.qlock_des[i] - q_[i]) + rd_gl_.pos_kv_v[i] * (- q_dot_[i]);
+            }
+        }
+    }
 
     static int rcv_c_count_before;
     static int warning_cnt = 0;
@@ -979,18 +990,25 @@ void StateManager::GetJointData()
 
     // q_dot_a : actual qdot from elmo with float
 
-    // calculateJointVelMlpInput();
-
-    // calculateJointVelMlpOutput();
 
     // q_dot_ =
 
     // memecy(q)
 
     q_ = Map<VectorQf>(q_a_, MODEL_DOF).cast<double>();
-    q_dot_ = Map<VectorQf>(q_dot_a_, MODEL_DOF).cast<double>();
 
-    // q_dot_ = nn_estimated_q_dot_fast_;
+    if(qdot_estimation_switch)
+    {
+        calculateJointVelMlpInput();
+
+        calculateJointVelMlpOutput();
+        q_dot_ = nn_estimated_q_dot_fast_;
+
+    }
+    else{
+        q_dot_ = Map<VectorQf>(q_dot_a_, MODEL_DOF).cast<double>();
+
+    }
 
     q_ext_ = Map<VectorQf>(q_ext_a, MODEL_DOF).cast<double>();
 
@@ -2259,10 +2277,26 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
         if (dc_.tc_shm_->lower_disabled)
         {
             std::cout << "lowerbody disable" << std::endl;
+            dc_.locklower = false;
         }
         else
         {
             std::cout << "lowerbody activate" << std::endl;
+            dc_.locklower = false;
+
+        }
+    }
+    else if(msg->data == "locklower")
+    {
+        dc_.locklower = !dc_.locklower;
+        if (dc_.locklower)
+        {
+            dc_.qlock_des = rd_gl_.q_desired.segment(0,12);
+            std::cout << "locklower activate" << std::endl;
+        }
+        else
+        {
+            std::cout << "locklower disable" << std::endl;
         }
     }
     else if (msg->data == "ecatinitlower")
@@ -2293,6 +2327,19 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         dc_.tc_shm_->force_load_saved_signal = true;
     }
+    else if(msg->data == "testbtn")
+    {
+        qdot_estimation_switch = !qdot_estimation_switch;
+
+        if(qdot_estimation_switch)
+        {
+            std::cout<<"turn on qdot est"<<std::endl;
+
+        }
+        else{
+            std::cout<<"turn off qdot est"<<std::endl;
+        }
+    }
 
     // Controlling GUI
 }
@@ -2321,7 +2368,7 @@ void StateManager::StatusPub(const char *str, ...)
 void StateManager::initializeJointMLP()
 {
     // network weights
-    W1.setZero(20, 100);
+    W1.setZero(40, 100);
     W2.setZero(100, 100);
     W3.setZero(100, 1);
     b1.setZero(100);
@@ -2330,9 +2377,9 @@ void StateManager::initializeJointMLP()
     h1.setZero(100);
     h2.setZero(100);
 
-    q_dot_buffer_slow_.setZero(20, 33);
-    q_dot_buffer_fast_.setZero(20, 33);
-    q_dot_buffer_thread_.setZero(20, 33);
+    q_dot_buffer_slow_.setZero(40, 33);
+    q_dot_buffer_fast_.setZero(40, 33);
+    q_dot_buffer_thread_.setZero(40, 33);
 
     nn_estimated_q_dot_slow_.setZero();
     nn_estimated_q_dot_fast_.setZero();
@@ -2341,13 +2388,13 @@ void StateManager::initializeJointMLP()
 }
 void StateManager::loadJointVelNetwork(std::string folder_path)
 {
-    std::string W_1_path("weight[0].txt");
-    std::string W_2_path("weight[2].txt");
-    std::string W_3_path("weight[4].txt");
+    std::string W_1_path("weight_0801[0].txt");
+    std::string W_2_path("weight_0801[2].txt");
+    std::string W_3_path("weight_0801[4].txt");
 
-    std::string b_1_path("weight[1].txt");
-    std::string b_2_path("weight[3].txt");
-    std::string b_3_path("weight[5].txt");
+    std::string b_1_path("weight_0801[1].txt");
+    std::string b_2_path("weight_0801[3].txt");
+    std::string b_3_path("weight_0801[5].txt");
 
     W_1_path = folder_path + W_1_path;
     W_2_path = folder_path + W_2_path;
@@ -2372,7 +2419,7 @@ void StateManager::loadJointVelNetwork(std::string folder_path)
     {
         std::cout << "Can not find the weight[0].txt file" << std::endl;
     }
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 40; i++)
     {
         for (int j = 0; j < 100; j++)
         {
@@ -2453,9 +2500,9 @@ void StateManager::calculateJointVelMlpInput()
     // 최근 20개 속도 임시 저장하는 변수
     for (int i = 0; i < MODEL_DOF; i++)
     {
-        for (int j = 1; j < 20; j++)
+        for (int j = 1; j < 40; j++)
         {
-            q_dot_buffer_slow_(20 - j, i) = q_dot_buffer_slow_(19 - j, i);
+            q_dot_buffer_slow_(40 - j, i) = q_dot_buffer_slow_(39 - j, i);
         }
     }
 
@@ -2492,7 +2539,7 @@ void StateManager::calculateJointVelMlpOutput()
         h2.setZero();
 
         // Input -> Hidden Layer 1
-        h1 = W1.transpose() * q_dot_buffer_fast_.block(0, joint, 20, 1) + b1;
+        h1 = W1.transpose() * q_dot_buffer_fast_.block(0, joint, 40, 1) + b1;
 
         for (int i = 0; i < 100; i++)
         {
