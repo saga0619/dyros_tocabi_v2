@@ -214,7 +214,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     Eigen::VectorXd fstar;
                     fstar.setZero(9);
-                    fstar.segment(0, 6) = WBC::GetFstarPos(rd_.link_[COM_id], true);
+                    fstar.segment(0, 6) = WBC::GetFstar6d(rd_.link_[COM_id], true);
                     fstar.segment(6, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
 
                     // if (rd_.link_[COM_id].a_traj(1) != 0)
