@@ -407,6 +407,20 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     {
                         init_qp = true;
 
+                        if (task_log.is_open())
+                        {
+                            std::cout << "file already opened " << std::endl;
+                        }
+                        else
+                        {
+                            task_log.open(output_file.c_str(), fstream::out | fstream::app);
+                            task_log << "time pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z upper_r upper_p upper_y upper_tx upper_ty upper_tz rtraj_r rtraj_p rtraj_y ttraj_x ttraj_y ttraj_z" << std::endl;
+                            if (task_log.is_open())
+                            {
+                                std::cout << "open success " << std::endl;
+                            }
+                        }
+
                         std::cout << "mode 2 init" << std::endl;
                         rd_.tc_init = false;
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
@@ -416,9 +430,14 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     double ang2rad = 0.0174533;
 
                     rd_.link_[Pelvis].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
+
+                    rd_.link_[Pelvis].x_desired(0) += rd_.tc_.pelv_pitch;
+
                     rd_.link_[Pelvis].x_desired(2) = rd_.tc_.height;
 
-                    rd_.link_[Pelvis].rot_desired = DyrosMath::Euler2rot(0, rd_.tc_.pelv_pitch * ang2rad, rd_.link_[Pelvis].yaw_init);
+                    rd_.link_[Pelvis].rot_desired = DyrosMath::Euler2rot(0, 0 * ang2rad, rd_.link_[Pelvis].yaw_init);
+
+
                     rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll * ang2rad, rd_.tc_.pitch * ang2rad, rd_.tc_.yaw * ang2rad + rd_.link_[Pelvis].yaw_init);
 
                     if (rd_.tc_.customTaskGain)
@@ -500,6 +519,42 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     Vector3d zmp_got = WBC::GetZMPpos_from_ContactForce(rd_, cf_est);
                     // std::cout << "8" << std::endl;
+
+                    double ur, up, uy, utx, uty, utz;
+
+                    
+                    DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].rotm, ur, up, uy);
+                    DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].r_traj, utx, uty, utz);
+
+                    
+                    if(rd_.control_time_ > rd_.tc_time_ && rd_.control_time_ < rd_.tc_time_ + rd_.tc_.time+0.5)
+                    {
+                    task_log << rd_.control_time_ << " "
+                             << rd_.link_[Pelvis].xipos(0) << " " << rd_.link_[Pelvis].xipos(1) << " " << rd_.link_[Pelvis].xipos(2) << " "
+                             << rd_.link_[Pelvis].vi(0) << " " << rd_.link_[Pelvis].vi(1) << " " << rd_.link_[Pelvis].vi(2) << " "
+                             << rd_.link_[Pelvis].x_traj(0) << " " << rd_.link_[Pelvis].x_traj(1) << " " << rd_.link_[Pelvis].x_traj(2) << " "
+                             << rd_.link_[Pelvis].v_traj(0) << " " << rd_.link_[Pelvis].v_traj(1) << " " << rd_.link_[Pelvis].v_traj(2) << " "
+
+                             <<ur << " " << up << " " << uy << " "
+                             << rd_.link_[Upper_Body].w(0) <<  " "<< rd_.link_[Upper_Body].w(1) <<  " "<< rd_.link_[Upper_Body].w(2) <<  " "
+
+                             <<utx << " " << uty << " " << utz << " "
+                             << rd_.link_[Upper_Body].w_traj(0) <<  " "<< rd_.link_[Upper_Body].w_traj(1) <<  " "<< rd_.link_[Upper_Body].w_traj(2) <<  " "
+
+                             //  << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
+                             //  << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
+                             //  << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
+                             //  << out(0) << " " << out(1) << " " << out(2) << " "
+                             //  << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
+                             //  << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
+                             //  << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
+                             //  << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
+                             //  << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
+                             //  << zmp_got(0) << " " << zmp_got(1) << " "
+                             //  << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
+                             << std::endl;
+
+                    }
 
                     init_qp = false;
                 }
