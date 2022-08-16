@@ -59,11 +59,11 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
 
     if (dc_.simMode)
     {
-        mujoco_sim_command_pub_ = dc_.nh.advertise<std_msgs::String>("/mujoco_ros_interface/sim_command_con2sim", 100);
-        mujoco_sim_command_sub_ = dc_.nh.subscribe("/mujoco_ros_interface/sim_command_sim2con", 100, &StateManager::SimCommandCallback, this);
+        mujoco_sim_command_pub_ = dc_.nh.advertise<std_msgs::String>("/mujoco_ros_interface/sim_command_con2sim", 1);
+        mujoco_sim_command_sub_ = dc_.nh.subscribe("/mujoco_ros_interface/sim_command_sim2con", 1, &StateManager::SimCommandCallback, this);
     }
 
-    joint_state_pub_ = dc_.nh.advertise<sensor_msgs::JointState>("/tocabi/jointstates", 100);
+    joint_state_pub_ = dc_.nh.advertise<sensor_msgs::JointState>("/tocabi/jointstates", 1);
 
     joint_state_msg_.name.resize(MODEL_DOF);
     joint_state_msg_.position.resize(MODEL_DOF);
@@ -73,16 +73,16 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     for (int i = 0; i < MODEL_DOF; i++)
         joint_state_msg_.name[i] = JOINT_NAME[i];
 
-    gui_command_sub_ = dc_.nh.subscribe("/tocabi/command", 100, &StateManager::GuiCommandCallback, this);
-    gui_state_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/systemstate", 100);
-    point_pub_ = dc_.nh.advertise<geometry_msgs::PolygonStamped>("/tocabi/point", 100);
-    status_pub_ = dc_.nh.advertise<std_msgs::String>("/tocabi/guilog", 100);
-    timer_pub_ = dc_.nh.advertise<std_msgs::Float32>("/tocabi/time", 100);
-    head_pose_pub_ = dc_.nh.advertise<geometry_msgs::Pose>("/tocabi/headpose", 100);
+    gui_command_sub_ = dc_.nh.subscribe("/tocabi/command", 1, &StateManager::GuiCommandCallback, this);
+    gui_state_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/systemstate", 1);
+    point_pub_ = dc_.nh.advertise<geometry_msgs::PolygonStamped>("/tocabi/point", 1);
+    status_pub_ = dc_.nh.advertise<std_msgs::String>("/tocabi/guilog", 1);
+    timer_pub_ = dc_.nh.advertise<std_msgs::Float32>("/tocabi/time", 1);
+    head_pose_pub_ = dc_.nh.advertise<geometry_msgs::Pose>("/tocabi/headpose", 1);
 
-    stop_tocabi_sub_ = dc_.nh.subscribe("/tocabi/stopper", 100, &StateManager::StopCallback, this);
-    elmo_status_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/ecatstates", 100);
-    com_status_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/comstates", 100);
+    stop_tocabi_sub_ = dc_.nh.subscribe("/tocabi/stopper", 1, &StateManager::StopCallback, this);
+    elmo_status_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/ecatstates", 1);
+    com_status_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/comstates", 1);
 
     com_status_msg_.data.resize(17);
     point_pub_msg_.polygon.points.resize(24);
@@ -164,6 +164,9 @@ void *StateManager::StateThread()
 
         rcv_tcnt = dc_.tc_shm_->statusCount;
 
+
+
+
         GetJointData(); // 0.246 us //w/o march native 0.226
 
         InitYaw();
@@ -171,6 +174,9 @@ void *StateManager::StateThread()
         auto dur_start_ = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - time_start).count();
         control_time_ = rcv_tcnt / 2000.0;
 
+        timer_msg_.data = control_time_;
+
+        timer_pub_.publish(timer_msg_);
         // local kinematics update : 33.7 us // w/o march native 20 us
         UpdateKinematics_local(model_local_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
 
@@ -1837,10 +1843,6 @@ void StateManager::CalcNonlinear()
 
 void StateManager::PublishData()
 {
-    timer_msg_.data = control_time_;
-
-    timer_pub_.publish(timer_msg_);
-
     geometry_msgs::TransformStamped ts;
 
     ts.header.stamp = ros::Time::now();
@@ -2041,6 +2043,24 @@ void StateManager::PublishData()
 
         state_elmo_before_[i] = state_elmo_[i];
         state_zp_before_[i] = state_zp_[i];
+    }
+
+
+    if (dc_.tc_shm_->lower_disabled)
+    {
+        for (int i = 0; i < 12; i++)
+        {
+            elmo_status_msg_.data[i + 66] = 6;
+        }
+    }
+
+    if(dc_.locklower)
+    {
+        for (int i = 0; i < 12; i++)
+        {
+            elmo_status_msg_.data[i + 66] = 7;
+        }
+
     }
 
     if (query_elmo_pub_)
@@ -2288,15 +2308,24 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     }
     else if(msg->data == "locklower")
     {
-        dc_.locklower = !dc_.locklower;
-        if (dc_.locklower)
+        if(dc_.tc_shm_->lower_disabled)
         {
-            dc_.qlock_des = rd_gl_.q_desired.segment(0,12);
-            std::cout << "locklower activate" << std::endl;
+            std::cout << "Cannot activate LOCK LOWER : LOWER DISABLED" << std::endl;
+
         }
-        else
-        {
-            std::cout << "locklower disable" << std::endl;
+        else{
+
+            dc_.locklower = !dc_.locklower;
+            if (dc_.locklower)
+            {
+                dc_.qlock_des = rd_gl_.q_desired.segment(0,12);
+                std::cout << "locklower activate" << std::endl;
+            }
+            else
+            {
+                std::cout << "locklower disable" << std::endl;
+            }
+
         }
     }
     else if (msg->data == "ecatinitlower")
@@ -2327,7 +2356,7 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         dc_.tc_shm_->force_load_saved_signal = true;
     }
-    else if(msg->data == "testbtn")
+    else if(msg->data == "qdot_est")
     {
         qdot_estimation_switch = !qdot_estimation_switch;
 
