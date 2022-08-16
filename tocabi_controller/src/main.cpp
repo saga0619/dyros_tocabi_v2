@@ -131,10 +131,12 @@ int main(int argc, char **argv)
 
         struct sched_param param_st;
         struct sched_param param;
+        struct sched_param param_logger;
         pthread_attr_t attrs[thread_number];
         pthread_t threads[thread_number];
-        param.sched_priority = 80;
-        param_st.sched_priority = 90;
+        param.sched_priority = 42;
+        param_logger.sched_priority = 41;
+        param_st.sched_priority = 45;
         cpu_set_t cpusets[thread_number];
 
         if (dc_.simMode)
@@ -212,9 +214,23 @@ int main(int argc, char **argv)
         {
             pthread_attr_init(&loggerattrs);
 
+            if (pthread_attr_setschedpolicy(&loggerattrs, SCHED_FIFO))
+            {
+                printf("attr logger setschedpolicy failed ");
+            }
+            if (pthread_attr_setschedparam(&loggerattrs, &param_logger))
+            {
+                printf("attr logger setschedparam failed ");
+            }
+            if (pthread_attr_setinheritsched(&loggerattrs, PTHREAD_EXPLICIT_SCHED))
+            {
+                printf("attr logger setinheritsched failed ");
+            }
+
+
             if (pthread_create(&loggerThread, &loggerattrs, &StateManager::LoggerStarter, &stm))
             {
-                printf("threads[0] create failed\n");
+                printf("logger Thread create failed\n");
             }
         }
         for (int i = 0; i < thread_number; i++)
