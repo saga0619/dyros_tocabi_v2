@@ -95,14 +95,13 @@ public:
 
   static void ShowResponse(Response r)
   {
-    fx = (double)r.FTData[0]/1000000.0;
-    fy = (double)r.FTData[1]/1000000.0;
-    fz = (double)r.FTData[2]/1000000.0;
-    tx = (double)r.FTData[3]/1000000.0;
-    ty = (double)r.FTData[4]/1000000.0;
-    tz = (double)r.FTData[5]/1000000.0;
+    double fx = (double)r.FTData[0]/1000000.0;
+    double fy = (double)r.FTData[1]/1000000.0;
+    double fz = (double)r.FTData[2]/1000000.0;
+    double tx = (double)r.FTData[3]/1000000.0;
+    double ty = (double)r.FTData[4]/1000000.0;
+    double tz = (double)r.FTData[5]/1000000.0;
   }
-  double fx, fy, fz, tx, ty, tz;
 
 private:
 
