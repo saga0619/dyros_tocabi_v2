@@ -266,6 +266,13 @@ void *SensorManager::SensorThread(void)
 
             shm_->ftWriting = false;
 
+            shm_->ftWriting2 = true;
+            for (int i = 0; i < 6; i++)
+            {
+                shm_->ftSensor2[i] = 0.0;
+                shm_->ftSensor2[i + 6] = 0.0;
+            }
+            shm_->ftWriting2 = false;
             // std::cout << "while end" << std::endl;
         }
 

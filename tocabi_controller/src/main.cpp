@@ -104,7 +104,7 @@ int main(int argc, char **argv)
     init_shm(shm_msg_key, shm_id_, &dc_.tc_shm_);
 
     prog_shutdown = &dc_.tc_shm_->shutdown;
-    
+
     bool lower_disable = false;
 
     dc_.nh.param("/tocabi_controller/disablelower", lower_disable, false);
@@ -146,6 +146,9 @@ int main(int argc, char **argv)
 
         /* Initialize pthread attributes (default values) */
 
+        pthread_t loggerThread;
+        pthread_attr_t loggerattrs;
+
         for (int i = 0; i < thread_number; i++)
         {
             if (pthread_attr_init(&attrs[i]))
@@ -170,6 +173,8 @@ int main(int argc, char **argv)
             }
         }
 
+        pthread_attr_init(&loggerattrs);
+        
         if (!dc_.simMode)
         {
 
@@ -190,6 +195,19 @@ int main(int argc, char **argv)
             {
                 printf("attr %d setaffinity failed ", 0);
             }
+
+            if (pthread_attr_setschedpolicy(&loggerattrs, SCHED_FIFO))
+            {
+                printf("attr logger setschedpolicy failed ");
+            }
+            if (pthread_attr_setschedparam(&loggerattrs, &param_logger))
+            {
+                printf("attr logger setschedparam failed ");
+            }
+            if (pthread_attr_setinheritsched(&loggerattrs, PTHREAD_EXPLICIT_SCHED))
+            {
+                printf("attr logger setinheritsched failed ");
+            }
         }
 
         if (pthread_create(&threads[0], &attrs[0], &StateManager::ThreadStarter, &stm))
@@ -208,25 +226,8 @@ int main(int argc, char **argv)
         {
             printf("threads[3] create failed\n");
         }
-        pthread_t loggerThread;
-        pthread_attr_t loggerattrs;
         if (true)
         {
-            pthread_attr_init(&loggerattrs);
-
-            if (pthread_attr_setschedpolicy(&loggerattrs, SCHED_FIFO))
-            {
-                printf("attr logger setschedpolicy failed ");
-            }
-            if (pthread_attr_setschedparam(&loggerattrs, &param_logger))
-            {
-                printf("attr logger setschedparam failed ");
-            }
-            if (pthread_attr_setinheritsched(&loggerattrs, PTHREAD_EXPLICIT_SCHED))
-            {
-                printf("attr logger setinheritsched failed ");
-            }
-
 
             if (pthread_create(&loggerThread, &loggerattrs, &StateManager::LoggerStarter, &stm))
             {

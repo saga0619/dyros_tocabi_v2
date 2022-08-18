@@ -101,6 +101,11 @@ public:
     Eigen::Vector6d LF_CF_FT;
     Eigen::Vector6d RF_CF_FT;
 
+
+    Eigen::Vector6d RH_FT, LH_FT;
+    Eigen::Vector6d LH_CF_FT;
+    Eigen::Vector6d RH_CF_FT;
+
     Eigen::Vector3d LF_CP_est;
     Eigen::Vector3d RF_CP_est;
 
