@@ -1,4 +1,5 @@
 #include "sensoray826/lib/826api.h"
+#include "tocabi_sensor/ati_ft_ethernet.h"
 #include "math_type_define.h"
 #include <ros/ros.h>
 #include <thread>
