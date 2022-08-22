@@ -73,7 +73,7 @@ public:
     *(uint16*)&request[2] = htons(COMMAND);
     *(uint32*)&request[4] = htonl(SAMPLE_COUNT);
     send(*socket, (const char *)request, 8, 0);
-    MySleep(5); // Wait a little just to make sure that the command has been processed by Ethernet DAQ
+    //MySleep(5); // Wait a little just to make sure that the command has been processed by Ethernet DAQ
   }
 
 
