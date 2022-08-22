@@ -79,10 +79,9 @@ void *SensorManager::SensorThread(void)
     ft.analogSingleSamplePrepare(slotAttrs, 16);
     ft.initCalibration();
 
-    if (ft.Connect(&socketHandle, "192.168.1.1" , PORT) != 0)
+    if (hand_ft.Connect(&socketHandle, "192.168.1.1" , PORT) != 0)
     {
         fprintf(stderr, "Could not connect to device...");
-        return -1;
     }
     else
     {
@@ -287,7 +286,7 @@ void *SensorManager::SensorThread(void)
             shm_->ftWriting2 = true;
             for (int i = 0; i < 6; i++)
             {
-                shm_->ftSensor2[i] = 0.0;
+                shm_->ftSensor2[i] = (double)r.FTData[i]/1000000.0;
                 shm_->ftSensor2[i + 6] = 0.0;
             }
             shm_->ftWriting2 = false;
