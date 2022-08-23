@@ -1,6 +1,6 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Int8MultiArray.h>
-
+#include <std_msgs/Float64MultiArray.h>
 #include "tocabi_sensor/ati_ft_ethernet.h"
 #include "tocabi_sensor/sensoray826.h"
 #include "tocabi_sensor/mx5_imu.h"
@@ -25,6 +25,7 @@ public:
     ros::Subscriber gui_command_sub_;
     ros::Publisher gui_state_pub_;
     ros::Publisher imu_pub;
+    ros::Publisher fthand_pub;
 
     void GuiCommandCallback(const std_msgs::StringConstPtr &msg);
 

@@ -16,6 +16,7 @@ SensorManager::SensorManager()
     gui_command_sub_ = nh_.subscribe("/tocabi/command", 100, &SensorManager::GuiCommandCallback, this);
     gui_state_pub_ = nh_.advertise<std_msgs::Int8MultiArray>("/tocabi/systemstate", 100);
     imu_pub = nh_.advertise<sensor_msgs::Imu>("/tocabi/imu", 100);
+    fthand_pub = nh_.advertise<std_msgs::Float64MultiArray>("/tocabi/handft", 100);
 }
 
 void SensorManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
@@ -98,6 +99,14 @@ void *SensorManager::SensorThread(void)
         mx5.initIMU();
 
         int cycle_count = 0;
+
+
+        std_msgs::Float32MultiArray handft_msg;
+
+        for(int i = 0; i < 12; i ++)
+        {
+            handft_msg.data.push_back(0.0);
+        }
 
         // std::cout << "Sensor Thread Start" << std::endl;
 
@@ -259,7 +268,6 @@ void *SensorManager::SensorThread(void)
                     {
                         ft_init_log << ft.leftFootBias[i] << "\n";
                     }
-
                     for (int i = 0; i < 6; i++)
                     {
                         ft_init_log << ft.rightFootBias[i] << "\n";
@@ -282,14 +290,15 @@ void *SensorManager::SensorThread(void)
             }
 
             shm_->ftWriting = false;
-
             shm_->ftWriting2 = true;
             for (int i = 0; i < 6; i++)
             {
                 shm_->ftSensor2[i] = (double)r.FTData[i]/1000000.0;
                 shm_->ftSensor2[i + 6] = 0.0;
+                handft_msg.data[i] = (double)r.FTData[i]/1000000.0;
             }
             shm_->ftWriting2 = false;
+            fthand_pub.publish(handft_msg);
             // std::cout << "while end" << std::endl;
         }
 
