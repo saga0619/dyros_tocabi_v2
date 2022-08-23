@@ -101,7 +101,10 @@ public:
     double tx = (double)r.FTData[3]/1000000.0;
     double ty = (double)r.FTData[4]/1000000.0;
     double tz = (double)r.FTData[5]/1000000.0;
+    //std::cout <<"fz " << std::endl;
   }
+
+  std::vector<double> handFT_calib;
 
 private:
 

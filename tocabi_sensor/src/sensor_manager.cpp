@@ -101,11 +101,12 @@ void *SensorManager::SensorThread(void)
         int cycle_count = 0;
 
 
-        std_msgs::Float32MultiArray handft_msg;
+        std_msgs::Float64MultiArray handft_msg;
 
         for(int i = 0; i < 12; i ++)
         {
             handft_msg.data.push_back(0.0);
+            hand_ft.handFT_calib.push_back(0.0);
         }
 
         // std::cout << "Sensor Thread Start" << std::endl;
@@ -241,6 +242,11 @@ void *SensorManager::SensorThread(void)
                         ft_calib_finish = true;
                         ft_calib_signal_ = false;
                         // dc.ftcalib = false;
+
+                        for(int i = 0; i < 6; i++)
+                        {
+                            hand_ft.handFT_calib[i] =  (double)r.FTData[i]/1000000.0;
+                        }
                     }
 
                     ft.calibrationFTData(ft_calib_finish);
@@ -290,16 +296,16 @@ void *SensorManager::SensorThread(void)
             }
 
             shm_->ftWriting = false;
-            shm_->ftWriting2 = true;
+           // shm_->ftWriting2 = true;
             for (int i = 0; i < 6; i++)
             {
-                shm_->ftSensor2[i] = (double)r.FTData[i]/1000000.0;
-                shm_->ftSensor2[i + 6] = 0.0;
-                handft_msg.data[i] = (double)r.FTData[i]/1000000.0;
+              //  shm_->ftSensor2[i] = (double)r.FTData[i]/1000000.0;
+              //   shm_->ftSensor2[i + 6] = 0.0;
+                handft_msg.data[i] = (double)r.FTData[i]/1000000.0 - hand_ft.handFT_calib[i];
             }
-            shm_->ftWriting2 = false;
+            //shm_->ftWriting2 = false;
             fthand_pub.publish(handft_msg);
-            // std::cout << "while end" << std::endl;
+          //  std::cout << "while end" << std::endl;
         }
 
         // std::cout << "imu end" << std::endl;
