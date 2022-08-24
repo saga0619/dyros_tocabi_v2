@@ -67,7 +67,10 @@ void *SensorManager::SensorThread(void)
 
     sensoray826_dev ft = sensoray826_dev(1);
     is_ft_board_ok = ft.open();
-
+    atiforce hand_ft;
+    Response r;
+    SOCKET_HANDLE socketHandle;
+ 
     if (!is_ft_board_ok)
     {
         std::cout << "ft connection error, error code" << std::endl;
@@ -75,6 +78,16 @@ void *SensorManager::SensorThread(void)
 
     ft.analogSingleSamplePrepare(slotAttrs, 16);
     ft.initCalibration();
+
+    if (ft.Connect(&socketHandle, "192.168.1.1" , PORT) != 0)
+    {
+        fprintf(stderr, "Could not connect to device...");
+        return -1;
+    }
+    else
+    {
+        fprintf(stderr, "connect device!!!");
+    }
 
     if (imu_ok)
     {
@@ -155,6 +168,11 @@ void *SensorManager::SensorThread(void)
 
             // FT sensor related functions ...
             ft.analogOversample();
+
+            hand_ft.SendCommand(&socketHandle);
+            r = hand_ft.Receive(&socketHandle);
+            hand_ft.ShowResponse(r);
+
             std::string tmp;
             int i = 0;
 

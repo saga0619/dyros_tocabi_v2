@@ -485,12 +485,12 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         // std::cout << "4" << std::endl;
                         if (WBC::TaskControlHQP(rd_, ts2_, task_qp2_, rd_.torque_grav + ts_.torque_h_, ts_.Null_task, init_qp))
                         {
-                        // std::cout << "5" << std::endl;
+                            // std::cout << "5" << std::endl;
                             torque_task_hqp_ = rd_.torque_grav + ts_.torque_h_ + ts_.Null_task * ts2_.torque_h_;
                         }
                         else
                         {
-                        // std::cout << "6" << std::endl;
+                            // std::cout << "6" << std::endl;
                             torque_task_hqp_ = rd_.torque_grav + ts_.torque_h_; // + ts_.Null_task * ts2_.torque_h_;
                         }
                         // std::cout << "7" << std::endl;
@@ -515,18 +515,17 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     // rd_.torque_desired = torque_Task2 + rd_.torque_grav + rd_.NwJw * ts2_.contact_qp_;
                     rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, torque_task_hqp_);
-                        // std::cout << "8" << std::endl;
+                    // std::cout << "8" << std::endl;
 
                     // std::cout << "7" << std::endl;
 
-
                     Vector12d cf_est = WBC::getContactForce(rd_, rd_.torque_desired);
 
-                        // std::cout << "9" << std::endl;
+                    // std::cout << "9" << std::endl;
                     Vector3d zmp_got = WBC::GetZMPpos_from_ContactForce(rd_, cf_est);
                     // std::cout << "8" << std::endl;
 
-                        // std::cout << "10" << std::endl;
+                    // std::cout << "10" << std::endl;
                     double ur, up, uy, utx, uty, utz;
 
                     DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].rotm, ur, up, uy);
@@ -729,7 +728,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     // rd_.torque_desired = torque_Task2 + rd_.torque_grav + rd_.NwJw * ts2_.contact_qp_;
                     rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, torque_Task2);
 
-                    VectorXd out = rd_.lambda * fstar;
+                    // VectorXd out = rd_.lambda * fstar;
 
                     Vector12d cf_est = WBC::getContactForce(rd_, rd_.torque_desired);
 
@@ -764,11 +763,11 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                 }
 #endif
 #ifdef COMPILE_TOCABI_CC
-                if ((rd_.tc_.mode > 5) && (rd_.tc_.mode < 10))
-                {
-                    RequestThread2();
-                    my_cc.computeSlow();
-                }
+                // if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
+                // {
+                //     RequestThread2();
+                //     my_cc.computeSlow();
+                // }
 #endif
             }
             else
@@ -890,12 +889,12 @@ void *TocabiController::Thread2()
                         ac_.computeFast();
                     }
 #endif
-                    // #ifdef COMPILE_TOCABI_CC
-                    //                     if (rd_.tc_.mode == 15)
-                    //                     {
-                    //                         my_cc.computeFast();
-                    //                     }
-                    // #endif
+#ifdef COMPILE_TOCABI_CC
+                    if ((rd_.tc_.mode > 5) && (rd_.tc_.mode < 9)) // 6,7,8
+                    {
+                        my_cc.computeFast();
+                    }
+#endif
                 }
                 /////////////////////////////////////////////
                 std::this_thread::sleep_for(std::chrono::microseconds(10));
