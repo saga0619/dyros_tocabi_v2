@@ -56,7 +56,6 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
         memcpy(link_local_, link_, sizeof(LinkData) * LINK_NUMBER);
     }
 
-
     if (dc_.simMode)
     {
         mujoco_sim_command_pub_ = dc_.nh.advertise<std_msgs::String>("/mujoco_ros_interface/sim_command_con2sim", 1);
@@ -88,8 +87,6 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     point_pub_msg_.polygon.points.resize(24);
     syspub_msg.data.resize(8);
     elmo_status_msg_.data.resize(MODEL_DOF * 3);
-
-
 }
 
 StateManager::~StateManager()
@@ -163,9 +160,6 @@ void *StateManager::StateThread()
         dc_.stm_cnt++;
 
         rcv_tcnt = dc_.tc_shm_->statusCount;
-
-
-
 
         GetJointData(); // 0.246 us //w/o march native 0.226
 
@@ -676,12 +670,13 @@ void StateManager::SendCommand()
             torque_command[i] = 0.0;
         }
     }
-    else{
-        if(dc_.locklower)
+    else
+    {
+        if (dc_.locklower)
         {
             for (int i = 0; i < 12; i++)
             {
-                torque_command[i] = rd_gl_.pos_kp_v[i] * (dc_.qlock_des[i] - q_[i]) + rd_gl_.pos_kv_v[i] * (- q_dot_[i]);
+                torque_command[i] = rd_gl_.pos_kp_v[i] * (dc_.qlock_des[i] - q_[i]) + rd_gl_.pos_kv_v[i] * (-q_dot_[i]);
             }
         }
     }
@@ -996,24 +991,22 @@ void StateManager::GetJointData()
 
     // q_dot_a : actual qdot from elmo with float
 
-
     // q_dot_ =
 
     // memecy(q)
 
     q_ = Map<VectorQf>(q_a_, MODEL_DOF).cast<double>();
 
-    if(qdot_estimation_switch)
+    if (qdot_estimation_switch)
     {
         calculateJointVelMlpInput();
 
         calculateJointVelMlpOutput();
         q_dot_ = nn_estimated_q_dot_fast_;
-
     }
-    else{
+    else
+    {
         q_dot_ = Map<VectorQf>(q_dot_a_, MODEL_DOF).cast<double>();
-
     }
 
     q_ext_ = Map<VectorQf>(q_ext_a, MODEL_DOF).cast<double>();
@@ -1093,13 +1086,28 @@ void StateManager::GetSensorData()
         RF_FT(i) = dc_.tc_shm_->ftSensor[i + 6];
     }
 
+    for (int i = 0; i < 6; i++)
+    {
+        LH_FT(i) = dc_.tc_shm_->ftSensor2[i];
+        RH_FT(i) = dc_.tc_shm_->ftSensor2[i + 6];
+    }
+
     static Vector6d LF_FT_LPF = LF_FT;
     static Vector6d RF_FT_LPF = RF_FT;
+
+    static Vector6d LH_FT_LPF = LH_FT;
+    static Vector6d RH_FT_LPF = RH_FT;
 
     for (int i = 0; i < 6; i++)
     {
         LF_FT_LPF(i) = DyrosMath::lpf(LF_FT(i), LF_FT_LPF(i), 2000, 60);
         RF_FT_LPF(i) = DyrosMath::lpf(RF_FT(i), RF_FT_LPF(i), 2000, 60);
+    }
+
+    for (int i = 0; i < 6; i++)
+    {
+        LH_FT_LPF(i) = DyrosMath::lpf(LH_FT(i), LH_FT_LPF(i), 2000, 60);
+        RH_FT_LPF(i) = DyrosMath::lpf(RH_FT(i), RH_FT_LPF(i), 2000, 60);
     }
 
     double foot_plate_mass = 2.326;
@@ -1145,6 +1153,24 @@ void StateManager::GetSensorData()
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
 
     LF_CF_FT = rotrf * adt * LF_FT_LPF - adt2 * Wrench_foot_plate;
+
+    adt.setIdentity();
+    adt.block(3, 0, 3, 3) = DyrosMath::skm(-(link_local_[Left_Hand].contact_point - link_local_[Left_Hand].sensor_point)) * Matrix3d::Identity();
+
+    rotrf.setZero();
+    rotrf.block(0, 0, 3, 3) = link_local_[Left_Hand].rotm;
+    rotrf.block(3, 3, 3, 3) = link_local_[Left_Hand].rotm;
+
+    LH_CF_FT = rotrf * adt * LH_FT_LPF;
+
+    adt.setIdentity();
+    adt.block(3, 0, 3, 3) = DyrosMath::skm(-(link_local_[Right_Hand].contact_point - link_local_[Right_Hand].sensor_point)) * Matrix3d::Identity();
+
+    rotrf.setZero();
+    rotrf.block(0, 0, 3, 3) = link_local_[Right_Hand].rotm;
+    rotrf.block(3, 3, 3, 3) = link_local_[Right_Hand].rotm;
+
+    RH_CF_FT = rotrf * adt * RH_FT_LPF;
 
     // dc.tocabi_.ee_[0].contact_force_ft = LF_CF_FT;
 
@@ -1256,11 +1282,16 @@ void StateManager::StoreState(RobotData &rd_dst)
     rd_dst.tp_state_ = rd_.tp_state_;
 
     rd_dst.LF_FT = LF_FT;
+    rd_dst.RF_FT = RF_FT;
 
     rd_dst.LF_CF_FT = LF_CF_FT;
     rd_dst.RF_CF_FT = RF_CF_FT;
 
-    rd_dst.RF_FT = RF_FT;
+    rd_dst.LH_FT = LH_FT;
+    rd_dst.RH_FT = RH_FT;
+
+    rd_dst.LH_CF_FT = LH_CF_FT;
+    rd_dst.RH_CF_FT = RH_CF_FT;
 
     dc_.triggerThread1 = true;
 }
@@ -2045,7 +2076,6 @@ void StateManager::PublishData()
         state_zp_before_[i] = state_zp_[i];
     }
 
-
     if (dc_.tc_shm_->lower_disabled)
     {
         for (int i = 0; i < 12; i++)
@@ -2054,13 +2084,12 @@ void StateManager::PublishData()
         }
     }
 
-    if(dc_.locklower)
+    if (dc_.locklower)
     {
         for (int i = 0; i < 12; i++)
         {
             elmo_status_msg_.data[i + 66] = 7;
         }
-
     }
 
     if (query_elmo_pub_)
@@ -2303,29 +2332,27 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
         {
             std::cout << "lowerbody activate" << std::endl;
             dc_.locklower = false;
-
         }
     }
-    else if(msg->data == "locklower")
+    else if (msg->data == "locklower")
     {
-        if(dc_.tc_shm_->lower_disabled)
+        if (dc_.tc_shm_->lower_disabled)
         {
             std::cout << "Cannot activate LOCK LOWER : LOWER DISABLED" << std::endl;
-
         }
-        else{
+        else
+        {
 
             dc_.locklower = !dc_.locklower;
             if (dc_.locklower)
             {
-                dc_.qlock_des = rd_gl_.q_desired.segment(0,12);
+                dc_.qlock_des = rd_gl_.q_desired.segment(0, 12);
                 std::cout << "locklower activate" << std::endl;
             }
             else
             {
                 std::cout << "locklower disable" << std::endl;
             }
-
         }
     }
     else if (msg->data == "ecatinitlower")
@@ -2356,17 +2383,17 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         dc_.tc_shm_->force_load_saved_signal = true;
     }
-    else if(msg->data == "qdot_est")
+    else if (msg->data == "qdot_est")
     {
         qdot_estimation_switch = !qdot_estimation_switch;
 
-        if(qdot_estimation_switch)
+        if (qdot_estimation_switch)
         {
-            std::cout<<"turn on qdot est"<<std::endl;
-
+            std::cout << "turn on qdot est" << std::endl;
         }
-        else{
-            std::cout<<"turn off qdot est"<<std::endl;
+        else
+        {
+            std::cout << "turn off qdot est" << std::endl;
         }
     }
 
@@ -2590,10 +2617,10 @@ void StateManager::calculateJointVelMlpOutput()
         // Hidden Layer2 -> output (Dense)
         nn_estimated_q_dot_fast_(joint) = (W3.transpose() * h2)(0) + b3;
 
-        nn_estimated_q_dot_fast_(joint) = 0.7*nn_estimated_q_dot_fast_(joint) + 0.3*q_dot_buffer_fast_(0, joint);
+        nn_estimated_q_dot_fast_(joint) = 0.7 * nn_estimated_q_dot_fast_(joint) + 0.3 * q_dot_buffer_fast_(0, joint);
         nn_estimated_q_dot_fast_(joint) = nn_estimated_q_dot_fast_(joint) / 101;
     }
-    nn_estimated_q_dot_fast_ = DyrosMath::lpf<33>(nn_estimated_q_dot_fast_, nn_estimated_q_dot_pre_, 2000.0, 2*M_PI*200);
+    nn_estimated_q_dot_fast_ = DyrosMath::lpf<33>(nn_estimated_q_dot_fast_, nn_estimated_q_dot_pre_, 2000.0, 2 * M_PI * 200);
     nn_estimated_q_dot_pre_ = nn_estimated_q_dot_fast_;
 
     // q_dot_ = nn_estimated_q_dot_fast_;

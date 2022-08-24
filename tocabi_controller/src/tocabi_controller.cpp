@@ -437,7 +437,6 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     rd_.link_[Pelvis].rot_desired = DyrosMath::Euler2rot(0, 0 * ang2rad, rd_.link_[Pelvis].yaw_init);
 
-
                     rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll * ang2rad, rd_.tc_.pitch * ang2rad, rd_.tc_.yaw * ang2rad + rd_.link_[Pelvis].yaw_init);
 
                     if (rd_.tc_.customTaskGain)
@@ -457,38 +456,44 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     Eigen::MatrixXd Jtask = rd_.link_[Pelvis].JacCOM();
                     Eigen::VectorXd fstar = WBC::GetFstar6d(rd_.link_[Pelvis], true, true);
-                    // std::cout << "1" << std::endl;
                     ts_.Update(Jtask, fstar);
                     WBC::CalcJKT(rd_, ts_);
-                    // std::cout << "2" << std::endl;
 
                     WBC::CalcTaskNull(rd_, ts_);
-                    // std::cout << "3" << std::endl;
 
                     static CQuadraticProgram task_qp_;
                     int hqp1_solve_result = WBC::TaskControlHQP(rd_, ts_, task_qp_, rd_.torque_grav, MatrixXd::Identity(MODEL_DOF, MODEL_DOF), init_qp);
 
-                    // std::cout << "4" << std::endl;
                     // WBC::CalcTaskNull(rd_, ts2_);
                     VectorQd torque_task_hqp_;
                     if (hqp1_solve_result)
                     {
-                        // std::cout << "5" << std::endl;
 
                         Eigen::MatrixXd Jtask2 = rd_.link_[Upper_Body].Jac().bottomRows(3);
+                        // std::cout << "1" << std::endl;
+
                         Eigen::VectorXd fstar2 = WBC::GetFstarRot(rd_.link_[Upper_Body]);
+                        // std::cout << "2" << std::endl;
+
                         TaskSpace ts2_(3);
                         static CQuadraticProgram task_qp2_;
                         ts2_.Update(Jtask2, fstar2);
+                        // std::cout << "3" << std::endl;
+
                         WBC::CalcJKT(rd_, ts2_);
+
+                        // std::cout << "4" << std::endl;
                         if (WBC::TaskControlHQP(rd_, ts2_, task_qp2_, rd_.torque_grav + ts_.torque_h_, ts_.Null_task, init_qp))
                         {
+                            // std::cout << "5" << std::endl;
                             torque_task_hqp_ = rd_.torque_grav + ts_.torque_h_ + ts_.Null_task * ts2_.torque_h_;
                         }
                         else
                         {
+                            // std::cout << "6" << std::endl;
                             torque_task_hqp_ = rd_.torque_grav + ts_.torque_h_; // + ts_.Null_task * ts2_.torque_h_;
                         }
+                        // std::cout << "7" << std::endl;
                     }
                     else
                     {
@@ -510,50 +515,48 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     // rd_.torque_desired = torque_Task2 + rd_.torque_grav + rd_.NwJw * ts2_.contact_qp_;
                     rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, torque_task_hqp_);
+                    // std::cout << "8" << std::endl;
 
                     // std::cout << "7" << std::endl;
 
-                    VectorXd out = rd_.lambda * fstar;
-
                     Vector12d cf_est = WBC::getContactForce(rd_, rd_.torque_desired);
 
+                    // std::cout << "9" << std::endl;
                     Vector3d zmp_got = WBC::GetZMPpos_from_ContactForce(rd_, cf_est);
                     // std::cout << "8" << std::endl;
 
+                    // std::cout << "10" << std::endl;
                     double ur, up, uy, utx, uty, utz;
 
-                    
                     DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].rotm, ur, up, uy);
                     DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].r_traj, utx, uty, utz);
 
-                    
-                    if(rd_.control_time_ > rd_.tc_time_ && rd_.control_time_ < rd_.tc_time_ + rd_.tc_.time+0.5)
+                    if (rd_.control_time_ > rd_.tc_time_ && rd_.control_time_ < rd_.tc_time_ + rd_.tc_.time + 0.5)
                     {
-                    task_log << rd_.control_time_ << " "
-                             << rd_.link_[Pelvis].xipos(0) << " " << rd_.link_[Pelvis].xipos(1) << " " << rd_.link_[Pelvis].xipos(2) << " "
-                             << rd_.link_[Pelvis].vi(0) << " " << rd_.link_[Pelvis].vi(1) << " " << rd_.link_[Pelvis].vi(2) << " "
-                             << rd_.link_[Pelvis].x_traj(0) << " " << rd_.link_[Pelvis].x_traj(1) << " " << rd_.link_[Pelvis].x_traj(2) << " "
-                             << rd_.link_[Pelvis].v_traj(0) << " " << rd_.link_[Pelvis].v_traj(1) << " " << rd_.link_[Pelvis].v_traj(2) << " "
+                        task_log << rd_.control_time_ << " "
+                                 << rd_.link_[Pelvis].xipos(0) << " " << rd_.link_[Pelvis].xipos(1) << " " << rd_.link_[Pelvis].xipos(2) << " "
+                                 << rd_.link_[Pelvis].vi(0) << " " << rd_.link_[Pelvis].vi(1) << " " << rd_.link_[Pelvis].vi(2) << " "
+                                 << rd_.link_[Pelvis].x_traj(0) << " " << rd_.link_[Pelvis].x_traj(1) << " " << rd_.link_[Pelvis].x_traj(2) << " "
+                                 << rd_.link_[Pelvis].v_traj(0) << " " << rd_.link_[Pelvis].v_traj(1) << " " << rd_.link_[Pelvis].v_traj(2) << " "
 
-                             <<ur << " " << up << " " << uy << " "
-                             << rd_.link_[Upper_Body].w(0) <<  " "<< rd_.link_[Upper_Body].w(1) <<  " "<< rd_.link_[Upper_Body].w(2) <<  " "
+                                 << ur << " " << up << " " << uy << " "
+                                 << rd_.link_[Upper_Body].w(0) << " " << rd_.link_[Upper_Body].w(1) << " " << rd_.link_[Upper_Body].w(2) << " "
 
-                             <<utx << " " << uty << " " << utz << " "
-                             << rd_.link_[Upper_Body].w_traj(0) <<  " "<< rd_.link_[Upper_Body].w_traj(1) <<  " "<< rd_.link_[Upper_Body].w_traj(2) <<  " "
+                                 << utx << " " << uty << " " << utz << " "
+                                 << rd_.link_[Upper_Body].w_traj(0) << " " << rd_.link_[Upper_Body].w_traj(1) << " " << rd_.link_[Upper_Body].w_traj(2) << " "
 
-                             //  << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
-                             //  << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
-                             //  << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
-                             //  << out(0) << " " << out(1) << " " << out(2) << " "
-                             //  << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
-                             //  << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
-                             //  << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
-                             //  << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
-                             //  << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
-                             //  << zmp_got(0) << " " << zmp_got(1) << " "
-                             //  << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
-                             << std::endl;
-
+                                 //  << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
+                                 //  << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
+                                 //  << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
+                                 //  << out(0) << " " << out(1) << " " << out(2) << " "
+                                 //  << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
+                                 //  << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
+                                 //  << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
+                                 //  << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
+                                 //  << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
+                                 //  << zmp_got(0) << " " << zmp_got(1) << " "
+                                 //  << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
+                                 << std::endl;
                     }
 
                     init_qp = false;
@@ -626,7 +629,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, torque_Task2 + rd_.torque_grav);
 
-                    VectorXd out = rd_.lambda * fstar;
+                    // VectorXd out = rd_.lambda * fstar;
 
                     Vector12d cf_est = WBC::getContactForce(rd_, rd_.torque_desired);
 
@@ -725,7 +728,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     // rd_.torque_desired = torque_Task2 + rd_.torque_grav + rd_.NwJw * ts2_.contact_qp_;
                     rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, torque_Task2);
 
-                    VectorXd out = rd_.lambda * fstar;
+                    // VectorXd out = rd_.lambda * fstar;
 
                     Vector12d cf_est = WBC::getContactForce(rd_, rd_.torque_desired);
 
@@ -886,12 +889,12 @@ void *TocabiController::Thread2()
                         ac_.computeFast();
                     }
 #endif
-                    // #ifdef COMPILE_TOCABI_CC
-                    //                     if (rd_.tc_.mode == 15)
-                    //                     {
-                    //                         my_cc.computeFast();
-                    //                     }
-                    // #endif
+#ifdef COMPILE_TOCABI_CC
+                    if ((rd_.tc_.mode > 5) && (rd_.tc_.mode < 9)) // 6,7,8
+                    {
+                        my_cc.computeFast();
+                    }
+#endif
                 }
                 /////////////////////////////////////////////
                 std::this_thread::sleep_for(std::chrono::microseconds(10));
