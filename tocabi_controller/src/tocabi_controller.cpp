@@ -760,11 +760,11 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                 }
 #endif
 #ifdef COMPILE_TOCABI_CC
-                // if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
-                // {
-                //     RequestThread2();
-                //     my_cc.computeSlow();
-                // }
+                if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
+                {
+                    RequestThread2();
+                    my_cc.computeSlow();
+                }
 #endif
             }
             else
@@ -933,7 +933,7 @@ void *TocabiController::Thread3()
 /////////////////////////////////////////////
 /////////////Do something in Thread3 !!!!!!!
 #ifdef COMPILE_TOCABI_AVATAR
-                ac_.computeThread3();
+               ac_.computeThread3();
 #endif
 
                 /////////////////////////////////////////////
