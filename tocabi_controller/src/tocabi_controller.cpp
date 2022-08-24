@@ -764,11 +764,11 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                 }
 #endif
 #ifdef COMPILE_TOCABI_CC
-                // if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
-                // {
-                //     RequestThread2();
-                //     my_cc.computeSlow();
-                // }
+                if ((rd_.tc_.mode > 5) && (rd_.tc_.mode < 10))
+                {
+                    RequestThread2();
+                    my_cc.computeSlow();
+                }
 #endif
             }
             else
