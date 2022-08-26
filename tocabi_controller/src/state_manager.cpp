@@ -1106,8 +1106,8 @@ void StateManager::GetSensorData()
 
     for (int i = 0; i < 6; i++)
     {
-        LH_FT_LPF(i) = DyrosMath::lpf(LF_FT(i), LH_FT_LPF(i), 2000, 60);
-        RH_FT_LPF(i) = DyrosMath::lpf(RF_FT(i), RH_FT_LPF(i), 2000, 60);
+        LH_FT_LPF(i) = DyrosMath::lpf(LH_FT(i), LH_FT_LPF(i), 2000, 60);
+        RH_FT_LPF(i) = DyrosMath::lpf(RH_FT(i), RH_FT_LPF(i), 2000, 60);
     }
 
     double foot_plate_mass = 2.326;

@@ -296,14 +296,14 @@ void *SensorManager::SensorThread(void)
             }
 
             shm_->ftWriting = false;
-           // shm_->ftWriting2 = true;
+            shm_->ftWriting2 = true;
             for (int i = 0; i < 6; i++)
             {
-              //  shm_->ftSensor2[i] = (double)r.FTData[i]/1000000.0;
-              //   shm_->ftSensor2[i + 6] = 0.0;
+                shm_->ftSensor2[i] = (double)r.FTData[i]/1000000.0 - hand_ft.handFT_calib[i];
+                shm_->ftSensor2[i + 6] = 0.0;
                 handft_msg.data[i] = (double)r.FTData[i]/1000000.0 - hand_ft.handFT_calib[i];
             }
-            //shm_->ftWriting2 = false;
+            shm_->ftWriting2 = false;
             fthand_pub.publish(handft_msg);
           //  std::cout << "while end" << std::endl;
         }

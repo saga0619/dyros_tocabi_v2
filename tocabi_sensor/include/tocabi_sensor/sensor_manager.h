@@ -7,6 +7,7 @@
 #include <fstream>
 #include "shm_msgs.h"
 
+
 class SensorManager
 {
 public:
