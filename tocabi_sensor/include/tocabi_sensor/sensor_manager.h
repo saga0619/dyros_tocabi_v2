@@ -27,7 +27,7 @@ public:
     ros::Publisher gui_state_pub_;
     ros::Publisher imu_pub;
     ros::Publisher fthand_pub;
-    
+
     void GuiCommandCallback(const std_msgs::StringConstPtr &msg);
 
     bool imu_reset_signal_ = false;
