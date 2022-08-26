@@ -48,10 +48,10 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
         link_[Left_Foot].contact_point << 0.03, 0, -0.1585;
         link_[Left_Foot].sensor_point << 0.0, 0.0, -0.09;
 
-        link_[Right_Hand].contact_point << 0, 0.0, -0.035;
-        link_[Right_Hand].sensor_point << 0.0, 0.0, 0.0;
-        link_[Left_Hand].contact_point << 0, 0.0, -0.035;
-        link_[Left_Hand].sensor_point << 0.0, 0.0, 0.0;
+        link_[Right_Hand].contact_point << 0, 0.0, -0.1542;
+        link_[Right_Hand].sensor_point << 0.0, 0.0, -0.1028;
+        link_[Left_Hand].contact_point << 0, 0.0, -0.1542;
+        link_[Left_Hand].sensor_point << 0.0, 0.0, -0.1028;
 
         memcpy(link_local_, link_, sizeof(LinkData) * LINK_NUMBER);
     }
@@ -1088,8 +1088,8 @@ void StateManager::GetSensorData()
 
     for (int i = 0; i < 6; i++)
     {
-        LH_FT(i) = dc_.tc_shm_->ftSensor2[i];
-        RH_FT(i) = dc_.tc_shm_->ftSensor2[i + 6];
+        LH_FT(i) = dc_.tc_shm_->ftSensor2[i + 6];
+        RH_FT(i) = dc_.tc_shm_->ftSensor2[i];
     }
 
     static Vector6d LF_FT_LPF = LF_FT;
@@ -1111,6 +1111,7 @@ void StateManager::GetSensorData()
     }
 
     double foot_plate_mass = 2.326;
+    double hand_plate_mass = 1.58;
 
     Matrix6d adt;
     adt.setIdentity();
@@ -1127,9 +1128,17 @@ void StateManager::GetSensorData()
     adt2.setIdentity();
     adt2.block(3, 0, 3, 3) = DyrosMath::skm(-com2cp) * Matrix3d::Identity();
 
+    Matrix6d adt3;
+    adt3.block(0, 0, 3, 3) << 0., 1., 0., -1., 0., 0., 0., 0., 1.;
+    adt3.block(3, 3, 3, 3) << 0., 1., 0., -1., 0., 0., 0., 0., 1.;
+
     Vector6d Wrench_foot_plate;
     Wrench_foot_plate.setZero();
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
+
+    Vector6d Hand_FT_plate;
+    Hand_FT_plate.setZero();
+    Hand_FT_plate(2) = hand_plate_mass * GRAVITY;
 
     RF_CF_FT = rotrf * adt * RF_FT_LPF - adt2 * Wrench_foot_plate;
     // rd_gl_.ee_[1].contact_force_ft = RF_CF_FT;
@@ -1144,6 +1153,7 @@ void StateManager::GetSensorData()
     rotrf.block(3, 3, 3, 3) = link_local_[Left_Foot].rotm;
 
     Vector3d LF_com(-0.0162, -0.00008, -0.1209);
+    Vector3d Hand_com(0.0, 0.0, -0.1542);
 
     com2cp = link_local_[Left_Foot].contact_point - LF_com;
 
@@ -1155,23 +1165,52 @@ void StateManager::GetSensorData()
     LF_CF_FT = rotrf * adt * LF_FT_LPF - adt2 * Wrench_foot_plate;
 
     adt.setIdentity();
+    adt.block(0, 0, 3, 3) = DyrosMath::rotateWithX(-3.1415926535);
+    adt.block(3, 3, 3, 3) = DyrosMath::rotateWithX(-3.1415926535);
     adt.block(3, 0, 3, 3) = DyrosMath::skm(-(link_local_[Left_Hand].contact_point - link_local_[Left_Hand].sensor_point)) * Matrix3d::Identity();
 
     rotrf.setZero();
     rotrf.block(0, 0, 3, 3) = link_local_[Left_Hand].rotm;
     rotrf.block(3, 3, 3, 3) = link_local_[Left_Hand].rotm;
 
-    LH_CF_FT = rotrf * adt * LH_FT_LPF;
+    com2cp = link_local_[Left_Hand].contact_point - Hand_com;
+
+    adt2.setIdentity();
+    adt2.block(3, 0, 3, 3) = DyrosMath::skm(-com2cp) * Matrix3d::Identity();
+
+    Matrix6d adt4;
+    adt4.block(0, 0, 3, 3) = (rotrf.block(0, 0, 3, 3) * adt3.block(0, 0, 3, 3) * adt.block(0, 0, 3, 3)).inverse();
+    adt4.block(3, 3, 3, 3) = (rotrf.block(0, 0, 3, 3) * adt3.block(0, 0, 3, 3) * adt.block(0, 0, 3, 3)).inverse();
+ 
+    LH_CF_FT = rotrf * adt3 * adt * (RH_FT_LPF + adt4 * Hand_FT_plate) - adt2 * Hand_FT_plate;//;
+    LH_CF_FT_local =  adt * (LH_FT_LPF + adt4 * Hand_FT_plate) - adt2 * Hand_FT_plate;
 
     adt.setIdentity();
+    adt.block(0, 0, 3, 3) = DyrosMath::rotateWithX(-3.1415926535);
+    adt.block(3, 3, 3, 3) = DyrosMath::rotateWithX(-3.1415926535);
     adt.block(3, 0, 3, 3) = DyrosMath::skm(-(link_local_[Right_Hand].contact_point - link_local_[Right_Hand].sensor_point)) * Matrix3d::Identity();
 
     rotrf.setZero();
     rotrf.block(0, 0, 3, 3) = link_local_[Right_Hand].rotm;
     rotrf.block(3, 3, 3, 3) = link_local_[Right_Hand].rotm;
 
-    RH_CF_FT = rotrf * adt * RH_FT_LPF;
+    com2cp = link_local_[Right_Hand].contact_point - Hand_com;
 
+    adt2.setIdentity();
+    adt2.block(3, 0, 3, 3) = DyrosMath::skm(-com2cp) * Matrix3d::Identity();
+
+    adt4.block(0, 0, 3, 3) = (rotrf.block(0, 0, 3, 3) * adt3.block(0, 0, 3, 3) * adt.block(0, 0, 3, 3)).inverse();
+    adt4.block(3, 3, 3, 3) = (rotrf.block(0, 0, 3, 3) * adt3.block(0, 0, 3, 3) * adt.block(0, 0, 3, 3)).inverse();
+
+    RH_CF_FT = rotrf * adt3 * adt * (RH_FT_LPF + adt4 * Hand_FT_plate) - adt2 * Hand_FT_plate;//;
+    RH_CF_FT_local =  adt * (RH_FT_LPF+ adt4 * Hand_FT_plate) - adt2 * Hand_FT_plate;
+
+   // printf("hand FT : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", RH_CF_FT(0), RH_CF_FT(1), RH_CF_FT(2), RH_CF_FT(3), RH_CF_FT(4), RH_CF_FT(5));
+  //  printf("hand FT_local : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", RH_CF_FT_local(0), RH_CF_FT_local(1), RH_CF_FT_local(2), RH_CF_FT_local(3), RH_CF_FT_local(4), RH_CF_FT_local(5));
+    //printf("hand FT : %6.3f %6.3f %6.3f \n", dyros_ss(0), dyros_ss(1), dyros_ss(2));
+    //printf("hand FT : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", (adt4 * Hand_FT_plate)(0) -  RH_FT_LPF(0), (adt4 * Hand_FT_plate)(1) - RH_FT_LPF(1),  (adt4 * Hand_FT_plate)(2) +15.366  - RH_FT_LPF(2), RH_FT_LPF(3), RH_FT_LPF(4), RH_FT_LPF(5));
+    // printf("hand FT++ : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", (adt4 * Hand_FT_plate)(0) +  RH_FT_LPF(0), (adt4 * Hand_FT_plate)(1) + RH_FT_LPF(1),  (adt4 * Hand_FT_plate)(2) +15.366  + RH_FT_LPF(2), RH_FT_LPF(3), RH_FT_LPF(4), RH_FT_LPF(5));
+   
     // dc.tocabi_.ee_[0].contact_force_ft = LF_CF_FT;
 
     // LF_CF_FT_local = rotrf.inverse() * LF_CF_FT;
@@ -2631,4 +2670,4 @@ void StateManager::calculateJointVelMlpOutput()
         nn_estimated_q_dot_thread_ = nn_estimated_q_dot_fast_;
         atb_mlp_output_update_ = false;
     }
-}
+} 
