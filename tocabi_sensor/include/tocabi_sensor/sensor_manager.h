@@ -32,6 +32,7 @@ public:
 
     bool imu_reset_signal_ = false;
     bool ft_calib_signal_ = false;
+    bool handft_calib_signal_ = false;
 
     std::fstream ft_init_log;
 

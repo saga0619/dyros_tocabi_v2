@@ -48,10 +48,10 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
         link_[Left_Foot].contact_point << 0.03, 0, -0.1585;
         link_[Left_Foot].sensor_point << 0.0, 0.0, -0.09;
 
-        link_[Right_Hand].contact_point << 0, 0.0, -0.035;
-        link_[Right_Hand].sensor_point << 0.0, 0.0, 0.0;
-        link_[Left_Hand].contact_point << 0, 0.0, -0.035;
-        link_[Left_Hand].sensor_point << 0.0, 0.0, 0.0;
+        link_[Right_Hand].contact_point << 0, 0.0, -0.1542;
+        link_[Right_Hand].sensor_point << 0.0, 0.0, -0.1028;
+        link_[Left_Hand].contact_point << 0, 0.0, -0.1542;
+        link_[Left_Hand].sensor_point << 0.0, 0.0, -0.1028;
 
         memcpy(link_local_, link_, sizeof(LinkData) * LINK_NUMBER);
     }
@@ -83,10 +83,13 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     elmo_status_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/ecatstates", 1);
     com_status_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/comstates", 1);
 
+    hand_ft_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/handft_global", 100);
+
     com_status_msg_.data.resize(17);
     point_pub_msg_.polygon.points.resize(24);
     syspub_msg.data.resize(8);
     elmo_status_msg_.data.resize(MODEL_DOF * 3);
+    hand_ft_msg_.data.resize(12);
 }
 
 StateManager::~StateManager()
@@ -165,31 +168,29 @@ void *StateManager::StateThread()
 
         InitYaw();
 
+        auto d1 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t1).count();
+
+        auto t2 = chrono::steady_clock::now();
+
         auto dur_start_ = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - time_start).count();
         control_time_ = rcv_tcnt / 2000.0;
 
-        timer_msg_.data = control_time_;
-
-        timer_pub_.publish(timer_msg_);
         // local kinematics update : 33.7 us // w/o march native 20 us
+        auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
+
+        auto t3 = chrono::steady_clock::now();
         UpdateKinematics_local(model_local_, link_local_, q_virtual_local_, q_dot_virtual_local_, q_ddot_virtual_local_);
 
         GetSensorData();
 
-        auto d1 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t1).count();
-
-        auto t2 = chrono::steady_clock::now();
-        StateEstimate();
-
-        auto d2 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t2).count();
-
-        auto t3 = chrono::steady_clock::now();
-        // global kinematics update : 127 us //w/o march native 125 us
-        UpdateKinematics(model_global_, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
-
         auto d3 = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - t3).count();
 
         auto t4 = chrono::steady_clock::now();
+        StateEstimate();
+
+        // global kinematics update : 127 us //w/o march native 125 us
+        UpdateKinematics(model_global_, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
+
         UpdateCMM(rd_, link_);
 
         StoreState(rd_gl_); // 6.2 us //w/o march native 8us
@@ -289,7 +290,7 @@ void *StateManager::LoggerThread()
     //      }
     //  }
 
-    std::string username = getlogin();
+    std::string username = "dyros";
     // std::cout << "username : " << username << std::endl;
 
     std::string log_folder = "/home/" + username + "/tocabi_log/";
@@ -375,13 +376,15 @@ void *StateManager::LoggerThread()
         }
 
         pub_count++;
-        if (pub_count % 33 == 0)
+        if (pub_count % 16 == 0)
         {
             if (current_time < rd_gl_.control_time_us_)
             {
                 PublishData();
                 current_time = rd_gl_.control_time_us_;
             }
+            timer_msg_.data = control_time_;
+            timer_pub_.publish(timer_msg_);
         }
         ros::spinOnce();
 
@@ -592,14 +595,25 @@ void *StateManager::LoggerThread()
             maskLog << std::endl;
 
             sensorLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
-            for (int i = 0; i < 6; i++)
+
+         /*   for (int i = 0; i < 6; i++)
             {
                 sensorLog << rd_gl_.LF_CF_FT(i) << " ";
             }
             for (int i = 0; i < 6; i++)
             {
                 sensorLog << rd_gl_.RF_CF_FT(i) << " ";
+            }*/
+
+            for (int i = 0; i < 6; i++)
+            {
+                sensorLog << rd_gl_.LH_CF_FT(i) << " ";
             }
+            for (int i = 0; i < 6; i++)
+            {
+                sensorLog << rd_gl_.RH_CF_FT(i) << " ";
+            }
+
             sensorLog << rd_gl_.roll << " " << rd_gl_.pitch << " " << rd_gl_.yaw << " ";
             sensorLog << rd_gl_.imu_ang_vel(0) << " " << rd_gl_.imu_ang_vel(1) << " " << rd_gl_.imu_ang_vel(2) << " ";
             sensorLog << rd_gl_.imu_lin_acc(0) << " " << rd_gl_.imu_lin_acc(1) << " " << rd_gl_.imu_lin_acc(2) << " ";
@@ -1088,8 +1102,8 @@ void StateManager::GetSensorData()
 
     for (int i = 0; i < 6; i++)
     {
-        LH_FT(i) = dc_.tc_shm_->ftSensor2[i];
-        RH_FT(i) = dc_.tc_shm_->ftSensor2[i + 6];
+        LH_FT(i) = dc_.tc_shm_->ftSensor2[i + 6];
+        RH_FT(i) = dc_.tc_shm_->ftSensor2[i];
     }
 
     static Vector6d LF_FT_LPF = LF_FT;
@@ -1106,11 +1120,12 @@ void StateManager::GetSensorData()
 
     for (int i = 0; i < 6; i++)
     {
-        LH_FT_LPF(i) = DyrosMath::lpf(LH_FT(i), LH_FT_LPF(i), 2000, 60);
-        RH_FT_LPF(i) = DyrosMath::lpf(RH_FT(i), RH_FT_LPF(i), 2000, 60);
+        LH_FT_LPF(i) = DyrosMath::lpf(LH_FT(i), LH_FT_LPF(i), 2000, 10);
+        RH_FT_LPF(i) = DyrosMath::lpf(RH_FT(i), RH_FT_LPF(i), 2000, 10);
     }
 
     double foot_plate_mass = 2.326;
+    double hand_plate_mass = 0.8;
 
     Matrix6d adt;
     adt.setIdentity();
@@ -1131,6 +1146,10 @@ void StateManager::GetSensorData()
     Wrench_foot_plate.setZero();
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
 
+    Vector6d Hand_FT_plate;
+    Hand_FT_plate.setZero();
+    Hand_FT_plate(2) = hand_plate_mass * GRAVITY;
+
     RF_CF_FT = rotrf * adt * RF_FT_LPF - adt2 * Wrench_foot_plate;
     // rd_gl_.ee_[1].contact_force_ft = RF_CF_FT;
 
@@ -1147,34 +1166,44 @@ void StateManager::GetSensorData()
 
     com2cp = link_local_[Left_Foot].contact_point - LF_com;
 
-    adt2.setIdentity();
-    adt2.block(3, 0, 3, 3) = DyrosMath::skm(-com2cp) * Matrix3d::Identity();
     Wrench_foot_plate.setZero();
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
 
     LF_CF_FT = rotrf * adt * LF_FT_LPF - adt2 * Wrench_foot_plate;
 
-    adt.setIdentity();
-    adt.block(3, 0, 3, 3) = DyrosMath::skm(-(link_local_[Left_Hand].contact_point - link_local_[Left_Hand].sensor_point)) * Matrix3d::Identity();
+    Vector3d Hand_com(0.0, 0.0, -0.1542);
 
-    rotrf.setZero();
-    rotrf.block(0, 0, 3, 3) = link_local_[Left_Hand].rotm;
-    rotrf.block(3, 3, 3, 3) = link_local_[Left_Hand].rotm;
+    Matrix3d adt3;
+    adt3 << 1., 0., 0., 0., -1., 0., 0., 0., -1.;
 
-    LH_CF_FT = rotrf * adt * LH_FT_LPF;
+    Matrix3d rotrh;
+    rotrh = link_local_[Right_Hand].rotm;
 
-    adt.setIdentity();
-    adt.block(3, 0, 3, 3) = DyrosMath::skm(-(link_local_[Right_Hand].contact_point - link_local_[Right_Hand].sensor_point)) * Matrix3d::Identity();
+    if(handft_init <= 5000)
+    {    
+        adt2_temp.setZero();
+        adt2_temp = (rotrh * adt3).inverse();
+        ft_calibd = RH_FT_LPF;
+        handft_init++;
+    }
+    else if(sqrt((link_local_[Left_Hand].v).transpose()*(link_local_[Left_Hand].v)) < 0.03 && sqrt((link_local_[Left_Hand].w).transpose()*(link_local_[Left_Hand].w)) < 0.03)
+    {
+        adt2_temp.setZero();
+        adt2_temp = (rotrh * adt3).inverse();
+        ft_calibd = RH_FT_LPF;
+        handft_init++;
+    }
 
-    rotrf.setZero();
-    rotrf.block(0, 0, 3, 3) = link_local_[Right_Hand].rotm;
-    rotrf.block(3, 3, 3, 3) = link_local_[Right_Hand].rotm;
+    Vector3d Hand_FT_plate_z;
+    Hand_FT_plate_z.setZero();
+    Hand_FT_plate_z(2) = -hand_plate_mass * GRAVITY;
+    RH_CF_FT.segment<3>(0) = rotrh * adt3 * (RH_FT_LPF.segment<3>(0) - ft_calibd.segment<3>(0) + adt2_temp* Hand_FT_plate_z) - Hand_FT_plate_z;
+    LH_CF_FT.setZero();
 
-    RH_CF_FT = rotrf * adt * RH_FT_LPF;
-
-    // dc.tocabi_.ee_[0].contact_force_ft = LF_CF_FT;
-
-    // LF_CF_FT_local = rotrf.inverse() * LF_CF_FT;
+    if(handft_init %200 == 0)
+    {
+        //printf("hand FT : %6.3f %6.3f %6.3f \n", RH_CF_FT(0), RH_CF_FT(1), RH_CF_FT(2));
+    }
 }
 
 void StateManager::ConnectSim()
@@ -1777,12 +1806,14 @@ void StateManager::StateEstimate()
         for (int i = 0; i < 3; i++)
         {
             q_virtual_(i) = -mod_base_pos(i);
-            // q_dot_virtual_(i) = pelv_v(i);
-            q_dot_virtual_(i) = mod_base_vel(i);
+            q_dot_virtual_(i) = pelv_v(i);
+            //q_dot_virtual_(i) = mod_base_vel(i);
 
             // q_dot_virtual_(i) = base_vel_lpf(i);
 
-            q_ddot_virtual_(i) = imu_acc_dat(i);
+            // q_ddot_virtual_(i) = imu_acc_dat(i);
+            
+            q_ddot_virtual_(i) = rd_.imu_lin_acc(i);    //dg test
             q_ddot_virtual_(i + 3) = pelv_anga(i);
         }
 
@@ -2174,6 +2205,13 @@ void StateManager::PublishData()
     com_status_pub_.publish(com_status_msg_);
     //
     // memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
+
+    for(int i = 0; i < 6; i++)
+    {
+        hand_ft_msg_.data[i] = LH_CF_FT[i];
+        hand_ft_msg_.data[i+6] = RH_CF_FT[i];
+    }
+    hand_ft_pub_.publish(hand_ft_msg_);
 }
 
 void StateManager::SimCommandCallback(const std_msgs::StringConstPtr &msg)

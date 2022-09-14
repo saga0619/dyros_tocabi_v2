@@ -30,10 +30,10 @@ typedef struct ResponseStruct {
 class atiforce
 {
 public:
-  /* Sleep ms milliseconds */
+  /* Sleep micro seconds */
   static void MySleep(unsigned long ms)
   {
-    usleep(ms * 1000);
+    usleep(ms * 1);
   }
 
   static int Connect(SOCKET_HANDLE * handle, const char * ipAddress, uint16 port)
@@ -82,7 +82,7 @@ public:
     byte inBuffer[36];
     Response response;
     unsigned int uItems = 0;
-    recv(*socket, inBuffer, 36, 0 );
+    recv(*socket, inBuffer, 36, MSG_DONTWAIT);
     response.rdt_sequence = ntohl(*(uint32*)&inBuffer[0]);
     response.ft_sequence = ntohl(*(uint32*)&inBuffer[4]);
     response.status = ntohl(*(uint32*)&inBuffer[8]);

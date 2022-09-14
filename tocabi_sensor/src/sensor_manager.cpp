@@ -16,7 +16,7 @@ SensorManager::SensorManager()
     gui_command_sub_ = nh_.subscribe("/tocabi/command", 100, &SensorManager::GuiCommandCallback, this);
     gui_state_pub_ = nh_.advertise<std_msgs::Int8MultiArray>("/tocabi/systemstate", 100);
     imu_pub = nh_.advertise<sensor_msgs::Imu>("/tocabi/imu", 100);
-    fthand_pub = nh_.advertise<std_msgs::Float64MultiArray>("/tocabi/handft", 100);
+    // fthand_pub = nh_.advertise<std_msgs::Float64MultiArray>("/tocabi/handft", 1);
 }
 
 void SensorManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
@@ -29,6 +29,10 @@ void SensorManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "ftcalib")
     {
         ft_calib_signal_ = true;
+    }
+    else if (msg->data == "handftcalib")
+    {
+        handft_calib_signal_ = true;
     }
     else if (msg->data == "E0")
     {
@@ -80,13 +84,13 @@ void *SensorManager::SensorThread(void)
     ft.analogSingleSamplePrepare(slotAttrs, 16);
     ft.initCalibration();
 
-    if (hand_ft.Connect(&socketHandle, "192.168.1.1" , PORT) != 0)
+    if (hand_ft.Connect(&socketHandle, "192.168.10.150" , PORT) != 0)
     {
         fprintf(stderr, "Could not connect to device...");
     }
     else
     {
-        fprintf(stderr, "connect device!!!");
+         fprintf(stderr, "connect device!!!");
     }
 
     if (imu_ok)
@@ -180,7 +184,7 @@ void *SensorManager::SensorThread(void)
 
             hand_ft.SendCommand(&socketHandle);
             r = hand_ft.Receive(&socketHandle);
-            hand_ft.ShowResponse(r);
+            // hand_ft.ShowResponse(r);
 
             std::string tmp;
             int i = 0;
@@ -242,11 +246,6 @@ void *SensorManager::SensorThread(void)
                         ft_calib_finish = true;
                         ft_calib_signal_ = false;
                         // dc.ftcalib = false;
-
-                        for(int i = 0; i < 6; i++)
-                        {
-                            hand_ft.handFT_calib[i] =  (double)r.FTData[i]/1000000.0;
-                        }
                     }
 
                     ft.calibrationFTData(ft_calib_finish);
@@ -258,6 +257,15 @@ void *SensorManager::SensorThread(void)
                 {
                     ft_calib_init = false;
                 }
+            }
+
+            if(handft_calib_signal_)
+            {
+                for(int i = 0; i < 6; i++)
+                {
+                    hand_ft.handFT_calib[i] =  (double)r.FTData[i]/1000000.0;
+                }
+                handft_calib_signal_ = false;
             }
 
             if (ft_calib_ui == false && ft_calib_finish == true)
@@ -299,14 +307,19 @@ void *SensorManager::SensorThread(void)
             shm_->ftWriting2 = true;
             for (int i = 0; i < 6; i++)
             {
-                shm_->ftSensor2[i] = (double)r.FTData[i]/1000000.0 - hand_ft.handFT_calib[i];
-                shm_->ftSensor2[i + 6] = 0.0;
-                handft_msg.data[i] = (double)r.FTData[i]/1000000.0 - hand_ft.handFT_calib[i];
+                 shm_->ftSensor2[i] = (double)r.FTData[i]/1000000.0 - hand_ft.handFT_calib[i];
+                 shm_->ftSensor2[i + 6] = 0.0;
             }
             shm_->ftWriting2 = false;
-            fthand_pub.publish(handft_msg);
-          //  std::cout << "while end" << std::endl;
+
+
+            // for (int i=0;i<6;i++)
+            // {
+            //      handft_msg.data[i] = (double)r.FTData[i]/1000000.0 - hand_ft.handFT_calib[i];
+            // }
+            // fthand_pub.publish(handft_msg);
         }
+
 
         // std::cout << "imu end" << std::endl;
 
@@ -330,7 +343,7 @@ int main(int argc, char **argv)
     pthread_attr_t attr;
     pthread_t thread;
 
-    param.sched_priority = 41;
+    param.sched_priority = 41 + 50;
     // cpu_set_t cpusets[thread_number];
 
     // set_latency_target();

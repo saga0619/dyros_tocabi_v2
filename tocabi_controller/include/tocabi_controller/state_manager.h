@@ -105,6 +105,8 @@ public:
     Eigen::Vector6d RH_FT, LH_FT;
     Eigen::Vector6d LH_CF_FT;
     Eigen::Vector6d RH_CF_FT;
+    Eigen::Vector6d LH_CF_FT_local;
+    Eigen::Vector6d RH_CF_FT_local;
 
     Eigen::Vector3d LF_CP_est;
     Eigen::Vector3d RF_CP_est;
@@ -117,6 +119,8 @@ public:
     Eigen::VectorQd q_ext_;
     Eigen::VectorQd q_ddot_;
     Eigen::VectorQd torque_elmo_;
+
+    int tick_ft = 0;
 
     Eigen::VectorQVQd q_virtual_;
     Eigen::VectorVQd q_dot_virtual_;
@@ -169,6 +173,9 @@ public:
     ros::Publisher com_status_pub_;
     std_msgs::Float32MultiArray com_status_msg_;
 
+    ros::Publisher hand_ft_pub_;
+    std_msgs::Float32MultiArray hand_ft_msg_;
+
     void SimCommandCallback(const std_msgs::StringConstPtr &msg);
     // void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);
 
@@ -188,6 +195,8 @@ public:
     bool mujoco_ready = false;
     bool mujoco_init_receive = false;
     bool mujoco_reset = false;
+
+    int handft_init = 0;
 
     ////////////////////////////MLP//////////////////////////////
     void initializeJointMLP();
@@ -210,6 +219,9 @@ public:
     Eigen::VectorXd b1;
     Eigen::VectorXd b2;
     double b3;
+
+    Matrix3d adt2_temp;
+    Vector6d ft_calibd;
 
     Eigen::VectorXd h1;
     Eigen::VectorXd h2;
