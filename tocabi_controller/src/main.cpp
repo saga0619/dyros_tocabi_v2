@@ -131,12 +131,14 @@ int main(int argc, char **argv)
 
         struct sched_param param_st;
         struct sched_param param;
+        struct sched_param param_controller;
         struct sched_param param_logger;
         pthread_attr_t attrs[thread_number];
         pthread_t threads[thread_number];
-        param.sched_priority = 42;
-        param_logger.sched_priority = 41;
-        param_st.sched_priority = 45;
+        param.sched_priority = 42+50;
+        param_logger.sched_priority = 41+50;
+        param_controller.sched_priority = 45+50;
+        param_st.sched_priority = 45+50;
         cpu_set_t cpusets[thread_number];
 
         if (dc_.simMode)
@@ -185,6 +187,11 @@ int main(int argc, char **argv)
             system_log << "System Successfully Started " << std::ctime(&t_clock_start);
 
             if (pthread_attr_setschedparam(&attrs[0], &param_st))
+            {
+                printf("attr %d setschedparam failed ", 0);
+            }
+            
+            if (pthread_attr_setschedparam(&attrs[1], &param_controller))
             {
                 printf("attr %d setschedparam failed ", 0);
             }
