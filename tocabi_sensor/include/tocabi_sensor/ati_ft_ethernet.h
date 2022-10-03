@@ -11,6 +11,8 @@
 //#include <ati_ft_ethernet/FTsensor.h>
 
 #define PORT			49152	/* Port the Ethernet DAQ always uses */
+
+// #define PORT1			49153	/* Port the Ethernet DAQ always uses */
 #define SAMPLE_COUNT	1		/* 10 incoming samples */
 #define COMMAND	2  /* Command for start streaming */
 
@@ -31,12 +33,12 @@ class atiforce
 {
 public:
   /* Sleep micro seconds */
-  static void MySleep(unsigned long ms)
+  void MySleep(unsigned long ms)
   {
     usleep(ms * 1);
   }
 
-  static int Connect(SOCKET_HANDLE * handle, const char * ipAddress, uint16 port)
+  int Connect(SOCKET_HANDLE * handle, const char * ipAddress, uint16 port)
   {
     struct sockaddr_in addr;
     struct hostent *he;
@@ -61,12 +63,12 @@ public:
   }
 
 
-  static void Close(SOCKET_HANDLE * handle)
+  void Close(SOCKET_HANDLE * handle)
   {
      close(*handle);
   }
 
-  static void SendCommand(SOCKET_HANDLE *socket)
+  void SendCommand(SOCKET_HANDLE *socket)
   {
     byte request[8];
     *(uint16*)&request[0] = htons(0x1234);
@@ -77,23 +79,36 @@ public:
   }
 
 
-  static Response Receive(SOCKET_HANDLE *socket)
+  Response Receive(SOCKET_HANDLE *socket)
   {
     byte inBuffer[36];
     Response response;
     unsigned int uItems = 0;
-    recv(*socket, inBuffer, 36, MSG_DONTWAIT);
-    response.rdt_sequence = ntohl(*(uint32*)&inBuffer[0]);
-    response.ft_sequence = ntohl(*(uint32*)&inBuffer[4]);
-    response.status = ntohl(*(uint32*)&inBuffer[8]);
-    for(int i = 0; i < 6; i++ ) {
-		response.FTData[i] = ntohl(*(int32*)&inBuffer[12 + i * 4]);
-	  }
+    int a;
+    a = recv(*socket, inBuffer, 36, MSG_DONTWAIT);
+
+    if(a == -1)
+    {
+      memcpy( response.FTData, FTData_before, sizeof(FTData_before));
+      //memcpy(FTData_before, response.FTData, sizeof(FTData_before));
+    }
+    else
+    {
+      response.rdt_sequence = ntohl(*(uint32*)&inBuffer[0]);
+      response.ft_sequence = ntohl(*(uint32*)&inBuffer[4]);
+      response.status = ntohl(*(uint32*)&inBuffer[8]);
+      for(int i = 0; i < 6; i++ ) {
+      response.FTData[i] = ntohl(*(int32*)&inBuffer[12 + i * 4]);
+      }
+      memcpy(FTData_before, response.FTData, sizeof(FTData_before));
+    }
+    //std::cout <<"recv " << recv << std::endl;
+
     return response;
   }
 
 
-  static void ShowResponse(Response r)
+  void ShowResponse(Response r)
   {
     double fx = (double)r.FTData[0]/1000000.0;
     double fy = (double)r.FTData[1]/1000000.0;
@@ -105,7 +120,6 @@ public:
   }
 
   std::vector<double> handFT_calib;
-
 private:
-
+	int32 FTData_before[6];
 };

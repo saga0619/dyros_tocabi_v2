@@ -72,9 +72,9 @@ void *SensorManager::SensorThread(void)
 
     sensoray826_dev ft = sensoray826_dev(1);
     is_ft_board_ok = ft.open();
-    atiforce hand_ft;
-    Response r;
-    SOCKET_HANDLE socketHandle;
+    atiforce hand_ft_r, hand_ft_l;
+    Response r, l;
+    SOCKET_HANDLE socketHandle_r, socketHandle_l;
  
     if (!is_ft_board_ok)
     {
@@ -84,7 +84,16 @@ void *SensorManager::SensorThread(void)
     ft.analogSingleSamplePrepare(slotAttrs, 16);
     ft.initCalibration();
 
-    if (hand_ft.Connect(&socketHandle, "192.168.10.150" , PORT) != 0)
+    if (hand_ft_r.Connect(&socketHandle_r, "192.168.10.150" , PORT) != 0)
+    {
+        fprintf(stderr, "Could not connect to device...");
+    }
+    else
+    {
+         fprintf(stderr, "connect device!!!");
+    }
+
+    if (hand_ft_l.Connect(&socketHandle_l, "192.168.10.151" , PORT) != 0)
     {
         fprintf(stderr, "Could not connect to device...");
     }
@@ -110,7 +119,8 @@ void *SensorManager::SensorThread(void)
         for(int i = 0; i < 12; i ++)
         {
             handft_msg.data.push_back(0.0);
-            hand_ft.handFT_calib.push_back(0.0);
+            hand_ft_r.handFT_calib.push_back(0.0);
+            hand_ft_l.handFT_calib.push_back(0.0);
         }
 
         // std::cout << "Sensor Thread Start" << std::endl;
@@ -182,9 +192,13 @@ void *SensorManager::SensorThread(void)
             // FT sensor related functions ...
             ft.analogOversample();
 
-            hand_ft.SendCommand(&socketHandle);
-            r = hand_ft.Receive(&socketHandle);
-            // hand_ft.ShowResponse(r);
+            hand_ft_r.SendCommand(&socketHandle_r);
+            r = hand_ft_r.Receive(&socketHandle_r);
+
+
+            hand_ft_l.SendCommand(&socketHandle_l);
+            l = hand_ft_l.Receive(&socketHandle_l);
+            // hand_ft_r.ShowResponse(r);
 
             std::string tmp;
             int i = 0;
@@ -263,7 +277,8 @@ void *SensorManager::SensorThread(void)
             {
                 for(int i = 0; i < 6; i++)
                 {
-                    hand_ft.handFT_calib[i] =  (double)r.FTData[i]/1000000.0;
+                    hand_ft_r.handFT_calib[i] =  (double)r.FTData[i]/1000000.0;
+                    hand_ft_l.handFT_calib[i] =  (double)l.FTData[i]/1000000.0;
                 }
                 handft_calib_signal_ = false;
             }
@@ -307,11 +322,12 @@ void *SensorManager::SensorThread(void)
             shm_->ftWriting2 = true;
             for (int i = 0; i < 6; i++)
             {
-                 shm_->ftSensor2[i] = (double)r.FTData[i]/1000000.0 - hand_ft.handFT_calib[i];
-                 shm_->ftSensor2[i + 6] = 0.0;
+                shm_->ftSensor2[i + 6] = (double)r.FTData[i]/1000000.0 - hand_ft_r.handFT_calib[i];
+                shm_->ftSensor2[i] = (double)l.FTData[i]/1000000.0 - hand_ft_l.handFT_calib[i];
             }
             shm_->ftWriting2 = false;
 
+            ///printf("handa FT : %6.3f %6.3f %6.3f %6.3f \n", (double)r.FTData[0]/1000000.0 , (double)r.FTData[1]/1000000.0 , (double)r.FTData[2]/1000000.0 , (double)l.FTData[2]/1000000.0 );
 
             // for (int i=0;i<6;i++)
             // {
