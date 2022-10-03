@@ -1,5 +1,5 @@
 <launch>
-    <node pkg="tocabi_launch_manager" name="launch_manager_" type="launch_manager.py" output="screen"/>
+    <node pkg="tocabi_launch_manager" name="tocabi_launch_manager" type="launch_manager.py" output="screen"/>
     
     
 </launch>
