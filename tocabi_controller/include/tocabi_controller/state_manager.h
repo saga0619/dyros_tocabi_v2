@@ -16,6 +16,7 @@
 #include <std_msgs/String.h>
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Int32MultiArray.h>
+#include <std_msgs/Int16MultiArray.h>
 #include <geometry_msgs/PolygonStamped.h>
 #include <geometry_msgs/Pose.h>
 #include <std_msgs/Float32.h>
@@ -154,6 +155,8 @@ public:
     std_msgs::Float32 timer_msg_;
 
     ros::Subscriber mujoco_sim_command_sub_;
+    ros::Subscriber hand_torque_r_sub_;
+    ros::Subscriber hand_torque_l_sub_;
     ros::Publisher mujoco_sim_command_pub_;
 
     ros::Publisher joint_state_pub_;
@@ -176,6 +179,13 @@ public:
     ros::Publisher hand_ft_pub_;
     std_msgs::Float32MultiArray hand_ft_msg_;
 
+    ros::Publisher hand_ft_pub_org_;
+    std_msgs::Float32MultiArray hand_ft_org_msg_;
+
+    
+    void handrcurrentCallback(const std_msgs::Int16MultiArrayConstPtr &msg);
+    void handlcurrentCallback(const std_msgs::Int16MultiArrayConstPtr &msg);
+
     void SimCommandCallback(const std_msgs::StringConstPtr &msg);
     // void simStatusCallback(const mujoco_ros_msgs::SimStatusConstPtr &msg);
 
@@ -197,6 +207,8 @@ public:
     bool mujoco_reset = false;
 
     int handft_init = 0;
+    int handft_reinit_r = 0;
+    int handft_reinit_l = 0;
 
     ////////////////////////////MLP//////////////////////////////
     void initializeJointMLP();
@@ -221,10 +233,16 @@ public:
     double b3;
 
     Matrix3d adt2_temp;
-    Vector6d ft_calibd;
+    Matrix3d adt1_temp;
+    Vector6d ft_calibd_r, ft_calibd_l;
 
     Eigen::VectorXd h1;
     Eigen::VectorXd h2;
+
+    Eigen::VectorXd handr_current;
+    Eigen::VectorXd handl_current;
+    bool hand_grasp_r = false;
+    bool hand_grasp_l = false;
 
     Eigen::VectorQd nn_estimated_q_dot_slow_;
     Eigen::VectorQd nn_estimated_q_dot_fast_;

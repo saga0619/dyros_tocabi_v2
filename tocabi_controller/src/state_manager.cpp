@@ -62,6 +62,9 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
         mujoco_sim_command_sub_ = dc_.nh.subscribe("/mujoco_ros_interface/sim_command_sim2con", 1, &StateManager::SimCommandCallback, this);
     }
 
+    hand_torque_r_sub_ = dc_.nh.subscribe("/hand/r/current", 1, &StateManager::handrcurrentCallback, this);
+    hand_torque_l_sub_ = dc_.nh.subscribe("/hand/l/current", 1, &StateManager::handlcurrentCallback, this);
+
     joint_state_pub_ = dc_.nh.advertise<sensor_msgs::JointState>("/tocabi/jointstates", 1);
 
     joint_state_msg_.name.resize(MODEL_DOF);
@@ -83,13 +86,16 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     elmo_status_pub_ = dc_.nh.advertise<std_msgs::Int8MultiArray>("/tocabi/ecatstates", 1);
     com_status_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/comstates", 1);
 
-    hand_ft_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/handft_global", 100);
+    hand_ft_pub_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/handft_global", 1);
+
+    hand_ft_pub_org_ = dc_.nh.advertise<std_msgs::Float32MultiArray>("/tocabi/handft_raw", 100);
 
     com_status_msg_.data.resize(17);
     point_pub_msg_.polygon.points.resize(24);
     syspub_msg.data.resize(8);
     elmo_status_msg_.data.resize(MODEL_DOF * 3);
     hand_ft_msg_.data.resize(12);
+    hand_ft_org_msg_.data.resize(12);
 }
 
 StateManager::~StateManager()
@@ -374,6 +380,24 @@ void *StateManager::LoggerThread()
 
             break;
         }
+    
+        //hand ft global publish for haptic feedback
+
+        static int hand_pub_tick = 0;
+        if(hand_pub_tick == 10)
+        {
+            for(int i = 0; i < 6; i++)
+            {
+                // hand_ft_msg_.data[i] = LH_CF_FT[i];
+                hand_ft_msg_.data[i] = LH_CF_FT[i];
+
+                hand_ft_msg_.data[i+6] = RH_CF_FT[i];
+
+            }
+            hand_ft_pub_.publish(hand_ft_msg_);
+            hand_pub_tick = 0;
+        }
+        hand_pub_tick ++;
 
         pub_count++;
         if (pub_count % 16 == 0)
@@ -1102,8 +1126,8 @@ void StateManager::GetSensorData()
 
     for (int i = 0; i < 6; i++)
     {
-        LH_FT(i) = dc_.tc_shm_->ftSensor2[i + 6];
-        RH_FT(i) = dc_.tc_shm_->ftSensor2[i];
+        LH_FT(i) = dc_.tc_shm_->ftSensor2[i];
+        RH_FT(i) = dc_.tc_shm_->ftSensor2[i + 6];
     }
 
     static Vector6d LF_FT_LPF = LF_FT;
@@ -1120,12 +1144,14 @@ void StateManager::GetSensorData()
 
     for (int i = 0; i < 6; i++)
     {
-        LH_FT_LPF(i) = DyrosMath::lpf(LH_FT(i), LH_FT_LPF(i), 2000, 10);
-        RH_FT_LPF(i) = DyrosMath::lpf(RH_FT(i), RH_FT_LPF(i), 2000, 10);
+        LH_FT_LPF(i) = LH_FT(i);//DyrosMath::lpf(LH_FT(i), LH_FT_LPF(i), 2000, 10);
+        RH_FT_LPF(i) = RH_FT(i);//DyrosMath::lpf(RH_FT(i), RH_FT_LPF(i), 2000, 10);
     }
-
+    
     double foot_plate_mass = 2.326;
-    double hand_plate_mass = 0.8;
+    // double hand_plate_mass = 0.8;
+
+    double hand_plate_mass = 0.0;
 
     Matrix6d adt;
     adt.setIdentity();
@@ -1175,35 +1201,74 @@ void StateManager::GetSensorData()
 
     Matrix3d adt3;
     adt3 << 1., 0., 0., 0., -1., 0., 0., 0., -1.;
+    Matrix3d adt4;
+    adt4 << -1., 0., 0., 0., 1., 0., 0., 0., -1.;//<< 0., 1., 0., 1., 0., 0., 0., 0., -1.;
 
-    Matrix3d rotrh;
+    Matrix3d pelv_imu_yaw;
+    pelv_imu_yaw = DyrosMath::rotateWithZ(-rd_.yaw);
+
+    Matrix3d rotrh, rotlh;
     rotrh = link_local_[Right_Hand].rotm;
+    rotlh = link_local_[Left_Hand].rotm;
 
     if(handft_init <= 5000)
     {    
         adt2_temp.setZero();
         adt2_temp = (rotrh * adt3).inverse();
-        ft_calibd = RH_FT_LPF;
+
+        adt1_temp.setZero();
+        adt1_temp = (rotlh * adt4).inverse();
+        ft_calibd_r = RH_FT_LPF;
+        ft_calibd_l = LH_FT_LPF;
         handft_init++;
     }
-    else if(sqrt((link_local_[Left_Hand].v).transpose()*(link_local_[Left_Hand].v)) < 0.03 && sqrt((link_local_[Left_Hand].w).transpose()*(link_local_[Left_Hand].w)) < 0.03)
+   /* else if(sqrt((link_local_[Right_Hand].v).transpose()*(link_local_[Right_Hand].v)) < 0.1 && sqrt((link_local_[Right_Hand].w).transpose()*(link_local_[Right_Hand].w)) < 0.2 && hand_grasp_r == false)
     {
-        adt2_temp.setZero();
-        adt2_temp = (rotrh * adt3).inverse();
-        ft_calibd = RH_FT_LPF;
-        handft_init++;
+        handft_reinit_r++;
+        if(handft_reinit_r  == 1000)
+        {
+            adt2_temp.setZero();
+            adt2_temp = (rotrh * adt3).inverse();
+            ft_calibd_r = RH_FT_LPF;
+            handft_reinit_r = 0;
+        } 
     }
+    else
+    {    
+       handft_reinit_r = 0;
+    }
+
+    if(sqrt((link_local_[Left_Hand].v).transpose()*(link_local_[Left_Hand].v)) < 0.1 && sqrt((link_local_[Left_Hand].w).transpose()*(link_local_[Left_Hand].w)) < 0.2 && hand_grasp_l == false)
+    {
+        handft_reinit_l++;
+        if(handft_reinit_l  == 1000)
+        {
+            adt1_temp.setZero();
+            adt1_temp = (rotlh * adt4).inverse();
+            ft_calibd_l = LH_FT_LPF;
+            handft_reinit_l = 0;
+        } 
+    }
+    else
+    {
+        handft_reinit_l = 0;
+    }*/
 
     Vector3d Hand_FT_plate_z;
     Hand_FT_plate_z.setZero();
     Hand_FT_plate_z(2) = -hand_plate_mass * GRAVITY;
-    RH_CF_FT.segment<3>(0) = rotrh * adt3 * (RH_FT_LPF.segment<3>(0) - ft_calibd.segment<3>(0) + adt2_temp* Hand_FT_plate_z) - Hand_FT_plate_z;
-    LH_CF_FT.setZero();
+    RH_CF_FT.segment<3>(0) = rotrh * adt3 * (RH_FT_LPF.segment<3>(0) - ft_calibd_r.segment<3>(0) + adt2_temp* Hand_FT_plate_z) - Hand_FT_plate_z;
+    LH_CF_FT.segment<3>(0) = rotlh * adt4 * (LH_FT_LPF.segment<3>(0) - ft_calibd_l.segment<3>(0) + adt1_temp* Hand_FT_plate_z) - Hand_FT_plate_z;
+   
+    RH_CF_FT.segment<3>(0) = pelv_imu_yaw * RH_CF_FT.segment<3>(0);
+    LH_CF_FT.segment<3>(0) = pelv_imu_yaw * LH_CF_FT.segment<3>(0);
 
-    if(handft_init %200 == 0)
-    {
-        //printf("hand FT : %6.3f %6.3f %6.3f \n", RH_CF_FT(0), RH_CF_FT(1), RH_CF_FT(2));
-    }
+    // printf("hand FT : %6.3f %6.3f %6.3f %6.3f \n", LH_CF_FT(0), LH_CF_FT(1), LH_CF_FT(2), RH_CF_FT(2));
+   // printf("hand FT : %6.3f %6.3f \n", LH_FT(2), RH_FT(2));
+    // if(handft_init %200 == 0)
+    // {
+        
+    // }
 }
 
 void StateManager::ConnectSim()
@@ -2206,13 +2271,75 @@ void StateManager::PublishData()
     //
     // memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
 
+
+
+
     for(int i = 0; i < 6; i++)
     {
-        hand_ft_msg_.data[i] = LH_CF_FT[i];
-        hand_ft_msg_.data[i+6] = RH_CF_FT[i];
+        hand_ft_org_msg_.data[i] = LH_FT[i];
+        hand_ft_org_msg_.data[i+6] = RH_FT[i];
     }
-    hand_ft_pub_.publish(hand_ft_msg_);
+    hand_ft_pub_org_.publish(hand_ft_org_msg_);
+
+
 }
+
+void StateManager::handrcurrentCallback(const std_msgs::Int16MultiArrayConstPtr &msg)
+{
+    handr_current.resize(msg->data.size());
+    bool detectr = false;
+    for(int i = 0; i < msg->data.size(); i++)
+    {
+        handr_current(i) = msg->data[i];
+        if(abs(handr_current(i)) > 300)
+        {
+            detectr = true;
+            break;
+        }
+        else
+        {
+
+            detectr = false;
+        }
+    }
+    if(detectr == true)
+    {
+        hand_grasp_r = true;
+    }
+    else
+    {
+        hand_grasp_r = false;
+    }
+}
+
+void StateManager::handlcurrentCallback(const std_msgs::Int16MultiArrayConstPtr &msg)
+{
+    handl_current.resize(msg->data.size());
+    bool detectl = false;
+    for(int i = 0; i < msg->data.size(); i++)
+    {
+        handl_current(i) = msg->data[i];
+        if(abs(handl_current(i)) > 300)
+        {
+            detectl = true;
+            break;
+        }
+        else
+        {
+
+            detectl = false;
+        }
+    }
+    if(detectl == true)
+    {
+        hand_grasp_l = true;
+    }
+    else
+    {
+        hand_grasp_l = false;
+    }
+}
+
 
 void StateManager::SimCommandCallback(const std_msgs::StringConstPtr &msg)
 {

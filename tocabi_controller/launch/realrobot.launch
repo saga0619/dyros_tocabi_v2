@@ -1,7 +1,8 @@
 <launch>
     <arg name="hand" default="true"/>
     <arg name="lower" default="true"/>
-    <arg name="log" default="true"/>
+    <arg name="log" default="false"/>
+    <arg name="disablelower" default="true"/>
     <arg name="init" default="false"/>
     <arg name="node_start_delay" default="0.2" />  
     <arg name="node_start_delay_ecat" default="0.3" />  
@@ -14,6 +15,7 @@
     </group>
 
     <param name="tocabi_controller/log" value="$(arg log)"/>
+    <param name="tocabi_controller/disablelower" value="$(arg disablelower)"/>
 
     <node name="tocabi_controller_shm_reset" pkg="tocabi_controller" type="shm_reset" output="screen"/>
 

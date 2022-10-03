@@ -80,11 +80,13 @@ int main(int argc, char **argv)
     DataContainer dc_;
 
     bool activateLogger;
+    bool lower_disable;
 
     dc_.nh.param("/tocabi_controller/sim_mode", dc_.simMode, false);
     dc_.nh.getParam("/tocabi_controller/Kp", dc_.Kps);
     dc_.nh.getParam("/tocabi_controller/Kv", dc_.Kvs);
     dc_.nh.param("/tocabi_controller/log", activateLogger, false);
+    dc_.nh.param("/tocabi_controller/disablelower", lower_disable, false);
 
     if (dc_.Kps.size() != MODEL_DOF)
     {
@@ -105,9 +107,16 @@ int main(int argc, char **argv)
 
     prog_shutdown = &dc_.tc_shm_->shutdown;
 
-    bool lower_disable = false;
 
-    dc_.nh.param("/tocabi_controller/disablelower", lower_disable, false);
+
+    if(lower_disable)
+    {    std::cout<<" CNTRL : LOWER BODY DISABLED BY DEFAULT"<<std::endl;
+    }
+    else
+    {
+        std::cout<<" CNTRL : LOWERBODY ENABLED "<<std::endl;
+    }
+
 
     dc_.tc_shm_->lower_disabled = lower_disable;
 
@@ -374,7 +383,8 @@ int main(int argc, char **argv)
 
         system_log.close();
     }
-
+    ros::shutdown();
+    
     deleteSharedMemory(shm_id_, dc_.tc_shm_);
     std::cout << cgreen << " CNTRL : tocabi controller Shutdown" << creset << std::endl;
     return 0;
