@@ -935,7 +935,7 @@ void *TocabiController::Thread3()
 /////////////////////////////////////////////
 /////////////Do something in Thread3 !!!!!!!
 #ifdef COMPILE_TOCABI_AVATAR
-               ac_.computeThread3();
+            //    ac_.computeThread3();
 #endif
 
                 /////////////////////////////////////////////
