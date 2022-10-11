@@ -80,11 +80,13 @@ int main(int argc, char **argv)
     DataContainer dc_;
 
     bool activateLogger;
+    bool lower_disable;
 
     dc_.nh.param("/tocabi_controller/sim_mode", dc_.simMode, false);
     dc_.nh.getParam("/tocabi_controller/Kp", dc_.Kps);
     dc_.nh.getParam("/tocabi_controller/Kv", dc_.Kvs);
     dc_.nh.param("/tocabi_controller/log", activateLogger, false);
+    dc_.nh.param("/tocabi_controller/disablelower", lower_disable, false);
 
     if (dc_.Kps.size() != MODEL_DOF)
     {
@@ -104,6 +106,19 @@ int main(int argc, char **argv)
     init_shm(shm_msg_key, shm_id_, &dc_.tc_shm_);
 
     prog_shutdown = &dc_.tc_shm_->shutdown;
+
+
+
+    if(lower_disable)
+    {    std::cout<<" CNTRL : LOWER BODY DISABLED BY DEFAULT"<<std::endl;
+    }
+    else
+    {
+        std::cout<<" CNTRL : LOWERBODY ENABLED "<<std::endl;
+    }
+
+
+    dc_.tc_shm_->lower_disabled = lower_disable;
 
     // std::cout << "process num : " << (int)dc_.tc_shm_->process_num << std::endl;
 
@@ -125,10 +140,14 @@ int main(int argc, char **argv)
 
         struct sched_param param_st;
         struct sched_param param;
+        struct sched_param param_controller;
+        struct sched_param param_logger;
         pthread_attr_t attrs[thread_number];
         pthread_t threads[thread_number];
-        param.sched_priority = 80;
-        param_st.sched_priority = 90;
+        param.sched_priority = 42+50;
+        param_logger.sched_priority = 41+50;
+        param_controller.sched_priority = 45+50;
+        param_st.sched_priority = 45+50;
         cpu_set_t cpusets[thread_number];
 
         if (dc_.simMode)
@@ -137,6 +156,9 @@ int main(int argc, char **argv)
         // set_latency_target();
 
         /* Initialize pthread attributes (default values) */
+
+        pthread_t loggerThread;
+        pthread_attr_t loggerattrs;
 
         for (int i = 0; i < thread_number; i++)
         {
@@ -162,6 +184,8 @@ int main(int argc, char **argv)
             }
         }
 
+        pthread_attr_init(&loggerattrs);
+        
         if (!dc_.simMode)
         {
 
@@ -175,12 +199,30 @@ int main(int argc, char **argv)
             {
                 printf("attr %d setschedparam failed ", 0);
             }
+            
+            if (pthread_attr_setschedparam(&attrs[1], &param_controller))
+            {
+                printf("attr %d setschedparam failed ", 0);
+            }
 
             CPU_ZERO(&cpusets[0]);
             CPU_SET(5, &cpusets[0]);
             if (pthread_attr_setaffinity_np(&attrs[0], sizeof(cpu_set_t), &cpusets[0]))
             {
                 printf("attr %d setaffinity failed ", 0);
+            }
+
+            if (pthread_attr_setschedpolicy(&loggerattrs, SCHED_FIFO))
+            {
+                printf("attr logger setschedpolicy failed ");
+            }
+            if (pthread_attr_setschedparam(&loggerattrs, &param_logger))
+            {
+                printf("attr logger setschedparam failed ");
+            }
+            if (pthread_attr_setinheritsched(&loggerattrs, PTHREAD_EXPLICIT_SCHED))
+            {
+                printf("attr logger setinheritsched failed ");
             }
         }
 
@@ -200,15 +242,12 @@ int main(int argc, char **argv)
         {
             printf("threads[3] create failed\n");
         }
-        pthread_t loggerThread;
-        pthread_attr_t loggerattrs;
         if (true)
         {
-            pthread_attr_init(&loggerattrs);
 
             if (pthread_create(&loggerThread, &loggerattrs, &StateManager::LoggerStarter, &stm))
             {
-                printf("threads[0] create failed\n");
+                printf("logger Thread create failed\n");
             }
         }
         for (int i = 0; i < thread_number; i++)
@@ -344,7 +383,8 @@ int main(int argc, char **argv)
 
         system_log.close();
     }
-
+    ros::shutdown();
+    
     deleteSharedMemory(shm_id_, dc_.tc_shm_);
     std::cout << cgreen << " CNTRL : tocabi controller Shutdown" << creset << std::endl;
     return 0;

@@ -16,6 +16,7 @@ SensorManager::SensorManager()
     gui_command_sub_ = nh_.subscribe("/tocabi/command", 100, &SensorManager::GuiCommandCallback, this);
     gui_state_pub_ = nh_.advertise<std_msgs::Int8MultiArray>("/tocabi/systemstate", 100);
     imu_pub = nh_.advertise<sensor_msgs::Imu>("/tocabi/imu", 100);
+    // fthand_pub = nh_.advertise<std_msgs::Float64MultiArray>("/tocabi/handft", 1);
 }
 
 void SensorManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
@@ -28,6 +29,10 @@ void SensorManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "ftcalib")
     {
         ft_calib_signal_ = true;
+    }
+    else if (msg->data == "handftcalib")
+    {
+        handft_calib_signal_ = true;
     }
     else if (msg->data == "E0")
     {
@@ -67,7 +72,10 @@ void *SensorManager::SensorThread(void)
 
     sensoray826_dev ft = sensoray826_dev(1);
     is_ft_board_ok = ft.open();
-
+    atiforce hand_ft_r, hand_ft_l;
+    Response r, l;
+    SOCKET_HANDLE socketHandle_r, socketHandle_l;
+ 
     if (!is_ft_board_ok)
     {
         std::cout << "ft connection error, error code" << std::endl;
@@ -75,6 +83,24 @@ void *SensorManager::SensorThread(void)
 
     ft.analogSingleSamplePrepare(slotAttrs, 16);
     ft.initCalibration();
+
+    if (hand_ft_r.Connect(&socketHandle_r, "192.168.10.150" , PORT) != 0)
+    {
+        fprintf(stderr, "Could not connect to device...");
+    }
+    else
+    {
+         fprintf(stderr, "connect device!!!");
+    }
+
+    if (hand_ft_l.Connect(&socketHandle_l, "192.168.10.151" , PORT) != 0)
+    {
+        fprintf(stderr, "Could not connect to device...");
+    }
+    else
+    {
+         fprintf(stderr, "connect device!!!");
+    }
 
     if (imu_ok)
     {
@@ -86,6 +112,16 @@ void *SensorManager::SensorThread(void)
         mx5.initIMU();
 
         int cycle_count = 0;
+
+
+        std_msgs::Float64MultiArray handft_msg;
+
+        for(int i = 0; i < 12; i ++)
+        {
+            handft_msg.data.push_back(0.0);
+            hand_ft_r.handFT_calib.push_back(0.0);
+            hand_ft_l.handFT_calib.push_back(0.0);
+        }
 
         // std::cout << "Sensor Thread Start" << std::endl;
 
@@ -155,6 +191,15 @@ void *SensorManager::SensorThread(void)
 
             // FT sensor related functions ...
             ft.analogOversample();
+
+            hand_ft_r.SendCommand(&socketHandle_r);
+            r = hand_ft_r.Receive(&socketHandle_r);
+
+
+            hand_ft_l.SendCommand(&socketHandle_l);
+            l = hand_ft_l.Receive(&socketHandle_l);
+            // hand_ft_r.ShowResponse(r);
+
             std::string tmp;
             int i = 0;
 
@@ -228,6 +273,16 @@ void *SensorManager::SensorThread(void)
                 }
             }
 
+            if(handft_calib_signal_)
+            {
+                for(int i = 0; i < 6; i++)
+                {
+                    hand_ft_r.handFT_calib[i] =  (double)r.FTData[i]/1000000.0;
+                    hand_ft_l.handFT_calib[i] =  (double)l.FTData[i]/1000000.0;
+                }
+                handft_calib_signal_ = false;
+            }
+
             if (ft_calib_ui == false && ft_calib_finish == true)
             {
                 /*    dc.print_ft_info_tofile = true;
@@ -242,7 +297,6 @@ void *SensorManager::SensorThread(void)
                     {
                         ft_init_log << ft.leftFootBias[i] << "\n";
                     }
-
                     for (int i = 0; i < 6; i++)
                     {
                         ft_init_log << ft.rightFootBias[i] << "\n";
@@ -265,9 +319,23 @@ void *SensorManager::SensorThread(void)
             }
 
             shm_->ftWriting = false;
+            shm_->ftWriting2 = true;
+            for (int i = 0; i < 6; i++)
+            {
+                shm_->ftSensor2[i + 6] = (double)r.FTData[i]/1000000.0 - hand_ft_r.handFT_calib[i];
+                shm_->ftSensor2[i] = (double)l.FTData[i]/1000000.0 - hand_ft_l.handFT_calib[i];
+            }
+            shm_->ftWriting2 = false;
 
-            // std::cout << "while end" << std::endl;
+            ///printf("handa FT : %6.3f %6.3f %6.3f %6.3f \n", (double)r.FTData[0]/1000000.0 , (double)r.FTData[1]/1000000.0 , (double)r.FTData[2]/1000000.0 , (double)l.FTData[2]/1000000.0 );
+
+            // for (int i=0;i<6;i++)
+            // {
+            //      handft_msg.data[i] = (double)r.FTData[i]/1000000.0 - hand_ft.handFT_calib[i];
+            // }
+            // fthand_pub.publish(handft_msg);
         }
+
 
         // std::cout << "imu end" << std::endl;
 
@@ -291,7 +359,7 @@ int main(int argc, char **argv)
     pthread_attr_t attr;
     pthread_t thread;
 
-    param.sched_priority = 80;
+    param.sched_priority = 41 + 50;
     // cpu_set_t cpusets[thread_number];
 
     // set_latency_target();
