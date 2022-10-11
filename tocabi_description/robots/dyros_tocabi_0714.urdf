@@ -1371,7 +1371,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://tocabi_description/meshes/head.STL" />
+          filename="package://tocabi_description/meshes/head_v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material
         name="">
@@ -1858,10 +1858,62 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 -0.025"
+        xyz="0.0 0.035 -0.02"
         rpy="0 0 0" />
       <geometry>
-        <box size="0.06 0.06 0.02"/>
+        <box size="0.03 0.005 0.05"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin
+        xyz="0.0 -0.035 -0.02"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.03 0.005 0.05"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin
+        xyz="0 0 -0.042"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.06 0.06 0.01"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin
+        xyz="0 0 -0.06 "
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.026" radius="0.042"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin
+        xyz="0 0 -0.126"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.08 0.02 0.1"/>
       </geometry>
       <material
         name="">
@@ -2349,10 +2401,62 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 -0.025"
+        xyz="0.0 0.035 -0.02"
         rpy="0 0 0" />
       <geometry>
-        <box size="0.06 0.06 0.02"/>
+        <box size="0.03 0.005 0.05"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin
+        xyz="0.0 -0.035 -0.02"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.03 0.005 0.05"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin
+        xyz="0 0 -0.042"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.06 0.06 0.01"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin
+        xyz="0 0 -0.06 "
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.026" radius="0.042"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin
+        xyz="0 0 -0.126"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.08 0.02 0.1"/>
       </geometry>
       <material
         name="">
