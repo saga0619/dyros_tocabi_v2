@@ -139,6 +139,22 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                 // }
             }
 
+            if (rd_.tc_avatar_switch)
+            {
+                rd_.pc_mode = false;
+                rd_.tc_.mode = 12;
+
+                std::cout << " CNTRL : task signal received mode :" << rd_.tc_.mode << std::endl;
+
+                stm_.StatusPub("%f task Control mode : %d", (float)rd_.control_time_, rd_.tc_.mode);
+                
+                rd_.tc_time_ = rd_.control_time_;
+                rd_.tc_run = true;
+                rd_.tc_init = true;
+
+                rd_.tc_avatar_switch = false;
+            }
+
             if (rd_.pc_mode)
             {
                 if (rd_.positionHoldSwitch)
@@ -163,9 +179,9 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             }
             else if (rd_.tc_run)
             {
-                static ofstream task_log;
+                // static ofstream task_log;
 
-                std::string output_file = "/home/dyros/tocabi_log/output";
+                // std::string output_file = "/home/dyros/tocabi_log/output";
                 if (rd_.tc_.mode == 0)
                 {
 
@@ -407,19 +423,19 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     {
                         init_qp = true;
 
-                        if (task_log.is_open())
-                        {
-                            std::cout << "file already opened " << std::endl;
-                        }
-                        else
-                        {
-                            task_log.open(output_file.c_str(), fstream::out | fstream::app);
-                            task_log << "time pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z upper_r upper_p upper_y upper_tx upper_ty upper_tz rtraj_r rtraj_p rtraj_y ttraj_x ttraj_y ttraj_z" << std::endl;
-                            if (task_log.is_open())
-                            {
-                                std::cout << "open success " << std::endl;
-                            }
-                        }
+                        // if (task_log.is_open())
+                        // {
+                        //     std::cout << "file already opened " << std::endl;
+                        // }
+                        // else
+                        // {
+                        //     task_log.open(output_file.c_str(), fstream::out | fstream::app);
+                        //     task_log << "time pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z upper_r upper_p upper_y upper_tx upper_ty upper_tz rtraj_r rtraj_p rtraj_y ttraj_x ttraj_y ttraj_z" << std::endl;
+                        //     if (task_log.is_open())
+                        //     {
+                        //         std::cout << "open success " << std::endl;
+                        //     }
+                        // }
 
                         std::cout << "mode 2 init" << std::endl;
                         rd_.tc_init = false;
@@ -531,33 +547,33 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].rotm, ur, up, uy);
                     DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].r_traj, utx, uty, utz);
 
-                    if (rd_.control_time_ > rd_.tc_time_ && rd_.control_time_ < rd_.tc_time_ + rd_.tc_.time + 0.5)
-                    {
-                        task_log << rd_.control_time_ << " "
-                                 << rd_.link_[Pelvis].xipos(0) << " " << rd_.link_[Pelvis].xipos(1) << " " << rd_.link_[Pelvis].xipos(2) << " "
-                                 << rd_.link_[Pelvis].vi(0) << " " << rd_.link_[Pelvis].vi(1) << " " << rd_.link_[Pelvis].vi(2) << " "
-                                 << rd_.link_[Pelvis].x_traj(0) << " " << rd_.link_[Pelvis].x_traj(1) << " " << rd_.link_[Pelvis].x_traj(2) << " "
-                                 << rd_.link_[Pelvis].v_traj(0) << " " << rd_.link_[Pelvis].v_traj(1) << " " << rd_.link_[Pelvis].v_traj(2) << " "
+                    // if (rd_.control_time_ > rd_.tc_time_ && rd_.control_time_ < rd_.tc_time_ + rd_.tc_.time + 0.5)
+                    // {
+                    //     task_log << rd_.control_time_ << " "
+                    //              << rd_.link_[Pelvis].xipos(0) << " " << rd_.link_[Pelvis].xipos(1) << " " << rd_.link_[Pelvis].xipos(2) << " "
+                    //              << rd_.link_[Pelvis].vi(0) << " " << rd_.link_[Pelvis].vi(1) << " " << rd_.link_[Pelvis].vi(2) << " "
+                    //              << rd_.link_[Pelvis].x_traj(0) << " " << rd_.link_[Pelvis].x_traj(1) << " " << rd_.link_[Pelvis].x_traj(2) << " "
+                    //              << rd_.link_[Pelvis].v_traj(0) << " " << rd_.link_[Pelvis].v_traj(1) << " " << rd_.link_[Pelvis].v_traj(2) << " "
 
-                                 << ur << " " << up << " " << uy << " "
-                                 << rd_.link_[Upper_Body].w(0) << " " << rd_.link_[Upper_Body].w(1) << " " << rd_.link_[Upper_Body].w(2) << " "
+                    //              << ur << " " << up << " " << uy << " "
+                    //              << rd_.link_[Upper_Body].w(0) << " " << rd_.link_[Upper_Body].w(1) << " " << rd_.link_[Upper_Body].w(2) << " "
 
-                                 << utx << " " << uty << " " << utz << " "
-                                 << rd_.link_[Upper_Body].w_traj(0) << " " << rd_.link_[Upper_Body].w_traj(1) << " " << rd_.link_[Upper_Body].w_traj(2) << " "
+                    //              << utx << " " << uty << " " << utz << " "
+                    //              << rd_.link_[Upper_Body].w_traj(0) << " " << rd_.link_[Upper_Body].w_traj(1) << " " << rd_.link_[Upper_Body].w_traj(2) << " "
 
-                                 //  << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
-                                 //  << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
-                                 //  << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
-                                 //  << out(0) << " " << out(1) << " " << out(2) << " "
-                                 //  << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
-                                 //  << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
-                                 //  << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
-                                 //  << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
-                                 //  << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
-                                 //  << zmp_got(0) << " " << zmp_got(1) << " "
-                                 //  << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
-                                 << std::endl;
-                    }
+                    //              //  << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
+                    //              //  << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
+                    //              //  << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
+                    //              //  << out(0) << " " << out(1) << " " << out(2) << " "
+                    //              //  << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
+                    //              //  << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
+                    //              //  << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
+                    //              //  << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
+                    //              //  << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
+                    //              //  << zmp_got(0) << " " << zmp_got(1) << " "
+                    //              //  << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
+                    //              << std::endl;
+                    // }
 
                     init_qp = false;
                 }
@@ -741,8 +757,22 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                 if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
                 {
                     RequestThread2();
-                    ac_.computeSlow();
 
+                    num1 = num1 + 1;
+                    try
+                    {
+                    ac_.computeSlow();
+                    }
+                    catch (const std::exception &e)
+                    {
+                        std::cout << "Error occured at AVATAR THREAD1" << std::endl;
+
+                        std::cerr << e.what() << '\n';
+
+                        rd_.positionControlSwitch = true;
+                    }
+
+                    num2 = num2 + 1;
                     if (rd_.tc_.mode == 11 || rd_.tc_.mode == 13)
                     {
                         static int thread3_count = 1;
@@ -795,7 +825,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             auto d2 = std::chrono::duration_cast<std::chrono::microseconds>(t_end - rd_.tp_state_).count(); // 150us without march=native
 
             // zmp calculation
-            rd_.zmp_global_ = WBC::GetZMPpos_fromFT(rd_);
+            // rd_.zmp_global_ = WBC::GetZMPpos_fromFT(rd_);
 
             // Eigen::VectorXd cf_from_torque;
             // cf_from_torque.resize(rd_.contact_index * 6);
@@ -863,6 +893,9 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 // Thread2 : running with request
 void *TocabiController::Thread2()
 {
+
+    cout << "CNTRL2 : started with pid : " << getpid() << std::endl;
+
     while (true)
     {
         if (signalThread1 || dc_.tc_shm_->shutdown)
@@ -885,7 +918,20 @@ void *TocabiController::Thread2()
 #ifdef COMPILE_TOCABI_AVATAR
                     if ((rd_.tc_.mode > 9) && (rd_.tc_.mode < 15))
                     {
+                        try
+                        {
+                            num3 = num3 + 1;
                         ac_.computeFast();
+                            num4 = num4 + 1;
+                        }
+                        catch (const std::exception &e)
+                        {
+                            std::cout << "Error occured at AVATAR THREAD2" << std::endl;
+
+                            std::cerr << e.what() << '\n';
+
+                            rd_.positionControlSwitch = true;
+                        }
                     }
 #endif
 #ifdef COMPILE_TOCABI_CC

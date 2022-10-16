@@ -1,5 +1,5 @@
 <launch>
-    <arg name="hand" default="false" />
+    <arg name="hand" default="true" />
     <arg name="gui" default="true" />
     <arg name="controller" default="true" />
     <arg name="log" default="false"/>
@@ -19,8 +19,6 @@
     <group unless="$(arg hand)">
         <param name="mujoco_ros/model_file" type="string" value="$(find tocabi_description)/mujoco_model/dyros_tocabi.xml" />
     </group>
-
-
 
     <rosparam command="load" file="$(find tocabi_description)/setting/setting_simulation_positionPDgain.yaml" ns="/tocabi_controller" />
     <rosparam command="load" file="$(find tocabi_description)/setting/setting_simulation_parameters.yaml" ns="/tocabi_controller" />
