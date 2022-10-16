@@ -151,6 +151,8 @@ public:
     void GetSimData();
     void SendCommand(VectorQf command, std::vector<bool> command_mode);
 
+    int cCount = 0;
+
     ros::Publisher timer_pub_;
     std_msgs::Float32 timer_msg_;
 
@@ -234,15 +236,21 @@ public:
 
     Matrix3d adt2_temp;
     Matrix3d adt1_temp;
-    Vector6d ft_calibd_r, ft_calibd_l;
+    Vector6d ft_calibd_r, ft_calibd_l, ft_calibd_rt, ft_calibd_lt;
 
     Eigen::VectorXd h1;
     Eigen::VectorXd h2;
 
+    int handFtCalib_mode = 0;
+    Eigen::MatrixXd LH_CALIB;
+    Eigen::MatrixXd RH_CALIB;
     Eigen::VectorXd handr_current;
     Eigen::VectorXd handl_current;
     bool hand_grasp_r = false;
     bool hand_grasp_l = false;
+    double hand_plate_mass_r = 0.8;
+    double hand_plate_mass_l = 0.8;
+    bool hand_calib_init = false;
 
     Eigen::VectorQd nn_estimated_q_dot_slow_;
     Eigen::VectorQd nn_estimated_q_dot_fast_;

@@ -96,6 +96,10 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     elmo_status_msg_.data.resize(MODEL_DOF * 3);
     hand_ft_msg_.data.resize(12);
     hand_ft_org_msg_.data.resize(12);
+    LH_CALIB.resize(6, 3);
+    LH_CALIB.setZero();
+    RH_CALIB.resize(6, 3);
+    RH_CALIB.setZero();
 }
 
 StateManager::~StateManager()
@@ -106,6 +110,8 @@ StateManager::~StateManager()
 void *StateManager::StateThread()
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    cout << " STATE : started with pid : " << getpid() << std::endl;
 
     int rcv_tcnt = -1;
 
@@ -199,6 +205,50 @@ void *StateManager::StateThread()
 
         UpdateCMM(rd_, link_);
 
+        // check signal
+        static bool grav_sig = false;
+        static bool pos_sig = false;
+        static int rcv_count = 0;
+
+        static const int ignore_count = 20; // 10ms
+
+        if (grav_sig != dc_.tc_shm_->grav_signal)
+        {
+            if (rcv_tcnt > rcv_count + ignore_count)
+            {
+
+                if (grav_sig)
+                {
+                    std::cout << control_time_ << "GRAV SIG ON" << std::endl;
+                    rd_gl_.tc_run = false;
+                    rd_gl_.pc_mode = false;
+                }
+                else
+                    std::cout << control_time_ << "GRAV SIG OFF" << std::endl;
+            }
+
+            rcv_count = rcv_tcnt;
+        }
+
+        if (pos_sig != dc_.tc_shm_->pos_signal)
+        {
+            if (pos_sig)
+            {
+                std::cout << control_time_ << "POS SIG ON" << std::endl;
+                rd_gl_.positionControlSwitch = true;
+            }
+            else
+                std::cout << control_time_ << "POS SIG OFF" << std::endl;
+
+            rcv_count = rcv_tcnt;
+        }
+
+        grav_sig = dc_.tc_shm_->grav_signal;
+        pos_sig = dc_.tc_shm_->pos_signal;
+
+        // rd_gl_.position_signal = pos_sig;
+        // rd_gl_.gravity_signal = grav_sig;
+
         StoreState(rd_gl_); // 6.2 us //w/o march native 8us
 
         // MeasureTime(dc_.stm_cnt, d1, d2);
@@ -229,6 +279,42 @@ void *StateManager::StateThread()
         {
 
             std::cout << "STATUS : init stm diff : " << stm_diff << "  init tcm diff : " << tcm_diff << std::endl;
+
+            if (stm_diff < -5000 && tcm_diff < -5000)
+            {
+                std::cout << "STATUS : REBOOT MODE ! " << std::endl;
+
+                bool safety_status = true;
+                for (int i = 0; i < MODEL_DOF; i++)
+                {
+                    safety_status = safety_status && (dc_.tc_shm_->safety_status[i] == 4);
+                }
+                if (safety_status)
+                {
+                    std::cout << "STATUS : REBOOT FROM COMMANDLOCK!!!!!!!!!!!!!!" << std::endl;
+
+                    std::cout << "STATUS : POSITION COMMAND!" << std::endl;
+
+                    dc_.tc_shm_->safety_reset_upper_signal = true;
+                    dc_.tc_shm_->safety_reset_lower_signal = true;
+
+                    dc_.torqueOn = true;
+                    cCount = dc_.tc_shm_->commandCount;
+                    torqueRatio = 1.0;
+
+                    if (dc_.avatarMode)
+                    {
+                        dc_.inityawSwitch = true;
+                        dc_.stateEstimateSwitch = true;
+                        rd_gl_.semode = true;
+
+                        rd_gl_.tc_avatar_switch = true;
+
+                        rd_gl_.avatar_reboot_signal = true;
+                    }
+                }
+            }
+
             pub_once = false;
         }
 
@@ -380,24 +466,25 @@ void *StateManager::LoggerThread()
 
             break;
         }
-    
-        //hand ft global publish for haptic feedback
+
+        // hand ft global publish for haptic feedback
+
+        static Vector12d hand_bias = Vector12d::Zero();
 
         static int hand_pub_tick = 0;
-        if(hand_pub_tick == 10)
+        if (hand_pub_tick == 10)
         {
-            for(int i = 0; i < 6; i++)
+            for (int i = 0; i < 6; i++)
             {
                 // hand_ft_msg_.data[i] = LH_CF_FT[i];
-                hand_ft_msg_.data[i] = LH_CF_FT[i];
+                hand_ft_msg_.data[i] = LH_CF_FT[i] - hand_bias[i];
 
-                hand_ft_msg_.data[i+6] = RH_CF_FT[i];
-
+                hand_ft_msg_.data[i + 6] = RH_CF_FT[i] - hand_bias[6 + i];
             }
             hand_ft_pub_.publish(hand_ft_msg_);
             hand_pub_tick = 0;
         }
-        hand_pub_tick ++;
+        hand_pub_tick++;
 
         pub_count++;
         if (pub_count % 16 == 0)
@@ -620,14 +707,14 @@ void *StateManager::LoggerThread()
 
             sensorLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
 
-         /*   for (int i = 0; i < 6; i++)
-            {
-                sensorLog << rd_gl_.LF_CF_FT(i) << " ";
-            }
-            for (int i = 0; i < 6; i++)
-            {
-                sensorLog << rd_gl_.RF_CF_FT(i) << " ";
-            }*/
+            /*   for (int i = 0; i < 6; i++)
+               {
+                   sensorLog << rd_gl_.LF_CF_FT(i) << " ";
+               }
+               for (int i = 0; i < 6; i++)
+               {
+                   sensorLog << rd_gl_.RF_CF_FT(i) << " ";
+               }*/
 
             for (int i = 0; i < 6; i++)
             {
@@ -757,9 +844,12 @@ void StateManager::SendCommand()
 
     int maxTorqueCommand;
 
+    float control_time_at_ = rd_gl_.control_time_;
+
     if (dc_.torqueOnSwitch)
     {
         dc_.rd_.positionControlSwitch = true;
+
         dc_.torqueOnSwitch = false;
 
         if (dc_.torqueOn)
@@ -769,9 +859,18 @@ void StateManager::SendCommand()
         else
         {
             std::cout << " STATE : Turning on ... " << std::endl;
-            dc_.torqueOnTime = rd_gl_.control_time_;
+            dc_.torqueOnTime = control_time_at_;
             dc_.torqueOn = true;
             dc_.torqueRisingSeq = true;
+
+            if (dc_.avatarMode)
+            {
+                dc_.inityawSwitch = true;
+                dc_.stateEstimateSwitch = true;
+                rd_gl_.semode = true;
+
+                rd_gl_.tc_avatar_switch = true;
+            }
         }
     }
     if (dc_.torqueOffSwitch)
@@ -781,7 +880,7 @@ void StateManager::SendCommand()
         if (dc_.torqueOn)
         {
             std::cout << " STATE : Turning off ... " << std::endl;
-            dc_.torqueOffTime = rd_gl_.control_time_;
+            dc_.torqueOffTime = control_time_at_;
             dc_.toruqeDecreaseSeq = true;
         }
         else
@@ -794,15 +893,15 @@ void StateManager::SendCommand()
     {
         if (dc_.torqueRisingSeq)
         {
-            if (rd_gl_.control_time_ <= dc_.torqueOnTime + rTime1)
+            if (control_time_at_ <= dc_.torqueOnTime + rTime1)
             {
-                torqueRatio = rat1 * DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOnTime) / rTime1, 0.0, 1.0);
+                torqueRatio = rat1 * DyrosMath::minmax_cut((control_time_at_ - dc_.torqueOnTime) / rTime1, 0.0, 1.0);
             }
-            if (rd_gl_.control_time_ > dc_.torqueOnTime + rTime1 && rd_gl_.control_time_ <= dc_.torqueOnTime + rTime1 + rTime2)
+            if (control_time_at_ > dc_.torqueOnTime + rTime1 && control_time_at_ <= dc_.torqueOnTime + rTime1 + rTime2)
             {
-                torqueRatio = rat1 + rat2 * DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOnTime - rTime1) / rTime2, 0.0, 1.0);
+                torqueRatio = rat1 + rat2 * DyrosMath::minmax_cut((control_time_at_ - dc_.torqueOnTime - rTime1) / rTime2, 0.0, 1.0);
             }
-            else if (rd_gl_.control_time_ > dc_.torqueOnTime + rTime1 + rTime2)
+            else if (control_time_at_ > dc_.torqueOnTime + rTime1 + rTime2)
             {
                 std::cout << " STATE : Torque 100% ! " << std::endl;
                 StatusPub("%f Torque 100%", control_time_);
@@ -817,15 +916,15 @@ void StateManager::SendCommand()
         else if (dc_.toruqeDecreaseSeq)
         {
 
-            if (rd_gl_.control_time_ <= dc_.torqueOffTime + rTime2)
+            if (control_time_at_ <= dc_.torqueOffTime + rTime2)
             {
-                torqueRatio = (1 - rat2 * DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOffTime) / rTime2, 0.0, 1.0));
+                torqueRatio = (1 - rat2 * DyrosMath::minmax_cut((control_time_at_ - dc_.torqueOffTime) / rTime2, 0.0, 1.0));
             }
-            if (rd_gl_.control_time_ > dc_.torqueOffTime + rTime2 && rd_gl_.control_time_ <= dc_.torqueOffTime + rTime2 + rTime1)
+            if (control_time_at_ > dc_.torqueOffTime + rTime2 && control_time_at_ <= dc_.torqueOffTime + rTime2 + rTime1)
             {
-                torqueRatio = (1 - rat2 - rat1 * DyrosMath::minmax_cut((rd_gl_.control_time_ - dc_.torqueOffTime - rTime2) / rTime1, 0.0, 1.0));
+                torqueRatio = (1 - rat2 - rat1 * DyrosMath::minmax_cut((control_time_at_ - dc_.torqueOffTime - rTime2) / rTime1, 0.0, 1.0));
             }
-            else if (rd_gl_.control_time_ > dc_.torqueOffTime + rTime2 + rTime1)
+            else if (control_time_at_ > dc_.torqueOffTime + rTime2 + rTime1)
             {
                 dc_.toruqeDecreaseSeq = false;
 
@@ -922,7 +1021,7 @@ void StateManager::SendCommand()
     // std::fill(dc_.tc_shm_->commandMode, dc_.tc_shm_->commandMode + MODEL_DOF, 1);
     std::copy(torque_command + 15, torque_command + MODEL_DOF, dc_.tc_shm_->torqueCommand + 15);
     dc_.tc_shm_->maxTorque = maxTorqueCommand;
-    static int cCount = 0;
+    // static int cCount = 0;
     cCount++;
     dc_.tc_shm_->commandCount.store(cCount);
 
@@ -1144,14 +1243,12 @@ void StateManager::GetSensorData()
 
     for (int i = 0; i < 6; i++)
     {
-        LH_FT_LPF(i) = LH_FT(i);//DyrosMath::lpf(LH_FT(i), LH_FT_LPF(i), 2000, 10);
-        RH_FT_LPF(i) = RH_FT(i);//DyrosMath::lpf(RH_FT(i), RH_FT_LPF(i), 2000, 10);
+        LH_FT_LPF(i) = LH_FT(i); // DyrosMath::lpf(LH_FT(i), LH_FT_LPF(i), 2000, 10);
+        RH_FT_LPF(i) = RH_FT(i); // DyrosMath::lpf(RH_FT(i), RH_FT_LPF(i), 2000, 10);
     }
-    
+
     double foot_plate_mass = 2.326;
     // double hand_plate_mass = 0.8;
-
-    double hand_plate_mass = 0.0;
 
     Matrix6d adt;
     adt.setIdentity();
@@ -1171,10 +1268,6 @@ void StateManager::GetSensorData()
     Vector6d Wrench_foot_plate;
     Wrench_foot_plate.setZero();
     Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
-
-    Vector6d Hand_FT_plate;
-    Hand_FT_plate.setZero();
-    Hand_FT_plate(2) = hand_plate_mass * GRAVITY;
 
     RF_CF_FT = rotrf * adt * RF_FT_LPF - adt2 * Wrench_foot_plate;
     // rd_gl_.ee_[1].contact_force_ft = RF_CF_FT;
@@ -1202,7 +1295,7 @@ void StateManager::GetSensorData()
     Matrix3d adt3;
     adt3 << 1., 0., 0., 0., -1., 0., 0., 0., -1.;
     Matrix3d adt4;
-    adt4 << -1., 0., 0., 0., 1., 0., 0., 0., -1.;//<< 0., 1., 0., 1., 0., 0., 0., 0., -1.;
+    adt4 << -1., 0., 0., 0., 1., 0., 0., 0., -1.; //<< 0., 1., 0., 1., 0., 0., 0., 0., -1.;
 
     Matrix3d pelv_imu_yaw;
     pelv_imu_yaw = DyrosMath::rotateWithZ(-rd_.yaw);
@@ -1211,8 +1304,8 @@ void StateManager::GetSensorData()
     rotrh = link_local_[Right_Hand].rotm;
     rotlh = link_local_[Left_Hand].rotm;
 
-    if(handft_init <= 5000)
-    {    
+    /*if (handft_init <= 1000)
+    {
         adt2_temp.setZero();
         adt2_temp = (rotrh * adt3).inverse();
 
@@ -1222,52 +1315,146 @@ void StateManager::GetSensorData()
         ft_calibd_l = LH_FT_LPF;
         handft_init++;
     }
-   /* else if(sqrt((link_local_[Right_Hand].v).transpose()*(link_local_[Right_Hand].v)) < 0.1 && sqrt((link_local_[Right_Hand].w).transpose()*(link_local_[Right_Hand].w)) < 0.2 && hand_grasp_r == false)
+     else if(sqrt((link_local_[Right_Hand].v).transpose()*(link_local_[Right_Hand].v)) < 0.1 && sqrt((link_local_[Right_Hand].w).transpose()*(link_local_[Right_Hand].w)) < 0.2 && hand_grasp_r == false)
+     {
+         handft_reinit_r++;
+         if(handft_reinit_r  == 1000)
+         {
+             adt2_temp.setZero();
+             adt2_temp = (rotrh * adt3).inverse();
+             ft_calibd_r = RH_FT_LPF;
+             handft_reinit_r = 0;
+         }
+     }
+     else
+     {
+        handft_reinit_r = 0;
+     }
+
+     if(sqrt((link_local_[Left_Hand].v).transpose()*(link_local_[Left_Hand].v)) < 0.1 && sqrt((link_local_[Left_Hand].w).transpose()*(link_local_[Left_Hand].w)) < 0.2 && hand_grasp_l == false)
+     {
+         handft_reinit_l++;
+         if(handft_reinit_l  == 1000)
+         {
+             adt1_temp.setZero();
+             adt1_temp = (rotlh * adt4).inverse();
+             ft_calibd_l = LH_FT_LPF;
+             handft_reinit_l = 0;
+         }
+     }
+     else
+     {
+         handft_reinit_l = 0;
+     }*/
+
+    if (dc_.handft_calib_signal_)
     {
-        handft_reinit_r++;
-        if(handft_reinit_r  == 1000)
+        if (handFtCalib_mode == 0)
         {
-            adt2_temp.setZero();
-            adt2_temp = (rotrh * adt3).inverse();
-            ft_calibd_r = RH_FT_LPF;
-            handft_reinit_r = 0;
-        } 
-    }
-    else
-    {    
-       handft_reinit_r = 0;
+            LH_CALIB.setZero();
+            RH_CALIB.setZero();
+        }
+
+        LH_CALIB.block<1, 3>(handFtCalib_mode, 0) = LH_FT.segment<3>(0).transpose();
+        RH_CALIB.block<1, 3>(handFtCalib_mode, 0) = RH_FT.segment<3>(0).transpose();
+        handFtCalib_mode++;
+        dc_.handft_calib_signal_ = false;
+        std::cout << RH_CALIB << std::endl;
+        std::cout << "hand FT Calib mode : " << handFtCalib_mode << std::endl;
+
+        if (handFtCalib_mode == 6)
+            handFtCalib_mode = 0;
     }
 
-    if(sqrt((link_local_[Left_Hand].v).transpose()*(link_local_[Left_Hand].v)) < 0.1 && sqrt((link_local_[Left_Hand].w).transpose()*(link_local_[Left_Hand].w)) < 0.2 && hand_grasp_l == false)
+    Eigen::Vector3d LH_ori, LH_ori_ready, RH_ori, RH_ori_ready;
+
+    LH_ori = DyrosMath::rot2Euler(link_local_[Pelvis].rotm.inverse() * link_local_[Left_Hand].rotm);
+    RH_ori = DyrosMath::rot2Euler(link_local_[Pelvis].rotm.inverse() * link_local_[Right_Hand].rotm);
+
+    LH_ori_ready << -2.44706, 0.531159, 0.0138229;
+    RH_ori_ready << 2.44555, 0.527625, -0.0145275;
+
+    if (dc_.fthandzeroSwtich && hand_calib_init == false)
     {
-        handft_reinit_l++;
-        if(handft_reinit_l  == 1000)
-        {
-            adt1_temp.setZero();
-            adt1_temp = (rotlh * adt4).inverse();
-            ft_calibd_l = LH_FT_LPF;
-            handft_reinit_l = 0;
-        } 
+        std::cout << "STATUS : FT HAND BIAS INIT" << std::endl;
+        adt2_temp.setZero();
+        adt2_temp = (rotrh * adt3).inverse();
+
+        adt1_temp.setZero();
+        adt1_temp = (rotlh * adt4).inverse();
+        ft_calibd_r = RH_FT_LPF;
+        ft_calibd_r(0) = RH_CALIB.block<6, 1>(0, 0).sum() / 6.0;
+        ft_calibd_r(1) = RH_CALIB.block<6, 1>(0, 1).sum() / 6.0;
+        ft_calibd_r(2) = RH_CALIB.block<6, 1>(0, 2).sum() / 6.0;
+        ft_calibd_l = LH_FT_LPF;
+        ft_calibd_l(0) = LH_CALIB.block<6, 1>(0, 0).sum() / 6.0;
+        ft_calibd_l(1) = LH_CALIB.block<6, 1>(0, 1).sum() / 6.0;
+        ft_calibd_l(2) = LH_CALIB.block<6, 1>(0, 2).sum() / 6.0;
+        dc_.fthandzeroSwtich = false;
+
+        ft_calibd_rt = -ft_calibd_r + RH_FT_LPF;
+        ft_calibd_lt = -ft_calibd_l - LH_FT_LPF;
+
+        Eigen::Vector6d l_bias, r_bias;
+        l_bias(0) = sqrt((ft_calibd_l(0) - LH_CALIB(0, 0)) * (ft_calibd_l(0) - LH_CALIB(0, 0)) + (ft_calibd_l(1) - LH_CALIB(0, 1)) * (ft_calibd_l(1) - LH_CALIB(0, 1)) + (ft_calibd_l(2) - LH_CALIB(0, 2)) * (ft_calibd_l(2) - LH_CALIB(0, 2)));
+        l_bias(1) = sqrt((ft_calibd_l(0) - LH_CALIB(1, 0)) * (ft_calibd_l(0) - LH_CALIB(1, 0)) + (ft_calibd_l(1) - LH_CALIB(1, 1)) * (ft_calibd_l(1) - LH_CALIB(1, 1)) + (ft_calibd_l(2) - LH_CALIB(1, 2)) * (ft_calibd_l(2) - LH_CALIB(1, 2)));
+        l_bias(2) = sqrt((ft_calibd_l(0) - LH_CALIB(2, 0)) * (ft_calibd_l(0) - LH_CALIB(2, 0)) + (ft_calibd_l(1) - LH_CALIB(2, 1)) * (ft_calibd_l(1) - LH_CALIB(2, 1)) + (ft_calibd_l(2) - LH_CALIB(2, 2)) * (ft_calibd_l(2) - LH_CALIB(2, 2)));
+        l_bias(3) = sqrt((ft_calibd_l(0) - LH_CALIB(3, 0)) * (ft_calibd_l(0) - LH_CALIB(3, 0)) + (ft_calibd_l(1) - LH_CALIB(3, 1)) * (ft_calibd_l(1) - LH_CALIB(3, 1)) + (ft_calibd_l(2) - LH_CALIB(3, 2)) * (ft_calibd_l(2) - LH_CALIB(3, 2)));
+        l_bias(4) = sqrt((ft_calibd_l(0) - LH_CALIB(4, 0)) * (ft_calibd_l(0) - LH_CALIB(4, 0)) + (ft_calibd_l(1) - LH_CALIB(4, 1)) * (ft_calibd_l(1) - LH_CALIB(4, 1)) + (ft_calibd_l(2) - LH_CALIB(4, 2)) * (ft_calibd_l(2) - LH_CALIB(4, 2)));
+        l_bias(5) = sqrt((ft_calibd_l(0) - LH_CALIB(5, 0)) * (ft_calibd_l(0) - LH_CALIB(5, 0)) + (ft_calibd_l(1) - LH_CALIB(5, 1)) * (ft_calibd_l(1) - LH_CALIB(5, 1)) + (ft_calibd_l(2) - LH_CALIB(5, 2)) * (ft_calibd_l(2) - LH_CALIB(5, 2)));
+
+        r_bias(0) = sqrt((ft_calibd_r(0) - RH_CALIB(0, 0)) * (ft_calibd_r(0) - RH_CALIB(0, 0)) + (ft_calibd_r(1) - RH_CALIB(0, 1)) * (ft_calibd_r(1) - RH_CALIB(0, 1)) + (ft_calibd_r(2) - RH_CALIB(0, 2)) * (ft_calibd_r(2) - RH_CALIB(0, 2)));
+        r_bias(1) = sqrt((ft_calibd_r(0) - RH_CALIB(1, 0)) * (ft_calibd_r(0) - RH_CALIB(1, 0)) + (ft_calibd_r(1) - RH_CALIB(1, 1)) * (ft_calibd_r(1) - RH_CALIB(1, 1)) + (ft_calibd_r(2) - RH_CALIB(1, 2)) * (ft_calibd_r(2) - RH_CALIB(1, 2)));
+        r_bias(2) = sqrt((ft_calibd_r(0) - RH_CALIB(2, 0)) * (ft_calibd_r(0) - RH_CALIB(2, 0)) + (ft_calibd_r(1) - RH_CALIB(2, 1)) * (ft_calibd_r(1) - RH_CALIB(2, 1)) + (ft_calibd_r(2) - RH_CALIB(2, 2)) * (ft_calibd_r(2) - RH_CALIB(2, 2)));
+        r_bias(3) = sqrt((ft_calibd_r(0) - RH_CALIB(3, 0)) * (ft_calibd_r(0) - RH_CALIB(3, 0)) + (ft_calibd_r(1) - RH_CALIB(3, 1)) * (ft_calibd_r(1) - RH_CALIB(3, 1)) + (ft_calibd_r(2) - RH_CALIB(3, 2)) * (ft_calibd_r(2) - RH_CALIB(3, 2)));
+        r_bias(4) = sqrt((ft_calibd_r(0) - RH_CALIB(4, 0)) * (ft_calibd_r(0) - RH_CALIB(4, 0)) + (ft_calibd_r(1) - RH_CALIB(4, 1)) * (ft_calibd_r(1) - RH_CALIB(4, 1)) + (ft_calibd_r(2) - RH_CALIB(4, 2)) * (ft_calibd_r(2) - RH_CALIB(4, 2)));
+        r_bias(5) = sqrt((ft_calibd_r(0) - RH_CALIB(5, 0)) * (ft_calibd_r(0) - RH_CALIB(5, 0)) + (ft_calibd_r(1) - RH_CALIB(5, 1)) * (ft_calibd_r(1) - RH_CALIB(5, 1)) + (ft_calibd_r(2) - RH_CALIB(5, 2)) * (ft_calibd_r(2) - RH_CALIB(5, 2)));
+
+        hand_plate_mass_l = l_bias.sum() / 6.0;
+        hand_plate_mass_r = r_bias.sum() / 6.0;
+
+        hand_calib_init = true;
+
+        std::cout << "hand_plate_mass_l : " << hand_plate_mass_l << "hand_plate_mass_r : " << hand_plate_mass_r << std::endl;
     }
-    else
+    else if (/*sqrt((link_local_[Left_Hand].w).transpose()*(link_local_[Left_Hand].w)) < 0.002 && (LH_ori - LH_ori_ready).norm() < 0.04 && (RH_ori - RH_ori_ready).norm() < 0.04*/ dc_.fthandzeroSwtich == true && hand_calib_init == true)
     {
-        handft_reinit_l = 0;
-    }*/
+        Eigen::Vector3d L_hand_Ready, R_hand_Ready, L_hand_Ready_temp, R_hand_Ready_temp;
+        L_hand_Ready << -4.5326825, 4.74047321, -6.18765972;
+        R_hand_Ready << 4.90852058, 5.48995543, -7.030894;
+
+        R_hand_Ready_temp = RH_FT_LPF.segment<3>(0) - ft_calibd_r.segment<3>(0) - R_hand_Ready;
+        L_hand_Ready_temp = LH_FT_LPF.segment<3>(0) - ft_calibd_l.segment<3>(0) - L_hand_Ready;
+
+        ft_calibd_r.segment<3>(0) = ft_calibd_r.segment<3>(0) + R_hand_Ready_temp;
+        ft_calibd_l.segment<3>(0) = ft_calibd_l.segment<3>(0) + L_hand_Ready_temp;
+
+//        tick_ft++;
+//        if (tick_ft % 3000 == 0)
+            std::cout << "STATUS : FT HAND BIAS "
+                      << "R_hand_Ready_temp : " << RH_ori.transpose() << " L_hand_Ready_temp : " << LH_ori.transpose() << std::endl;
+
+        dc_.fthandzeroSwtich = false;
+    }
 
     Vector3d Hand_FT_plate_z;
     Hand_FT_plate_z.setZero();
-    Hand_FT_plate_z(2) = -hand_plate_mass * GRAVITY;
-    RH_CF_FT.segment<3>(0) = rotrh * adt3 * (RH_FT_LPF.segment<3>(0) - ft_calibd_r.segment<3>(0) + adt2_temp* Hand_FT_plate_z) - Hand_FT_plate_z;
-    LH_CF_FT.segment<3>(0) = rotlh * adt4 * (LH_FT_LPF.segment<3>(0) - ft_calibd_l.segment<3>(0) + adt1_temp* Hand_FT_plate_z) - Hand_FT_plate_z;
-   
+    Hand_FT_plate_z(2) = -hand_plate_mass_l;
+    LH_CF_FT.segment<3>(0) = rotlh * adt4 * (LH_FT_LPF.segment<3>(0) - ft_calibd_l.segment<3>(0) /*+ adt1_temp * Hand_FT_plate_z*/) - Hand_FT_plate_z;
+
+    Hand_FT_plate_z.setZero();
+    Hand_FT_plate_z(2) = -hand_plate_mass_r;
+    RH_CF_FT.segment<3>(0) = rotrh * adt3 * (RH_FT_LPF.segment<3>(0) - ft_calibd_r.segment<3>(0) /*+ adt2_temp * Hand_FT_plate_z*/) - Hand_FT_plate_z;
+
     RH_CF_FT.segment<3>(0) = pelv_imu_yaw * RH_CF_FT.segment<3>(0);
     LH_CF_FT.segment<3>(0) = pelv_imu_yaw * LH_CF_FT.segment<3>(0);
-
+    // RH_CF_FT = RH_FT;
+    // LH_CF_FT = LH_FT;
     // printf("hand FT : %6.3f %6.3f %6.3f %6.3f \n", LH_CF_FT(0), LH_CF_FT(1), LH_CF_FT(2), RH_CF_FT(2));
-   // printf("hand FT : %6.3f %6.3f \n", LH_FT(2), RH_FT(2));
+    // printf("hand FT : %6.3f %6.3f \n", LH_FT(2), RH_FT(2));
     // if(handft_init %200 == 0)
     // {
-        
+
     // }
 }
 
@@ -1810,6 +1997,12 @@ void StateManager::StateEstimate()
             }
         }
 
+        if (dc_.avatarMode)
+        {
+            rf_s_ratio = 0.5;
+            lf_s_ratio = 0.5;
+        }
+
         if (contact_right && contact_left)
         {
             mod_base_pos = rf_cp_m * rf_s_ratio + lf_cp_m * lf_s_ratio;
@@ -1872,13 +2065,13 @@ void StateManager::StateEstimate()
         {
             q_virtual_(i) = -mod_base_pos(i);
             q_dot_virtual_(i) = pelv_v(i);
-            //q_dot_virtual_(i) = mod_base_vel(i);
+            // q_dot_virtual_(i) = mod_base_vel(i);
 
             // q_dot_virtual_(i) = base_vel_lpf(i);
 
             // q_ddot_virtual_(i) = imu_acc_dat(i);
-            
-            q_ddot_virtual_(i) = rd_.imu_lin_acc(i);    //dg test
+
+            q_ddot_virtual_(i) = rd_.imu_lin_acc(i); // dg test
             q_ddot_virtual_(i + 3) = pelv_anga(i);
         }
 
@@ -2233,13 +2426,26 @@ void StateManager::PublishData()
         // syspub_msg.data[4] = dc_.tc_shm_->
     }
     syspub_msg.data[4] = rd_gl_.semode;
-    if (rd_gl_.tc_run) // tc on warn error off
+    if (!rd_gl_.pc_mode && rd_gl_.tc_run) // tc on warn error off
     {
-        syspub_msg.data[5] = 0; // on
+        syspub_msg.data[5] = 0; // triangle
     }
     else
     {
         syspub_msg.data[5] = 3; // off
+    }
+
+    if (!rd_gl_.pc_mode && rd_gl_.tc_run && rd_gl_.tc_.mode == 13)
+    {
+        syspub_msg.data[6] = 1; // AVATAR MODE!
+    }
+    else if (!rd_gl_.pc_mode && rd_gl_.tc_run && rd_gl_.tc_.mode == 12)
+    {
+        syspub_msg.data[6] = 2; // AVATAR MODE!
+    }
+    else 
+    {
+        syspub_msg.data[6] = 3; // AVATAR MODE!
     }
 
     gui_state_pub_.publish(syspub_msg);
@@ -2271,27 +2477,22 @@ void StateManager::PublishData()
     //
     // memcpy(joint_state_before_, joint_state_, sizeof(int) * MODEL_DOF);
 
-
-
-
-    for(int i = 0; i < 6; i++)
+    for (int i = 0; i < 6; i++)
     {
         hand_ft_org_msg_.data[i] = LH_FT[i];
-        hand_ft_org_msg_.data[i+6] = RH_FT[i];
+        hand_ft_org_msg_.data[i + 6] = RH_FT[i];
     }
     hand_ft_pub_org_.publish(hand_ft_org_msg_);
-
-
 }
 
 void StateManager::handrcurrentCallback(const std_msgs::Int16MultiArrayConstPtr &msg)
 {
     handr_current.resize(msg->data.size());
     bool detectr = false;
-    for(int i = 0; i < msg->data.size(); i++)
+    for (int i = 0; i < msg->data.size(); i++)
     {
         handr_current(i) = msg->data[i];
-        if(abs(handr_current(i)) > 300)
+        if (abs(handr_current(i)) > 300)
         {
             detectr = true;
             break;
@@ -2302,7 +2503,7 @@ void StateManager::handrcurrentCallback(const std_msgs::Int16MultiArrayConstPtr 
             detectr = false;
         }
     }
-    if(detectr == true)
+    if (detectr == true)
     {
         hand_grasp_r = true;
     }
@@ -2316,10 +2517,10 @@ void StateManager::handlcurrentCallback(const std_msgs::Int16MultiArrayConstPtr 
 {
     handl_current.resize(msg->data.size());
     bool detectl = false;
-    for(int i = 0; i < msg->data.size(); i++)
+    for (int i = 0; i < msg->data.size(); i++)
     {
         handl_current(i) = msg->data[i];
-        if(abs(handl_current(i)) > 300)
+        if (abs(handl_current(i)) > 300)
         {
             detectl = true;
             break;
@@ -2330,7 +2531,7 @@ void StateManager::handlcurrentCallback(const std_msgs::Int16MultiArrayConstPtr 
             detectl = false;
         }
     }
-    if(detectl == true)
+    if (detectl == true)
     {
         hand_grasp_l = true;
     }
@@ -2339,7 +2540,6 @@ void StateManager::handlcurrentCallback(const std_msgs::Int16MultiArrayConstPtr 
         hand_grasp_l = false;
     }
 }
-
 
 void StateManager::SimCommandCallback(const std_msgs::StringConstPtr &msg)
 {
@@ -2432,6 +2632,14 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "ftcalib")
     {
         dc_.ftcalibSwtich = true;
+    }
+    else if (msg->data == "handftcalib")
+    {
+        dc_.handft_calib_signal_ = true;
+    }
+    else if (msg->data == "handftzero")
+    {
+        dc_.fthandzeroSwtich = true;
     }
     else if (msg->data == "imureset")
     {
@@ -2560,6 +2768,13 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
         {
             std::cout << "turn off qdot est" << std::endl;
         }
+    }
+    else if (msg->data == "forcesegfault")
+    {
+        // CAUTION
+        int *foo = NULL;
+        *foo = 1;
+        // CAUTION
     }
 
     // Controlling GUI
