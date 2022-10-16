@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -81,29 +82,20 @@ public:
 
   Response Receive(SOCKET_HANDLE *socket)
   {
-    byte inBuffer[36];
     Response response;
     unsigned int uItems = 0;
-    int a;
-    a = recv(*socket, inBuffer, 36, MSG_DONTWAIT);
-
-    if(a == -1)
+    int b;
+    ioctl(*socket, FIONREAD, &b);
+    if(b == 36)
     {
-      memcpy( response.FTData, FTData_before, sizeof(FTData_before));
-      //memcpy(FTData_before, response.FTData, sizeof(FTData_before));
-    }
-    else
-    {
+      recv(*socket, inBuffer, 36, MSG_DONTWAIT);
       response.rdt_sequence = ntohl(*(uint32*)&inBuffer[0]);
       response.ft_sequence = ntohl(*(uint32*)&inBuffer[4]);
       response.status = ntohl(*(uint32*)&inBuffer[8]);
       for(int i = 0; i < 6; i++ ) {
       response.FTData[i] = ntohl(*(int32*)&inBuffer[12 + i * 4]);
       }
-      memcpy(FTData_before, response.FTData, sizeof(FTData_before));
     }
-    //std::cout <<"recv " << recv << std::endl;
-
     return response;
   }
 
@@ -121,5 +113,6 @@ public:
 
   std::vector<double> handFT_calib;
 private:
-	int32 FTData_before[6];
+	//int32 FTData_before[6];
+  byte inBuffer[36];
 };

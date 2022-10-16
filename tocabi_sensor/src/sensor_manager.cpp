@@ -273,7 +273,7 @@ void *SensorManager::SensorThread(void)
                 }
             }
 
-            if(handft_calib_signal_)
+         /*   if(handft_calib_signal_)
             {
                 for(int i = 0; i < 6; i++)
                 {
@@ -282,7 +282,7 @@ void *SensorManager::SensorThread(void)
                 }
                 handft_calib_signal_ = false;
             }
-
+        */
             if (ft_calib_ui == false && ft_calib_finish == true)
             {
                 /*    dc.print_ft_info_tofile = true;
@@ -327,7 +327,7 @@ void *SensorManager::SensorThread(void)
             }
             shm_->ftWriting2 = false;
 
-            ///printf("handa FT : %6.3f %6.3f %6.3f %6.3f \n", (double)r.FTData[0]/1000000.0 , (double)r.FTData[1]/1000000.0 , (double)r.FTData[2]/1000000.0 , (double)l.FTData[2]/1000000.0 );
+            //printf("handa FT :  %6.3f %6.3f \n", (double)r.FTData[2]/1000000.0 , (double)l.FTData[2]/1000000.0);
 
             // for (int i=0;i<6;i++)
             // {
