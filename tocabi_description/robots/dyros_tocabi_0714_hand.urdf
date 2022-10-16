@@ -6,17 +6,17 @@
     name="Pelvis_Link">
     <inertial>
       <origin
-        xyz="0.07809 0 0.03985"
+        xyz="0.0585 0 0.0431"
         rpy="0 0 0"/>
       <mass
-        value="12.19525" />
+        value="12.9" />
       <inertia
-        ixx="0.101833182"
-        ixy="-0.000070812"
-        ixz="-0.003831096"
-        iyy="0.072400662"
-        iyz="0.000079272"
-        izz="0.144478157" />
+        ixx="0.113284"
+        ixy="-0.000116"
+        ixz="-0.0056"
+        iyy="0.0585"
+        iyz="-0.0"
+        izz="0.1422" />
     </inertial>
     <visual>
       <origin
@@ -212,17 +212,17 @@
     name="R_Thigh_Link">
     <inertial>
       <origin
-        xyz="-0.00042 -0.00032 -0.18904"
+        xyz="-0.0003 -0.00032 -0.247"
         rpy="0 0 0" />
       <mass
-        value="5.366" />
+        value="5.65" />
       <inertia
-        ixx="0.2987"
-        ixy="-4.284E-05"
-        ixz="-0.000196"
-        iyy="0.7088"
-        iyz="0.002406"
-        izz="0.00982" />
+        ixx="0.0794"
+        ixy="4.1E-05"
+        ixz="0.000727"
+        iyy="0.080"
+        iyz="0.001537"
+        izz="0.009967" />
     </inertial>
     <visual>
       <origin
@@ -279,10 +279,10 @@
     name="R_Knee_Link">
      <inertial>
       <origin
-        xyz="0.00429 0.00214 -0.1428"
+        xyz="0.007 0.00214 -0.1686"
         rpy="0 0 0" />
       <mass
-        value="3.883" />
+        value="2.614" />
       <inertia
         ixx="0.1506"
         ixy="-2.887E-05"
@@ -338,17 +338,17 @@
     name="R_AnkleCenter_Link">
 <inertial>
       <origin
-        xyz="-0.00419 -0.0018 -0.0003"
+        xyz="-0.00228 0.0006 0.0"
         rpy="0 0 0" />
       <mass
-        value="2.51" />
+        value="2.833" />
       <inertia
-        ixx="0.002857"
-        ixy="-1.422E-07"
-        ixz="2.222E-06"
-        iyy="0.4135"
-        iyz="4.611E-06"
-        izz="0.003345" />
+        ixx="0.003548"
+        ixy="-4.0E-06"
+        ixz="-2.222E-06"
+        iyy="0.004046"
+        iyz="5.0E-06"
+        izz="0.00397" />
     </inertial>
     <visual>
       <origin
@@ -397,17 +397,17 @@
     name="R_AnkleRoll_Link">
     <inertial>
       <origin
-        xyz="-0.05196 0.00005 -0.0219"
+        xyz="-0.0746 0.0 -0.0096"
         rpy="0 0 0" />
       <mass
-        value="1.26426" />
+        value="2.1" />
       <inertia
-        ixx="0.418697"
-        ixy="1.5176E-08"
-        ixz="-0.001095976"
-        iyy="0.006211405"
-        iyz="-5.435E-08"
-        izz="0.008575514" />
+        ixx="0.003951"
+        ixy="2e-05"
+        ixz="0.0019"
+        iyy="0.008642"
+        iyz="-5.435E-06"
+        izz="0.007223" />
     </inertial>
     <visual>
       <origin
@@ -456,10 +456,10 @@
     name="R_Foot_Link">
     <inertial>
       <origin
-        xyz="0.0162 0.00008 -0.1209"
+        xyz="0.016 0.00008 -0.1206"
         rpy="0 0 0" />
       <mass
-        value="2.326" />
+        value="2.35" />
       <inertia
         ixx="0.003386409"
         ixy="1.1237E-05"
@@ -666,17 +666,17 @@
     name="L_Thigh_Link">
    <inertial>
       <origin
-        xyz="-0.00042 0.00032 -0.18904"
+        xyz="-0.0003 0.00032 -0.247"
         rpy="0 0 0" />
       <mass
-        value="5.366" />
+        value="5.65" />
       <inertia
-        ixx="0.2987"
-        ixy="-4.284E-05"
-        ixz="-0.000196"
-        iyy="0.7088"
-        iyz="0.002406"
-        izz="0.00982" />
+        ixx="0.0794"
+        ixy="4.1E-05"
+        ixz="0.000727"
+        iyy="0.080"
+        iyz="-0.001537"
+        izz="0.009967" />
     </inertial>
     <visual>
       <origin
@@ -734,16 +734,16 @@
     name="L_Knee_Link">
     <inertial>
       <origin
-        xyz="0.00429 -0.00214 -0.1428"
+        xyz="0.007 0.00214 -0.1686"
         rpy="0 0 0" />
       <mass
-        value="3.883" />
+        value="2.614" />
       <inertia
         ixx="0.1506"
-        ixy="-2.887E-05"
-        ixz="-0.002607"
+        ixy="2.887E-05"
+        ixz="0.002607"
         iyy="0.5588"
-        iyz="-0.001486"
+        iyz="0.001486"
         izz="0.007451" />
     </inertial>
     <visual>
@@ -793,17 +793,17 @@
     name="L_AnkleCenter_Link">
      <inertial>
       <origin
-        xyz="-0.00419 0.0018 -0.0003"
+        xyz="-0.00228 -0.0006 0.0"
         rpy="0 0 0" />
       <mass
-        value="2.51" />
+        value="2.833" />
       <inertia
-        ixx="0.002857"
-        ixy="-1.422E-07"
+        ixx="0.003548"
+        ixy="4.0E-06"
         ixz="2.222E-06"
-        iyy="0.4135"
-        iyz="4.611E-06"
-        izz="0.003345" />
+        iyy="0.004046"
+        iyz="5.0E-06"
+        izz="0.00397" />
     </inertial>
     <visual>
       <origin
@@ -852,17 +852,17 @@
     name="L_AnkleRoll_Link">
     <inertial>
       <origin
-        xyz="-0.05196 0.00005 -0.0219"
+        xyz="-0.0746 0.0 -0.0096"
         rpy="0 0 0" />
       <mass
-        value="1.26426" />
+        value="2.1" />
       <inertia
-        ixx="0.418697"
-        ixy="1.5176E-08"
-        ixz="-0.001095976"
-        iyy="0.006211405"
-        iyz="-5.435E-08"
-        izz="0.008575514" />
+        ixx="0.003951"
+        ixy="2e-05"
+        ixz="0.0019"
+        iyy="0.008642"
+        iyz="-5.435E-06"
+        izz="0.007223" />
     </inertial>
     <visual>
       <origin
@@ -911,10 +911,10 @@
     name="L_Foot_Link">
     <inertial>
       <origin
-        xyz="0.0162 0.00008 -0.1209"
+        xyz="0.016 -0.00008 -0.1206"
         rpy="0 0 0" />
       <mass
-        value="2.326" />
+        value="2.350" />
       <inertia
         ixx="0.003386409"
         ixy="1.1237E-05"
@@ -978,17 +978,17 @@
     name="Waist1_Link">
     <inertial>
       <origin
-        xyz="0 0 -0.03647"
+        xyz="-0.033735 0 -0.0386"
         rpy="0 0 0" />
       <mass
-        value="0.89722" />
+        value="6.477" />
       <inertia
-        ixx="0.003744227"
-        ixy="-0.000023489"
-        ixz="0.000037149"
-        iyy="0.002030963"
-        iyz="-0.000424890"
-        izz="1.007723743" />
+        ixx="0.06657"
+        ixy="0.0001591"
+        ixz="0.0001333"
+        iyy="0.02504"
+        iyz="0.0003246"
+        izz="0.08023" />
     </inertial>
     <visual>
       <origin
@@ -1075,17 +1075,17 @@
     name="Waist2_Link">
     <inertial>
       <origin
-        xyz="-0.00029 0 0"
+        xyz="-0.000266 0.009 0"
         rpy="0 0 0" />
       <mass
-        value="3.752" />
+        value="3.881" />
       <inertia
-        ixx="0.006020606"
-        ixy="0.000011504"
-        ixz="-0.000000053"
-        iyy="1.011708561"
-        iyz="0.000001147"
-        izz="0.007561688" />
+        ixx="0.006439"
+        ixy="-1e-05"
+        ixz="0.0"
+        iyy="0.007393"
+        iyz="-1e-06"
+        izz="0.007618" />
     </inertial>
     <visual>
       <origin
@@ -1153,17 +1153,17 @@
     name="Upperbody_Link">
     <inertial>
       <origin
-        xyz="-0.07294 0 0.16798"
+        xyz="-0.0608 0.0017 0.1077"
         rpy="0 0 0" />
       <mass
-        value="18.13384" />
+        value="20.034" />
       <inertia
-        ixx="1.270791438"
-        ixy="0.000113985"
-        ixz="0.029533458"
-        iyy="0.238938452"
-        iyz="-0.000028977"
-        izz="0.179864207" />
+        ixx="0.309"
+        ixy="0.000385"
+        ixz="-0.0422"
+        iyy="0.2935"
+        iyz="0.0005"
+        izz="0.2137" />
     </inertial>
     <visual>
       <origin
@@ -1293,10 +1293,10 @@
     name="Neck_Link">
     <inertial>
       <origin
-        xyz="0.0 0 -0.0023"
+        xyz="-0.0004 -0.002 0.02576"
         rpy="0 0 0" />
       <mass
-        value="0.248" />
+        value="0.404" />
       <inertia
         ixx="0.000058259"
         ixy="-0.000000076"
@@ -1353,17 +1353,17 @@
     name="Head_Link">
     <inertial>
       <origin
-        xyz="0.05 0 0.10"
+        xyz="0.0372 0 0.0708"
         rpy="0 0 0" />
       <mass
-        value="1.006332" />
+        value="1.417" />
       <inertia
-        ixx="0.020045929"
-        ixy="-0.000020568"
-        ixz="-0.001338538"
-        iyy="0.021593879"
-        iyz="0.000156360"
-        izz="0.014854138" />
+        ixx="0.0079"
+        ixy="0.0"
+        ixz="0.0025"
+        iyy="0.012"
+        iyz="0.0"
+        izz="0.01" />
     </inertial>
     <visual>
       <origin
@@ -1847,7 +1847,7 @@
         xyz="0.00063 0.0636 -0.15"
         rpy="0 0 0" />
       <mass
-        value="1.0" />
+        value="1.1" />
       <inertia
         ixx="0.000865450"
         ixy="0"
@@ -1858,7 +1858,7 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 -0.025"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
         <box size="0.06 0.06 0.02"/>
@@ -2338,7 +2338,7 @@
         xyz="0.00063 -0.0636 -0.15"
         rpy="0 0 0" />
       <mass
-        value="1.0" />
+        value="1.1" />
       <inertia
         ixx="0.000865450"
         ixy="0"
