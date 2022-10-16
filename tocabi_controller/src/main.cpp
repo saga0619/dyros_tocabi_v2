@@ -82,8 +82,6 @@ int main(int argc, char **argv)
     bool activateLogger;
     bool lower_disable;
 
-    // bool avatar_mode;
-
     dc_.nh.param("/tocabi_controller/sim_mode", dc_.simMode, false);
     dc_.nh.getParam("/tocabi_controller/Kp", dc_.Kps);
     dc_.nh.getParam("/tocabi_controller/Kv", dc_.Kvs);
