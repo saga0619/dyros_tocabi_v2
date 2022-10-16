@@ -82,11 +82,14 @@ int main(int argc, char **argv)
     bool activateLogger;
     bool lower_disable;
 
+    // bool avatar_mode;
+
     dc_.nh.param("/tocabi_controller/sim_mode", dc_.simMode, false);
     dc_.nh.getParam("/tocabi_controller/Kp", dc_.Kps);
     dc_.nh.getParam("/tocabi_controller/Kv", dc_.Kvs);
     dc_.nh.param("/tocabi_controller/log", activateLogger, false);
     dc_.nh.param("/tocabi_controller/disablelower", lower_disable, false);
+    dc_.nh.param("/tocabi_controller/avatar_mode", dc_.avatarMode, false);
 
     if (dc_.Kps.size() != MODEL_DOF)
     {
@@ -107,16 +110,20 @@ int main(int argc, char **argv)
 
     prog_shutdown = &dc_.tc_shm_->shutdown;
 
-
-
-    if(lower_disable)
-    {    std::cout<<" CNTRL : LOWER BODY DISABLED BY DEFAULT"<<std::endl;
+    if (lower_disable)
+    {
+        std::cout << " CNTRL : LOWER BODY DISABLED BY DEFAULT" << std::endl;
     }
     else
     {
-        std::cout<<" CNTRL : LOWERBODY ENABLED "<<std::endl;
+        std::cout << " CNTRL : LOWERBODY ENABLED " << std::endl;
     }
 
+    if(dc_.avatarMode)
+    {
+        std::cout << " CNTRL : AVATAR MODE ENABLED " << std::endl;
+
+    }
 
     dc_.tc_shm_->lower_disabled = lower_disable;
 
@@ -144,10 +151,10 @@ int main(int argc, char **argv)
         struct sched_param param_logger;
         pthread_attr_t attrs[thread_number];
         pthread_t threads[thread_number];
-        param.sched_priority = 42+50;
-        param_logger.sched_priority = 41+50;
-        param_controller.sched_priority = 45+50;
-        param_st.sched_priority = 45+50;
+        param.sched_priority = 42 + 50;
+        param_logger.sched_priority = 41 + 50;
+        param_controller.sched_priority = 45 + 50;
+        param_st.sched_priority = 45 + 50;
         cpu_set_t cpusets[thread_number];
 
         if (dc_.simMode)
