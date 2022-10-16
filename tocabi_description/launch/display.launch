@@ -1,7 +1,7 @@
 <launch>
   <!--arg name="model" /-->
   <!--arg name="gui" default="False" /-->
-  <param name="robot_description" textfile="$(find tocabi_description)/robots/dyros_tocabi.urdf" />
+  <param name="robot_description" textfile="$(find tocabi_description)/robots/dyros_tocabi_0714.urdf" />
 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
     <remap from="/joint_states" to="/tocabi/jointstates"/>
