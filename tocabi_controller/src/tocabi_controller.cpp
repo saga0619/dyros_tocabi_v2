@@ -442,6 +442,10 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
                     }
 
+
+                    rd_.tc_.left_foot = 1;
+                    rd_.tc_.right_foot =1;
+
                     WBC::SetContact(rd_, rd_.tc_.left_foot, rd_.tc_.right_foot, rd_.tc_.left_hand, rd_.tc_.right_hand);
                     double ang2rad = 0.0174533;
 
