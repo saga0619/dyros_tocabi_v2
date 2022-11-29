@@ -84,7 +84,7 @@ void *SensorManager::SensorThread(void)
     ft.analogSingleSamplePrepare(slotAttrs, 16);
     ft.initCalibration();
 
-    if (hand_ft_r.Connect(&socketHandle_r, "192.168.10.150" , PORT) != 0)
+    if (hand_ft_r.Connect(&socketHandle_r, "10.112.1.20" , PORT) != 0)
     {
         fprintf(stderr, "Could not connect to device...");
     }
@@ -93,7 +93,7 @@ void *SensorManager::SensorThread(void)
          fprintf(stderr, "connect device!!!");
     }
 
-    if (hand_ft_l.Connect(&socketHandle_l, "192.168.10.151" , PORT) != 0)
+    if (hand_ft_l.Connect(&socketHandle_l, "10.112.1.21" , PORT) != 0)
     {
         fprintf(stderr, "Could not connect to device...");
     }
@@ -327,7 +327,7 @@ void *SensorManager::SensorThread(void)
             }
             shm_->ftWriting2 = false;
 
-            //printf("handa FT :  %6.3f %6.3f \n", (double)r.FTData[2]/1000000.0 , (double)l.FTData[2]/1000000.0);
+            // printf("handa FT :  %6.3f %6.3f \n", (double)r.FTData[2]/1000000.0 , (double)l.FTData[2]/1000000.0);
 
             // for (int i=0;i<6;i++)
             // {
