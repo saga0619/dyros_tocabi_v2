@@ -1347,6 +1347,15 @@ void StateManager::GetSensorData()
          handft_reinit_l = 0;
      }*/
 
+    if(dc_.fthandcalibreset)
+    {
+        LH_CALIB.setZero();
+        RH_CALIB.setZero();
+        handFtCalib_mode = 0;
+        dc_.fthandcalibreset = false;
+	hand_calib_init = false;
+    }
+
     if (dc_.handft_calib_signal_)
     {
         if (handFtCalib_mode == 0)
@@ -1417,7 +1426,7 @@ void StateManager::GetSensorData()
 
         std::cout << "hand_plate_mass_l : " << hand_plate_mass_l << "hand_plate_mass_r : " << hand_plate_mass_r << std::endl;
     }
-    else if (/*sqrt((link_local_[Left_Hand].w).transpose()*(link_local_[Left_Hand].w)) < 0.002 && (LH_ori - LH_ori_ready).norm() < 0.04 && (RH_ori - RH_ori_ready).norm() < 0.04*/ dc_.fthandzeroSwtich == true && hand_calib_init == true)
+    else if (dc_.fthandzeroSwtich == true && hand_calib_init == true)
     {
         Eigen::Vector3d L_hand_Ready, R_hand_Ready, L_hand_Ready_temp, R_hand_Ready_temp;
         L_hand_Ready << -4.5326825, 4.74047321, -6.18765972;
@@ -1429,8 +1438,8 @@ void StateManager::GetSensorData()
         ft_calibd_r.segment<3>(0) = ft_calibd_r.segment<3>(0) + R_hand_Ready_temp;
         ft_calibd_l.segment<3>(0) = ft_calibd_l.segment<3>(0) + L_hand_Ready_temp;
 
-//        tick_ft++;
-//        if (tick_ft % 3000 == 0)
+        //\tick_ft++;
+        //if (tick_ft % 3000 == 0)
             std::cout << "STATUS : FT HAND BIAS "
                       << "R_hand_Ready_temp : " << RH_ori.transpose() << " L_hand_Ready_temp : " << LH_ori.transpose() << std::endl;
 
@@ -2002,6 +2011,7 @@ void StateManager::StateEstimate()
             rf_s_ratio = 0.5;
             lf_s_ratio = 0.5;
         }
+
 
         if (contact_right && contact_left)
         {
@@ -2644,6 +2654,10 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     else if (msg->data == "imureset")
     {
         dc_.imuResetSwtich = true;
+    }
+    else if (msg->data == "handftcalibreset")
+    {
+        dc_.fthandcalibreset = true;
     }
     else if (msg->data == "stateestimation")
     {
