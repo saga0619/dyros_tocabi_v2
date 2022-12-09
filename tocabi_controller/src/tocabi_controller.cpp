@@ -925,7 +925,7 @@ void *TocabiController::Thread2()
                         try
                         {
                             num3 = num3 + 1;
-                        ac_.computeFast();
+                            ac_.computeFast();
                             num4 = num4 + 1;
                         }
                         catch (const std::exception &e)
@@ -985,7 +985,7 @@ void *TocabiController::Thread3()
 /////////////////////////////////////////////
 /////////////Do something in Thread3 !!!!!!!
 #ifdef COMPILE_TOCABI_AVATAR
-            //    ac_.computeThread3();
+               ac_.computeThread3();
 #endif
 
                 /////////////////////////////////////////////
