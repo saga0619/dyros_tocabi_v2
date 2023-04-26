@@ -2886,6 +2886,14 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
     {
         dc_.tc_shm_->force_load_saved_signal = true;
     }
+    else if (msg->data == "startlog")
+    {
+        dc_.logdata_start = true;
+    }
+    else if (msg->data == "stoplog")
+    {
+        dc_.logdata_stop = true;
+    }
     else if (msg->data == "qdot_est")
     {
         qdot_estimation_switch = !qdot_estimation_switch;
