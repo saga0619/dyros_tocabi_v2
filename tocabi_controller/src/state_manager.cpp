@@ -406,6 +406,17 @@ void *StateManager::LoggerThread()
     std::string velDesiredLogFile = "vel_des_log";
     std::string sensorLogFile = "sensor_log";
 
+    bool switch_torqueLog = false; //int 
+    bool switch_torqueCommandLog = true; //
+    bool switch_torqueActualLog = true; //
+    bool switch_maskLog = false;
+    bool switch_ecatStatusLog = false;
+    bool switch_posLog = true;
+    bool switch_velLog = true;
+    bool switch_posDesiredLog = true;
+    bool switch_velDesiredLog = true;
+    bool switch_sensorLog = false;
+
     ofstream torqueLog;
     ofstream torqueCommandLog;
     ofstream torqueActualLog;
@@ -445,17 +456,26 @@ void *StateManager::LoggerThread()
         {
             if (s_count > 0)
             {
+                if (switch_torqueLog)
                 torqueLog.close();
+                if (switch_torqueCommandLog)
                 torqueCommandLog.close();
+                if (switch_torqueActualLog)
                 torqueActualLog.close();
+                if (switch_maskLog)
                 maskLog.close();
+                if (switch_ecatStatusLog)
                 ecatStatusLog.close();
+                if (switch_posLog)
                 posLog.close();
+                if (switch_posDesiredLog)
                 posDesiredLog.close();
-                velLog.close();
+                if (switch_velDesiredLog)
                 velDesiredLog.close();
+                if (switch_velLog)
+                    velLog.close();
+                if (switch_sensorLog)
                 sensorLog.close();
-
                 std::stringstream sstr;
 
                 sstr << " zip -j -q " << log_folder << "log_" << start_time.str() << "_" << std::setfill('0') << std::setw(3) << s_count << std::setw(0) << ".zip " << log_folder << apd_ << "* &";
@@ -509,6 +529,13 @@ void *StateManager::LoggerThread()
             ts.tv_sec++;
         }
 
+        if (dc_.logdata_start)
+        {
+            activateLogger = true;
+            dc_.logdata_start = false;
+            std::cout << "Start Logging Data" << std::endl;
+        }
+
         if (activateLogger && (!startLogger))
         {
             if (dc_.tc_shm_->controlModeLower && dc_.tc_shm_->controlModeUpper)
@@ -552,15 +579,25 @@ void *StateManager::LoggerThread()
 
                 if (s_count > 0)
                 {
+                    if (switch_torqueLog)
                     torqueLog.close();
+                    if (switch_torqueCommandLog)
                     torqueCommandLog.close();
+                    if (switch_torqueActualLog)
                     torqueActualLog.close();
+                    if (switch_maskLog)
                     maskLog.close();
+                    if (switch_ecatStatusLog)
                     ecatStatusLog.close();
+                    if (switch_posLog)
                     posLog.close();
+                    if (switch_posDesiredLog)
                     posDesiredLog.close();
+                    if (switch_velDesiredLog)
                     velDesiredLog.close();
+                    if (switch_velLog)
                     velLog.close();
+                    if (switch_sensorLog)
                     sensorLog.close();
 
                     std::stringstream sstr;
@@ -570,6 +607,8 @@ void *StateManager::LoggerThread()
                     // std::cout << " log file compressed : " << s_count << std::endl;
                 }
 
+                if (switch_torqueLog)
+                {
                 torqueLog.open((log_folder + apd_ + torqueLogFile).c_str());
                 torqueLog.fill(' ');
                 torqueLog << t_str << " Direct command input(CNT) to elmo" << std::endl;
@@ -579,7 +618,10 @@ void *StateManager::LoggerThread()
                     torqueLog << "t" + to_string(i) << " ";
                 }
                 torqueLog << std::endl;
+                }
 
+                if (switch_torqueCommandLog)
+                {
                 torqueCommandLog.open((log_folder + apd_ + torqueclogFile).c_str());
                 torqueCommandLog << t_str << " torque command(NM) to elmo" << std::endl;
                 torqueCommandLog << "time ";
@@ -588,6 +630,10 @@ void *StateManager::LoggerThread()
                     torqueCommandLog << "tcom" + to_string(i) << " ";
                 }
                 torqueCommandLog << std::endl;
+                }
+
+                if (switch_torqueActualLog)
+                {
 
                 torqueActualLog.open((log_folder + apd_ + torqueActualLogFile).c_str());
                 torqueActualLog << t_str << " Actual torque from elmo" << std::endl;
@@ -597,11 +643,20 @@ void *StateManager::LoggerThread()
                     torqueActualLog << "treal" + to_string(i) << " ";
                 }
                 torqueActualLog << std::endl;
+                }
 
+                if (switch_maskLog)
+                {
                 maskLog.open((log_folder + apd_ + maskLogFile).c_str());
+                }
 
+                if (switch_ecatStatusLog)
+                {
                 ecatStatusLog.open((log_folder + apd_ + ecatStatusFile).c_str());
+                }
 
+                if (switch_posLog)
+                {
                 posLog.open((log_folder + apd_ + posLogFile).c_str());
                 posLog << t_str << std::endl;
                 posLog << "time ";
@@ -610,7 +665,10 @@ void *StateManager::LoggerThread()
                     posLog << "q" + to_string(i) << " ";
                 }
                 posLog << std::endl;
+                }
 
+                if (switch_posDesiredLog)
+                {
                 posDesiredLog.open((log_folder + apd_ + posDesiredLogFile).c_str());
                 posDesiredLog << t_str << std::endl;
                 posDesiredLog << "time ";
@@ -619,6 +677,10 @@ void *StateManager::LoggerThread()
                     posDesiredLog << "qdes" + to_string(i) << " ";
                 }
                 posDesiredLog << std::endl;
+                }
+
+                if (switch_velDesiredLog)
+                {
 
                 velDesiredLog.open((log_folder + apd_ + velDesiredLogFile).c_str());
                 velDesiredLog << t_str << std::endl;
@@ -628,7 +690,10 @@ void *StateManager::LoggerThread()
                     velDesiredLog << "qddes" + to_string(i) << " ";
                 }
                 velDesiredLog << std::endl;
+                }
 
+                if (switch_velLog)
+                {
                 velLog.open((log_folder + apd_ + velLogFile).c_str());
                 velLog << t_str << std::endl;
                 velLog << "time ";
@@ -637,20 +702,31 @@ void *StateManager::LoggerThread()
                     velLog << "qdot" + to_string(i) << " ";
                 }
                 velLog << std::endl;
+                }
 
+                if (switch_sensorLog)
+                {
                 sensorLog.open((log_folder + apd_ + sensorLogFile).c_str());
                 sensorLog << t_str << std::endl;
                 sensorLog << "time lfx lfy lfz ltx lty ltz rfx rfy rfz rtx rty rtz imu_r imu_p imu_y w_r w_y w_z a_x a_y a_z" << std::endl;
+                }
+
                 s_count++;
             }
             log_count++;
 
+            if (switch_torqueLog)
+            {
             torqueLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
                 torqueLog << (int)dc_.tc_shm_->elmo_torque[i] << " ";
             }
             torqueLog << std::endl;
+            }
+
+            if (switch_torqueCommandLog)
+            {
 
             torqueCommandLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
@@ -658,13 +734,20 @@ void *StateManager::LoggerThread()
                 torqueCommandLog << dc_.torque_command[i] << " ";
             }
             torqueCommandLog << std::endl;
+            }
 
+            if (switch_posLog)
+            {
             posLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF_QVIRTUAL; i++)
             {
                 posLog << rd_gl_.q_virtual_[i] << " ";
             }
             posLog << std::endl;
+            }
+
+            if (switch_posDesiredLog)
+            {
 
             posDesiredLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
@@ -672,6 +755,10 @@ void *StateManager::LoggerThread()
                 posDesiredLog << rd_gl_.q_desired[i] << " ";
             }
             posDesiredLog << std::endl;
+            }
+
+            if (switch_velDesiredLog)
+            {
 
             velDesiredLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
@@ -679,20 +766,30 @@ void *StateManager::LoggerThread()
                 velDesiredLog << rd_gl_.q_dot_desired[i] << " ";
             }
             velDesiredLog << std::endl;
+            }
 
+            if (switch_velLog)
+            {
             velLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
             {
                 velLog << q_dot_virtual_[i] << " ";
             }
             velLog << std::endl;
+            }
 
+            if (switch_torqueActualLog)
+            {
             torqueActualLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < MODEL_DOF; i++)
             {
                 torqueActualLog << dc_.tc_shm_->torqueActual[i] << " ";
             }
             torqueActualLog << std::endl;
+            }
+
+            if (switch_maskLog)
+            {
 
             maskLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
             for (int i = 0; i < 10; i++)
@@ -704,7 +801,10 @@ void *StateManager::LoggerThread()
                 maskLog << std::setfill(' ') << std::setw(6) << (int)dc_.tc_shm_->e2_m[i] << " ";
             }
             maskLog << std::endl;
+            }
 
+            if (switch_sensorLog)
+            {
             sensorLog << std::fixed << std::setprecision(6) << local_control_time / 1000000.0 << " ";
 
             /*   for (int i = 0; i < 6; i++)
@@ -729,6 +829,10 @@ void *StateManager::LoggerThread()
             sensorLog << rd_gl_.imu_ang_vel(0) << " " << rd_gl_.imu_ang_vel(1) << " " << rd_gl_.imu_ang_vel(2) << " ";
             sensorLog << rd_gl_.imu_lin_acc(0) << " " << rd_gl_.imu_lin_acc(1) << " " << rd_gl_.imu_lin_acc(2) << " ";
             sensorLog << std::endl;
+            }
+
+            if (switch_ecatStatusLog)
+            {
 
             bool change = false;
 
@@ -756,16 +860,28 @@ void *StateManager::LoggerThread()
             std::copy(elmoStatus_now, elmoStatus_now + MODEL_DOF, elmoStatus_before);
         }
     }
+    }
 
-    ecatStatusLog.close();
+    if (switch_torqueLog)
     torqueLog.close();
+    if (switch_torqueCommandLog)
     torqueCommandLog.close();
+    if (switch_torqueActualLog)
     torqueActualLog.close();
+    if (switch_maskLog)
     maskLog.close();
+    if (switch_ecatStatusLog)
+        ecatStatusLog.close();
+    if (switch_posLog)
     posLog.close();
+    if (switch_posDesiredLog)
+        posDesiredLog.close();
+    if (switch_velDesiredLog)
     velDesiredLog.close();
-    posDesiredLog.close();
+    if (switch_velLog)
     velLog.close();
+    if (switch_sensorLog)
+        sensorLog.close();
 
     std::cout << "Logger : END!" << std::endl;
     return (void *)NULL;
@@ -1347,7 +1463,7 @@ void StateManager::GetSensorData()
          handft_reinit_l = 0;
      }*/
 
-    if(dc_.fthandcalibreset)
+    if (dc_.fthandcalibreset)
     {
         LH_CALIB.setZero();
         RH_CALIB.setZero();
@@ -1439,7 +1555,7 @@ void StateManager::GetSensorData()
         ft_calibd_l.segment<3>(0) = ft_calibd_l.segment<3>(0) + L_hand_Ready_temp;
 
         //\tick_ft++;
-        //if (tick_ft % 3000 == 0)
+        // if (tick_ft % 3000 == 0)
             std::cout << "STATUS : FT HAND BIAS "
                       << "R_hand_Ready_temp : " << RH_ori.transpose() << " L_hand_Ready_temp : " << LH_ori.transpose() << std::endl;
 
