@@ -100,6 +100,8 @@ StateManager::StateManager(DataContainer &dc_global) : dc_(dc_global), rd_gl_(dc
     LH_CALIB.setZero();
     RH_CALIB.resize(6, 3);
     RH_CALIB.setZero();
+
+    rd_.task_force_.setZero(6);
 }
 
 StateManager::~StateManager()
@@ -1792,6 +1794,8 @@ void StateManager::UpdateKinematics(RigidBodyDynamics::Model &model_l, LinkData 
     for (int i = 0; i < LINK_NUMBER; i++)
         link_p[COM_id].xpos += link_p[i].xipos * link_p[i].mass / total_mass_;
 
+
+    link_p[COM_id].xipos = link_p[COM_id].xpos;
     // RigidBodyDynamics::CalcCenterOfMass(model_l, )
 
     // RigidBodyDynamics::UpdateKinematicsCustom()
@@ -2191,7 +2195,7 @@ void StateManager::StateEstimate()
         {
             q_virtual_(i) = -mod_base_pos(i);
             q_dot_virtual_(i) = pelv_v(i);
-            // q_dot_virtual_(i) = mod_base_vel(i);
+            q_dot_virtual_(i) = mod_base_vel(i);
 
             // q_dot_virtual_(i) = base_vel_lpf(i);
 
@@ -2381,13 +2385,13 @@ void StateManager::PublishData()
 
     point_pub_msg_.polygon.points[13].x = rd_gl_.ee_[0].xpos_contact(0) - LF_CF_FT(4) / LF_CF_FT(2);
     point_pub_msg_.polygon.points[13].y = rd_gl_.ee_[0].xpos_contact(1) + LF_CF_FT(3) / LF_CF_FT(2);
-    point_pub_msg_.polygon.points[13].z = 0.0;
+    point_pub_msg_.polygon.points[13].z = LF_CF_FT(2);
 
     // std::cout << LF_CF_FT.transpose() << rd_gl_.ee_[0].xpos_contact.transpose() << std::endl;
 
     point_pub_msg_.polygon.points[14].x = rd_gl_.ee_[1].xpos_contact(0) - RF_CF_FT(4) / RF_CF_FT(2);
     point_pub_msg_.polygon.points[14].y = rd_gl_.ee_[1].xpos_contact(1) + RF_CF_FT(3) / RF_CF_FT(2);
-    point_pub_msg_.polygon.points[14].z = 0.0;
+    point_pub_msg_.polygon.points[14].z = RF_CF_FT(2);
 
     point_pub_msg_.polygon.points[15].x = LF_CF_FT(0);
     point_pub_msg_.polygon.points[15].y = LF_CF_FT(1);
@@ -2427,9 +2431,9 @@ void StateManager::PublishData()
     point_pub_msg_.polygon.points[22].y = rd_gl_.zmp_global_(1) - link_[COM_id].xpos(1);
     point_pub_msg_.polygon.points[22].z = rd_gl_.link_[COM_id].v_traj(2);
 
-    point_pub_msg_.polygon.points[23].x = rd_.imu_lin_acc(0);
-    point_pub_msg_.polygon.points[23].y = rd_.imu_lin_acc(1);
-    point_pub_msg_.polygon.points[23].z = rd_.imu_lin_acc(2);
+    point_pub_msg_.polygon.points[23].x = rd_gl_.link_[Pelvis].xpos(1);
+    point_pub_msg_.polygon.points[23].y = rd_gl_.link_[Pelvis].v(1);
+    point_pub_msg_.polygon.points[23].z = rd_gl_.task_force_(1);
 
     // com_pos_before = link_[COM_id].xpos(1);
 
@@ -2874,7 +2878,12 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
 
         if (dc_.useSimVirtual)
         {
+            StatusPub("%f sim vel mode on", control_time_);
             rd_gl_.semode = false;
+        }
+        else{
+            
+            StatusPub("%f sim vel mode off", control_time_);
         }
     }
     else if (msg->data == "positioncontrol")
