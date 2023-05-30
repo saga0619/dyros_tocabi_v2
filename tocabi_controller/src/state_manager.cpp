@@ -1641,6 +1641,7 @@ void StateManager::MeasureTime(int currentCount, int nanoseconds1, int nanosecon
 
 void StateManager::StoreState(RobotData &rd_dst)
 {
+    rd_dst.mtx.lock();
 
     memcpy(&rd_dst.model_, &model_global_, sizeof(RigidBodyDynamics::Model));
 
@@ -1702,6 +1703,8 @@ void StateManager::StoreState(RobotData &rd_dst)
     rd_dst.RH_CF_FT = RH_CF_FT;
 
     dc_.triggerThread1 = true;
+
+    rd_dst.mtx.unlock();
 }
 
 void StateManager::UpdateKinematics_local(RigidBodyDynamics::Model &model_l, LinkData *link_p, const Eigen::VectorXd &q_virtual_f, const Eigen::VectorXd &q_dot_virtual_f, const Eigen::VectorXd &q_ddot_virtual_f)

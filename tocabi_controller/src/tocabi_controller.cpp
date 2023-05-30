@@ -93,17 +93,49 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
     // std::cout<<"21"<<std::endl;
 
     // std::cout << "entering thread1 loop" << endl;
+    auto t_start = std::chrono::steady_clock::now();
 
     signalThread1 = true;
     int thread1_count = 0;
+
+    // get system time and make it to std::string
+    // time format : yearmonthday_hour_min_sec
+    // example : 231231_12_30_30
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+    std::string year = std::to_string(1900 + ltm->tm_year);
+    std::string month = std::to_string(1 + ltm->tm_mon);
+    std::string day = std::to_string(ltm->tm_mday);
+    std::string hour = std::to_string(ltm->tm_hour);
+    std::string min = std::to_string(ltm->tm_min);
+    std::string sec = std::to_string(ltm->tm_sec);
+    std::string system_time = year + month + day + "_" + hour + "_" + min + "_" + sec;
+    // output_file = output_file + "_" + time + ".txt";
+
+    bool run_controller = false;
+    long prev_chrono_time = 0;
+    double prev_control_time = 0;
     while (!dc_.tc_shm_->shutdown)
     {
+        if (dc_.tc_shm_->shutdown)
+            break;
         if (dc_.triggerThread1)
         {
+            rd_.mtx.lock();
             dc_.triggerThread1 = false;
+            rd_.mtx.unlock();
             thread1_count++;
-            if (dc_.tc_shm_->shutdown)
-                break;
+            run_controller = true;
+        }
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
+        }
+
+        if (run_controller)
+        {
+            run_controller = false;
+
             rcv_time_ = rd_.control_time_us_;
 
             auto t1 = std::chrono::steady_clock::now();
@@ -122,6 +154,14 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             static VectorQd zero_m = VectorQd::Zero();
 
             WBC::ContactCalcDefault(rd_);
+
+            double d_time = rd_.control_time_ - prev_control_time;
+            prev_control_time = rd_.control_time_;
+
+            long chrono_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t_start).count();
+
+            int chrono_dt = chrono_time - prev_chrono_time;
+            prev_chrono_time = chrono_time;
 
             if (rd_.positionControlSwitch)
             {
@@ -180,8 +220,12 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
             else if (rd_.tc_run)
             {
                 static ofstream task_log;
+                // get user name of linux system
+                //  std::string user_name = getenv("USER");
 
                 std::string output_file = "/home/dyros/tocabi_log/output";
+                output_file = output_file + "_" + system_time + ".txt";
+
                 if (rd_.tc_.mode == 0)
                 {
 
@@ -755,9 +799,9 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     init_qp = false;
                 }
-                else if(rd_.tc_.mode == 5)
+                else if (rd_.tc_.mode == 5)
                 {
-                   static bool init_qp;
+                    static bool init_qp;
                     if (rd_.tc_init)
                     {
                         init_qp = true;
@@ -781,10 +825,8 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
                     }
 
-
                     int task1_id = COM_id;
                     int task2_id = Upper_Body;
-
 
                     // rd_.tc_.left_foot = 1;
                     // rd_.tc_.right_foot = 1;
@@ -821,10 +863,9 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     Eigen::VectorXd fstar = WBC::GetFstar6d(rd_.link_[task1_id], true, true);
                     ts_.Update(Jtask, fstar);
 
-
                     WBC::CalcJKT(rd_, ts_);
 
-                    std::cout << "effective Of COM mass along Y axis : ";
+                    // std::cout << "effective Of COM mass along Y axis : ";
 
                     rd_.link_[Pelvis].x_desired = rd_.link_[Pelvis].x_init;
                     rd_.link_[Pelvis].rot_desired = DyrosMath::Euler2rot(0, 0, rd_.link_[Pelvis].yaw_init);
@@ -834,15 +875,13 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     WBC::CalcJKT(rd_, ts_pelv);
 
-
                     Eigen::Vector6d u_vector;
                     u_vector.setZero();
                     u_vector(1) = 1.0;
 
-                    std::cout <<  1 / (u_vector.transpose() * ts_.Lambda_task_.inverse() * u_vector)<<std::endl;
+                    // std::cout << 1 / (u_vector.transpose() * ts_.Lambda_task_.inverse() * u_vector) << std::endl;
 
-
-                    std::cout << "effective Of Pelvis mass along Y axis :" << 1/(u_vector.transpose() * ts_pelv.Lambda_task_.inverse() * u_vector) << std::endl;
+                    // std::cout << "effective Of Pelvis mass along Y axis :" << 1 / (u_vector.transpose() * ts_pelv.Lambda_task_.inverse() * u_vector) << std::endl;
 
                     WBC::CalcTaskNull(rd_, ts_);
 
@@ -911,10 +950,10 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     // std::cout << "8" << std::endl;
 
                     // std::cout << "10" << std::endl;
-                    double ur, up, uy, utx, uty, utz;
+                    // double ur, up, uy, utx, uty, utz;
 
-                    DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].rotm, ur, up, uy);
-                    DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].r_traj, utx, uty, utz);
+                    // DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].rotm, ur, up, uy);
+                    // DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].r_traj, utx, uty, utz);
 
                     // if (rd_.control_time_ > rd_.tc_time_ && rd_.control_time_ < rd_.tc_time_ + rd_.tc_.time + 0.5)
                     // {
@@ -946,26 +985,26 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     init_qp = false;
                 }
-                else if(rd_.tc_.mode == 6)
+                else if (rd_.tc_.mode == 6)
                 {
                     static bool init_qp;
                     if (rd_.tc_init)
                     {
                         init_qp = true;
 
-                        // if (task_log.is_open())
-                        // {
-                        //     std::cout << "file already opened " << std::endl;
-                        // }
-                        // else
-                        // {
-                        //     task_log.open(output_file.c_str(), fstream::out | fstream::app);
-                        //     task_log << "time pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z xtraj_x xtraj_y xtraj_z vtraj_x vtraj_y vtraj_z upper_r upper_p upper_y upper_tx upper_ty upper_tz rtraj_r rtraj_p rtraj_y ttraj_x ttraj_y ttraj_z" << std::endl;
-                        //     if (task_log.is_open())
-                        //     {
-                        //         std::cout << "open success " << std::endl;
-                        //     }
-                        // }
+                        if (task_log.is_open())
+                        {
+                            std::cout << "file already opened " << std::endl;
+                        }
+                        else
+                        {
+                            task_log.open(output_file.c_str(), fstream::out | fstream::app);
+                            task_log << "time rcv_time dtime chrono_Time dt_chr com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z fstar_x fstar_y fstar_z force_x force_y force_z" << std::endl;
+                            if (task_log.is_open())
+                            {
+                                std::cout << "open success " << std::endl;
+                            }
+                        }
 
                         std::cout << "mode 6 init" << std::endl;
                         rd_.tc_init = false;
@@ -1047,6 +1086,10 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         }
                         else
                         {
+                            torque_task_hqp_ = rd_.torque_grav;
+
+                            std::cout << "Solve Error : Task2 ,Disable Task Control" << std::endl;
+                            rd_.positionControlSwitch = true;
                             // std::cout << "6" << std::endl;
                             torque_task_hqp_ = rd_.torque_grav + ts_.torque_h_; // + ts_.Null_task * ts2_.torque_h_;
                         }
@@ -1056,7 +1099,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     {
                         torque_task_hqp_ = rd_.torque_grav;
 
-                        std::cout << "Solve Error, Disable Task Control" << std::endl;
+                        std::cout << "Solve Error : Task1 ,Disable Task Control" << std::endl;
                         rd_.positionControlSwitch = true;
                     }
                     // std::cout << "6" << std::endl;
@@ -1088,19 +1131,22 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].rotm, ur, up, uy);
                     DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].r_traj, utx, uty, utz);
 
+                    double rcv_ctime = rcv_time_ / 1000000.0;
+                    double chorno_db_time = chrono_time / 1000000.0;
+
                     if (rd_.control_time_ > rd_.tc_time_ && rd_.control_time_ < rd_.tc_time_ + rd_.tc_.time + 0.5)
                     {
-                        task_log << rd_.control_time_ << " "
+                        task_log << rd_.control_time_ << " " << rcv_ctime << " " << d_time << " " << chorno_db_time << " " << chrono_dt << " "
                                  << rd_.link_[COM_id].xipos(0) << " " << rd_.link_[COM_id].xipos(1) << " " << rd_.link_[COM_id].xipos(2) << " "
                                  << rd_.link_[COM_id].vi(0) << " " << rd_.link_[COM_id].vi(1) << " " << rd_.link_[COM_id].vi(2) << " "
                                  << ts_.f_star_(0) << " " << ts_.f_star_(1) << " " << ts_.f_star_(2) << " "
                                  << rd_.task_force_(0) << " " << rd_.task_force_(1) << " " << rd_.task_force_(2) << " "
 
-                                //  << ur << " " << up << " " << uy << " "
-                                //  << rd_.link_[Upper_Body].w(0) << " " << rd_.link_[Upper_Body].w(1) << " " << rd_.link_[Upper_Body].w(2) << " "
+                                 //  << ur << " " << up << " " << uy << " "
+                                 //  << rd_.link_[Upper_Body].w(0) << " " << rd_.link_[Upper_Body].w(1) << " " << rd_.link_[Upper_Body].w(2) << " "
 
-                                //  << utx << " " << uty << " " << utz << " "
-                                //  << rd_.link_[Upper_Body].w_traj(0) << " " << rd_.link_[Upper_Body].w_traj(1) << " " << rd_.link_[Upper_Body].w_traj(2) << " "
+                                 //  << utx << " " << uty << " " << utz << " "
+                                 //  << rd_.link_[Upper_Body].w_traj(0) << " " << rd_.link_[Upper_Body].w_traj(1) << " " << rd_.link_[Upper_Body].w_traj(2) << " "
 
                                  //  << rd_.link_[Pelvis].xpos(0) << " " << rd_.link_[Pelvis].xpos(1) << " " << rd_.link_[Pelvis].xpos(2) << " "
                                  //  << rd_.link_[Pelvis].v(0) << " " << rd_.link_[Pelvis].v(1) << " " << rd_.link_[Pelvis].v(2) << " "
@@ -1243,13 +1289,8 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                 rd_.state_ctime_total_ = 0;
             }
             t_c_ = std::chrono::steady_clock::now();
-
-            // std::cout<<"21"<<std::endl;
         }
-        else
-        {
-            std::this_thread::sleep_for(std::chrono::microseconds(10));
-        }
+        // std::cout<<"21"<<std::endl;
     }
 
     // cout << "thread1 terminate" << endl;
