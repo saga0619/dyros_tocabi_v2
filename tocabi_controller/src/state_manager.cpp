@@ -506,11 +506,13 @@ void *StateManager::LoggerThread()
                     velLog.close();
                 if (switch_sensorLog)
                     sensorLog.close();
-                std::stringstream sstr;
 
-                sstr << " zip -j -q " << log_folder << "log_" << start_time.str() << "_" << std::setfill('0') << std::setw(3) << s_count << std::setw(0) << ".zip " << log_folder << apd_ << "* &";
 
-                int status = system(sstr.str().c_str());
+                // std::stringstream sstr;
+
+                // sstr << " zip -j -q " << log_folder << "log_" << start_time.str() << "_" << std::setfill('0') << std::setw(3) << s_count << std::setw(0) << ".zip " << log_folder << apd_ << "* &";
+
+                // int status = system(sstr.str().c_str());
                 // std::cout << " log file compressed : " << s_count << std::endl;
             }
 
@@ -667,7 +669,7 @@ void *StateManager::LoggerThread()
                 {
                     torqueLog.open((current_logging_folder + torqueLogFile).c_str());
                     torqueLog.fill(' ');
-                    torqueLog << t_str << " Direct command input(CNT) to elmo" << std::endl;
+                    // torqueLog << t_str << " Direct command input(CNT) to elmo" << std::endl;
                     torqueLog << "time ";
                     for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
                     {
@@ -679,7 +681,7 @@ void *StateManager::LoggerThread()
                 if (switch_torqueCommandLog)
                 {
                     torqueCommandLog.open((current_logging_folder + torqueclogFile).c_str());
-                    torqueCommandLog << t_str << " torque command(NM) to elmo" << std::endl;
+                    // torqueCommandLog << t_str << " torque command(NM) to elmo" << std::endl;
                     torqueCommandLog << "time ";
                     for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
                     {
@@ -692,7 +694,7 @@ void *StateManager::LoggerThread()
                 {
 
                     torqueActualLog.open((current_logging_folder + torqueActualLogFile).c_str());
-                    torqueActualLog << t_str << " Actual torque from elmo" << std::endl;
+                    // torqueActualLog << t_str << " Actual torque from elmo" << std::endl;
                     torqueActualLog << "time ";
                     for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
                     {
@@ -714,7 +716,7 @@ void *StateManager::LoggerThread()
                 if (switch_posLog)
                 {
                     posLog.open((current_logging_folder + posLogFile).c_str());
-                    posLog << t_str << std::endl;
+                    // posLog << t_str << std::endl;
                     posLog << "time ";
                     for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
                     {
@@ -726,7 +728,7 @@ void *StateManager::LoggerThread()
                 if (switch_posDesiredLog)
                 {
                     posDesiredLog.open((current_logging_folder + posDesiredLogFile).c_str());
-                    posDesiredLog << t_str << std::endl;
+                    // posDesiredLog << t_str << std::endl;
                     posDesiredLog << "time ";
                     for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
                     {
@@ -739,7 +741,7 @@ void *StateManager::LoggerThread()
                 {
 
                     velDesiredLog.open((current_logging_folder + velDesiredLogFile).c_str());
-                    velDesiredLog << t_str << std::endl;
+                    // velDesiredLog << t_str << std::endl;
                     velDesiredLog << "time ";
                     for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
                     {
@@ -751,7 +753,7 @@ void *StateManager::LoggerThread()
                 if (switch_velLog)
                 {
                     velLog.open((current_logging_folder + velLogFile).c_str());
-                    velLog << t_str << std::endl;
+                    // velLog << t_str << std::endl;
                     velLog << "time ";
                     for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
                     {
@@ -763,7 +765,7 @@ void *StateManager::LoggerThread()
                 if (switch_sensorLog)
                 {
                     sensorLog.open((current_logging_folder + sensorLogFile).c_str());
-                    sensorLog << t_str << std::endl;
+                    // sensorLog << t_str << std::endl;
                     sensorLog << "time lfx lfy lfz ltx lty ltz rfx rfy rfz rtx rty rtz imu_r imu_p imu_y w_r w_y w_z a_x a_y a_z" << std::endl;
                 }
 
