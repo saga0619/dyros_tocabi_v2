@@ -117,6 +117,8 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
     double prev_control_time = 0;
     while (!dc_.tc_shm_->shutdown)
     {
+        mb();
+        
         if (dc_.tc_shm_->shutdown)
             break;
         if (dc_.triggerThread1)
@@ -155,7 +157,16 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
             WBC::ContactCalcDefault(rd_);
 
+            mb();
+
+            if(rd_.control_time_ == prev_control_time)
+            {
+                std::cout<<"same time error : "<<rd_.control_time_<<std::endl;
+            }
+
             double d_time = rd_.control_time_ - prev_control_time;
+
+
             prev_control_time = rd_.control_time_;
 
             long chrono_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t_start).count();
@@ -825,7 +836,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
                     }
 
-                    int task1_id = COM_id;
+                    int task1_id = Pelvis;
                     int task2_id = Upper_Body;
 
                     // rd_.tc_.left_foot = 1;
@@ -999,7 +1010,8 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         else
                         {
                             task_log.open(output_file.c_str(), fstream::out | fstream::app);
-                            task_log << "time rcv_time dtime chrono_Time dt_chr com_pos_x com_pos_y com_pos_z com_vel_x com_vel_y com_vel_z fstar_x fstar_y fstar_z force_x force_y force_z" << std::endl;
+                            task_log.precision(8);
+                            task_log << "time rcv_time dtime chrono_Time dt_chr pel_pos_x pel_pos_y pel_pos_z pel_vel_x pel_vel_y pel_vel_z fstar_x fstar_y fstar_z force_x force_y force_z lf_x lf_y lf_z rf_x rf_y rf_z lf_dx lf_dy lf_dz rf_dx rf_dy rf_dz q0 q1 q2 q3 q4 q5 q6 q7 q8 q9 q10 q11 qe0 qe1 qe2 qe3 qe4 qe5 qe6 qe7 qe8 qe9 qe10 qe11" << std::endl;
                             if (task_log.is_open())
                             {
                                 std::cout << "open success " << std::endl;
@@ -1014,7 +1026,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     // rd_.tc_.left_foot = 1;
                     // rd_.tc_.right_foot = 1;
 
-                    int task1_id = COM_id;
+                    int task1_id = Pelvis;
                     int task2_id = Upper_Body;
 
                     WBC::SetContact(rd_, rd_.tc_.left_foot, rd_.tc_.right_foot, rd_.tc_.left_hand, rd_.tc_.right_hand);
@@ -1024,7 +1036,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     rd_.link_[task1_id].x_desired(0) = rd_.link_[task1_id].xi_init(0);
 
-                    rd_.link_[task1_id].x_desired(2) = rd_.link_[task1_id].xi_init(2);
+                    rd_.link_[task1_id].x_desired(2) = rd_.tc_.height;
 
                     rd_.link_[task1_id].rot_desired = DyrosMath::Euler2rot(0, 0 * ang2rad, rd_.link_[Pelvis].yaw_init);
 
@@ -1048,7 +1060,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     Eigen::MatrixXd Jtask = rd_.link_[task1_id].JacCOM();
                     Eigen::VectorXd fstar = WBC::GetFstar6d(rd_.link_[task1_id], true, true);
 
-                    fstar(1) = rd_.tc_.ratio * sin(rd_.tc_.height * (rd_.control_time_ - rd_.tc_time_));
+                    fstar(1) = rd_.tc_.ratio * sin(rd_.tc_.time * (rd_.control_time_ - rd_.tc_time_));
 
                     ts_.Update(Jtask, fstar);
                     WBC::CalcJKT(rd_, ts_);
@@ -1126,21 +1138,25 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     // // std::cout << "8" << std::endl;
 
                     // std::cout << "10" << std::endl;
-                    double ur, up, uy, utx, uty, utz;
+                    // double ur, up, uy, utx, uty, utz;
 
-                    DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].rotm, ur, up, uy);
-                    DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].r_traj, utx, uty, utz);
+                    // DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].rotm, ur, up, uy);
+                    // DyrosMath::rot2Euler_tf2(rd_.link_[Upper_Body].r_traj, utx, uty, utz);
 
                     double rcv_ctime = rcv_time_ / 1000000.0;
                     double chorno_db_time = chrono_time / 1000000.0;
 
-                    if (rd_.control_time_ > rd_.tc_time_ && rd_.control_time_ < rd_.tc_time_ + rd_.tc_.time + 0.5)
-                    {
+                    // if (rd_.control_time_ > rd_.tc_time_ && rd_.control_time_ < rd_.tc_time_ + rd_.tc_.time + 0.5)
+                    // {
                         task_log << rd_.control_time_ << " " << rcv_ctime << " " << d_time << " " << chorno_db_time << " " << chrono_dt << " "
-                                 << rd_.link_[COM_id].xipos(0) << " " << rd_.link_[COM_id].xipos(1) << " " << rd_.link_[COM_id].xipos(2) << " "
-                                 << rd_.link_[COM_id].vi(0) << " " << rd_.link_[COM_id].vi(1) << " " << rd_.link_[COM_id].vi(2) << " "
+                                 << rd_.link_[task1_id].xipos(0) << " " << rd_.link_[task1_id].xipos(1) << " " << rd_.link_[task1_id].xipos(2) << " "
+                                 << rd_.link_[task1_id].vi(0) << " " << rd_.link_[task1_id].vi(1) << " " << rd_.link_[task1_id].vi(2) << " "
                                  << ts_.f_star_(0) << " " << ts_.f_star_(1) << " " << ts_.f_star_(2) << " "
                                  << rd_.task_force_(0) << " " << rd_.task_force_(1) << " " << rd_.task_force_(2) << " "
+                                 << rd_.link_[Left_Foot].xpos(0) << " "<<rd_.link_[Left_Foot].xpos(1)<<" " <<rd_.link_[Left_Foot].xpos(2)<<" "
+                                 << rd_.link_[Right_Foot].xpos(0) << " "<<rd_.link_[Right_Foot].xpos(1)<<" " <<rd_.link_[Right_Foot].xpos(2)<<" "
+                                 << rd_.link_[Left_Foot].v(0) << " "<<rd_.link_[Left_Foot].v(1)<<" " <<rd_.link_[Left_Foot].v(2)<<" "
+                                 << rd_.link_[Right_Foot].v(0) << " "<<rd_.link_[Right_Foot].v(1)<<" " <<rd_.link_[Right_Foot].v(2)<<" "
 
                                  //  << ur << " " << up << " " << uy << " "
                                  //  << rd_.link_[Upper_Body].w(0) << " " << rd_.link_[Upper_Body].w(1) << " " << rd_.link_[Upper_Body].w(2) << " "
@@ -1153,14 +1169,16 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                                  //  << fstar(0) << " " << fstar(1) << " " << fstar(2) << " "
                                  //  << out(0) << " " << out(1) << " " << out(2) << " "
                                  //  << rd_.link_[COM_id].a_traj(0) << " " << rd_.link_[COM_id].a_traj(1) << " " << rd_.link_[COM_id].a_traj(2) << " "
-                                 //  << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
+                                 << rd_.q_(0) << " " << rd_.q_(1) << " " << rd_.q_(2) << " " << rd_.q_(3) << " " << rd_.q_(4) << " " << rd_.q_(5) << " "
+                                 << rd_.q_(6) << " " << rd_.q_(7) << " " << rd_.q_(8) << " " << rd_.q_(9) << " " << rd_.q_(10) << " " << rd_.q_(11) << " "
                                  //  << rd_.q_dot_(0) << " " << rd_.q_dot_(1) << " " << rd_.q_dot_(2) << " " << rd_.q_dot_(3) << " " << rd_.q_dot_(4) << " " << rd_.q_dot_(5) << " "
-                                 //  << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
+                                 << rd_.q_ext_(0) << " " << rd_.q_ext_(1) << " " << rd_.q_ext_(2) << " " << rd_.q_ext_(3) << " " << rd_.q_ext_(4) << " " << rd_.q_ext_(5) << " "
+                                 << rd_.q_ext_(6+0) << " " << rd_.q_ext_(6+1) << " " << rd_.q_ext_(6+2) << " " << rd_.q_ext_(6+3) << " " << rd_.q_ext_(6+4) << " " << rd_.q_ext_(6+5) << " "
                                  //  << rd_.zmp_global_(0) << " " << rd_.zmp_global_(1) << " "
                                  //  << zmp_got(0) << " " << zmp_got(1) << " "
                                  //  << rd_.q_ddot_virtual_(0) << " " << rd_.q_ddot_virtual_(1) << " " << rd_.q_ddot_virtual_(2) << " "
                                  << std::endl;
-                    }
+                    // }
 
                     init_qp = false;
                 }
