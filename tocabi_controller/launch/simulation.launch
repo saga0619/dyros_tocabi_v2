@@ -4,6 +4,7 @@
     <arg name="controller" default="true" />
     <arg name="log" default="false"/>
     <arg name="node_start_delay" default="0.2" />  
+    <arg name="steptime" default="250" />
 
     <node name="tocabi_controller_shm_reset" pkg="tocabi_controller" type="shm_reset" output="screen"/>
     

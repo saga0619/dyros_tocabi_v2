@@ -7,6 +7,7 @@
     <arg name="node_start_delay" default="0.2" />  
     <arg name="node_start_delay_ecat" default="0.3" />  
     <arg name="avatar_mode" default="false" />  
+    <arg name="steptime" default="250" />
 
     <group if="$(arg hand)">
         <param name="tocabi_controller/urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi_0714_hand.urdf"/>

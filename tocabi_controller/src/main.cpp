@@ -81,6 +81,7 @@ int main(int argc, char **argv)
 
     bool activateLogger;
     bool lower_disable;
+    int step_time_us = 500;
 
     dc_.nh.param("/tocabi_controller/sim_mode", dc_.simMode, false);
     dc_.nh.getParam("/tocabi_controller/Kp", dc_.Kps);
@@ -88,6 +89,7 @@ int main(int argc, char **argv)
     dc_.nh.param("/tocabi_controller/log", activateLogger, false);
     dc_.nh.param("/tocabi_controller/disablelower", lower_disable, false);
     dc_.nh.param("/tocabi_controller/avatar_mode", dc_.avatarMode, false);
+    dc_.nh.param("/tocabi_controller/step_time", step_time_us, false);
 
     if (dc_.Kps.size() != MODEL_DOF)
     {

@@ -277,6 +277,12 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     fstar.segment(0, 6) = WBC::GetFstar6d(rd_.link_[COM_id], true);
                     fstar.segment(6, 3) = WBC::GetFstarRot(rd_.link_[Upper_Body]);
 
+                    Eigen::VectorXd torque_taskc = WBC::TaskControlTorque(rd_, fstar);
+                    Eigen::VectorXd torque_vv = Eigen::VectorXd::Zero(MODEL_DOF_VIRTUAL);
+                    torque_vv.segment(6,MODEL_DOF) = torque_taskc;
+                    std::cout << "fstar : " << fstar.transpose() << std::endl;
+                    Eigen::VectorXd fstar_astar = rd_.J_task * rd_.A_inv_ * rd_.N_C * torque_vv;
+                    std::cout << fstar_astar.transpose() << std::endl;
                     // if (rd_.link_[COM_id].a_traj(1) != 0)
                     // {
                     //     if (rd_.link_[COM_id].v_traj(1) > 0)
@@ -289,7 +295,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     //     }
                     // }
 
-                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + WBC::TaskControlTorque(rd_, fstar));
+                    rd_.torque_desired = WBC::ContactForceRedistributionTorque(rd_, WBC::GravityCompensationTorque(rd_) + torque_taskc);
 
                     VectorXd out = rd_.lambda * fstar;
 
