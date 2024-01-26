@@ -72,8 +72,8 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
     WBC::SetContactInit(rd_);
 
-    EnableThread2(true); // Set true for Thread2
-    EnableThread3(true); // True for thread3 ...
+    EnableThread2(false); // Set true for Thread2
+    EnableThread3(false); // True for thread3 ...
 
     if (dc_.simMode)
     {
@@ -128,6 +128,8 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
     bool run_controller = false;
     long prev_chrono_time = 0;
     double prev_control_time = 0;
+    bool task_que_mode_ = false;
+    bool retain_pre_target = false;
     while (!dc_.tc_shm_->shutdown)
     {
         mb();
@@ -200,6 +202,33 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                 // {
                 //     std::cout << rd_.pos_kp_v[i] << "  " << rd_.pos_kv_v[i] << std::endl;
                 // }
+            }
+
+            if (task_que_mode_)
+            {
+                if (rd_.control_time_ > (rd_.tc_time_ + rd_.tc_.time))
+                { 
+                    rd_.task_que_signal_ = true;
+                }
+            }
+            if (rd_.task_que_signal_)
+            {
+                rd_.task_que_signal_ = false;
+                GetTaskCommand(rd_.tc_q_.tque[0]);
+
+                std::cout << " TASK QUE : " << rd_.tc_q_.tque.size() << std::endl;
+                rd_.tc_q_.tque.erase(rd_.tc_q_.tque.begin());
+
+                if (rd_.tc_q_.tque.size() == 0)
+                {
+                    std::cout << " TASK QUE END " << std::endl;
+                    task_que_mode_ = false;
+                }
+                else
+                {
+                    task_que_mode_ = true;
+                    std::cout << " TASK QUE CONTINUEING " << std::endl;
+                }
             }
 
             if (rd_.tc_avatar_switch)
@@ -594,10 +623,11 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     drd_.UpdateKinematics(rd_.q_virtual_, rd_.q_dot_virtual_, rd_.q_ddot_virtual_);
                     drd_.control_time_ = rd_.control_time_;
 
-                    rd_.link_[Pelvis].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
-                    rd_.link_[Pelvis].x_desired(2) = rd_.tc_.height;
-                    rd_.link_[Pelvis].rot_desired = DyrosMath::Euler2rot(0, rd_.tc_.pelv_pitch * ang2rad, rd_.link_[Pelvis].yaw_init);
-                    rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll * ang2rad, rd_.tc_.pitch * ang2rad, rd_.tc_.yaw * ang2rad + rd_.link_[Pelvis].yaw_init);
+                    int drd_lh_id = drd_.getLinkID("l_wrist2_link");
+                    int drd_rh_id = drd_.getLinkID("r_wrist2_link");
+                    int drd_ub_id = drd_.getLinkID("upperbody_link");
+                    int drd_pl_id = drd_.getLinkID("pelvis_link");
+                    int drd_com_id = drd_.getLinkID("COM");
 
                     static bool init_qp;
                     if (rd_.tc_init)
@@ -610,7 +640,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         else
                         {
                             task_log.open(output_file.c_str(), fstream::out | fstream::app);
-                            task_log << "time d1 d2 d3 d4 cm_tx cm_ty cm_tz cm_x cm_y cm_z pv_tr pv_tp pv_ty pv_r pv_p pv_y ub_tr ub_tp ub_ty ub_r ub_p ub_y lh_tx lh_ty lh_tz lh_x lh_y lh_z rh_tx rh_ty rh_tz rh_x rh_y rh_z" << std::endl;
+                            task_log << "time d1 d2 d3 d4 d5 cm_tx cm_ty cm_tz cm_x cm_y cm_z pv_tr pv_tp pv_ty pv_r pv_p pv_y ub_tr ub_tp ub_ty ub_r ub_p ub_y lh_tx lh_ty lh_tz lh_x lh_y lh_z rh_tx rh_ty rh_tz rh_x rh_y rh_z" << std::endl;
                             // task_log << "time com_pos_x com_pos_y com_pos_z ft0 ft1 ft2 ft3 ft4 ft5 ft6 ft7 ft8 ft9 ft10 ft11" << std::endl;
                             if (task_log.is_open())
                             {
@@ -627,12 +657,46 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                         init_qp = true;
 
-                        std::cout << "mode 2 init" << std::endl;
+                        if (rd_.tc_.solver == 0)
+                        {
+                            std::cout << "TASK MODE 2 : 2LEVEL TASK EXPERIMENT :::: ORIGINAL " << std::endl;
+                        }
+                        else if (rd_.tc_.solver == 1)
+                        {
+                            std::cout << "TASK MODE 2 : 2LEVEL TASK EXPERIMENT :::: REDUCED " << std::endl;
+                        }
                         rd_.tc_init = false;
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
                         drd_.ClearTaskSpace();
                         // drd_.AddTaskSpace(DWBC::TASK_CUSTOM, 6);
                         drd_.AddTaskSpace(0, DWBC::TASK_LINK_POSITION, "COM", Vector3d::Zero());
+
+                        if (rd_.tc_.maintain_lc)
+                        {
+                            std::cout << "maintain lc" << std::endl;
+                            rd_.link_[COM_id].x_init = rd_.link_[Pelvis].x_desired;
+
+                            rd_.link_[Pelvis].rot_init = rd_.link_[Pelvis].rot_desired;
+
+                            rd_.link_[Upper_Body].rot_init = rd_.link_[Upper_Body].rot_desired;
+
+                            rd_.link_[Left_Hand].x_init = rd_.link_[Left_Hand].x_desired;
+                            rd_.link_[Left_Hand].rot_init = drd_.ts_[3].task_link_[0].rot_traj;
+
+                            rd_.link_[Right_Hand].x_init = rd_.link_[Right_Hand].x_desired;
+                            rd_.link_[Right_Hand].rot_init = drd_.ts_[3].task_link_[1].rot_traj;
+                        }
+
+                        rd_.link_[Pelvis].x_desired = rd_.tc_.ratio * rd_.link_[Left_Foot].x_init + (1 - rd_.tc_.ratio) * rd_.link_[Right_Foot].x_init;
+                        rd_.link_[Pelvis].x_desired(2) = rd_.tc_.height;
+                        rd_.link_[Pelvis].rot_desired = DyrosMath::Euler2rot(0, rd_.tc_.pelv_pitch * ang2rad, rd_.link_[Pelvis].yaw_init);
+                        rd_.link_[Upper_Body].rot_desired = DyrosMath::Euler2rot(rd_.tc_.roll * ang2rad, rd_.tc_.pitch * ang2rad, rd_.tc_.yaw * ang2rad + rd_.link_[Pelvis].yaw_init);
+
+                        Vector3d com_diff = rd_.link_[Pelvis].x_desired - rd_.link_[COM_id].x_init;
+
+                        rd_.link_[Left_Hand].x_desired = rd_.link_[Left_Hand].x_init + com_diff;
+                        rd_.link_[Right_Hand].x_desired = rd_.link_[Right_Hand].x_init + com_diff;
+
                         drd_.ts_[0].task_link_[0].SetTaskGain(rd_.link_[0].pos_p_gain, rd_.link_[0].pos_d_gain, rd_.link_[0].pos_a_gain, rd_.link_[0].rot_p_gain, rd_.link_[0].rot_d_gain, rd_.link_[0].rot_a_gain);
                         drd_.ts_[0].task_link_[0].SetTrajectoryQuintic(rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[COM_id].x_init, Vector3d::Zero(), rd_.link_[Pelvis].x_desired, Vector3d::Zero());
                         // drd_.ts_[0].SetTrajectoryRotation(rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[Pelvis].rot_init, Vector3d::Zero(), rd_.link_[Pelvis].rot_desired, Vector3d::Zero());
@@ -647,35 +711,77 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                         drd_.AddTaskSpace(3, DWBC::TASK_LINK_6D, "l_wrist2_link", Vector3d::Zero());
                         drd_.ts_[3].task_link_[0].SetTaskGain(rd_.link_[0].pos_p_gain, rd_.link_[0].pos_d_gain, rd_.link_[0].pos_a_gain, rd_.link_[0].rot_p_gain, rd_.link_[0].rot_d_gain, rd_.link_[0].rot_a_gain);
-                        drd_.ts_[3].task_link_[0].SetTrajectoryQuintic(rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[Left_Hand].x_init, Vector3d::Zero(), rd_.link_[Left_Hand].x_init, Vector3d::Zero());
+                        drd_.ts_[3].task_link_[0].SetTrajectoryQuintic(rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[Left_Hand].x_init, Vector3d::Zero(), rd_.link_[Left_Hand].x_desired, Vector3d::Zero());
                         drd_.ts_[3].task_link_[0].SetTrajectoryRotation(rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[Left_Hand].rot_init, Vector3d::Zero(), rd_.link_[Left_Hand].rot_init, Vector3d::Zero());
 
                         drd_.AddTaskSpace(3, DWBC::TASK_LINK_6D, "r_wrist2_link", Vector3d::Zero());
                         drd_.ts_[3].task_link_[1].SetTaskGain(rd_.link_[0].pos_p_gain, rd_.link_[0].pos_d_gain, rd_.link_[0].pos_a_gain, rd_.link_[0].rot_p_gain, rd_.link_[0].rot_d_gain, rd_.link_[0].rot_a_gain);
-                        drd_.ts_[3].task_link_[1].SetTrajectoryQuintic(rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[Right_Hand].x_init, Vector3d::Zero(), rd_.link_[Right_Hand].x_init, Vector3d::Zero());
+                        drd_.ts_[3].task_link_[1].SetTrajectoryQuintic(rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[Right_Hand].x_init, Vector3d::Zero(), rd_.link_[Right_Hand].x_desired, Vector3d::Zero());
                         drd_.ts_[3].task_link_[1].SetTrajectoryRotation(rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[Right_Hand].rot_init, Vector3d::Zero(), rd_.link_[Right_Hand].rot_init, Vector3d::Zero());
-
                     }
 
-                    auto t0 = std::chrono::steady_clock::now();
+                    int d1, d2, d3, d4, d5;
+                    std::chrono::time_point<std::chrono::steady_clock> t0, t1, t2, t3, t4, t5;
 
-                    drd_.SetContact(1, 1);
-                    drd_.CalcContactConstraint();
-                    drd_.CalcGravCompensation();
+                    int ret1, ret2;
 
-                    auto t1 = std::chrono::steady_clock::now();
+                    if (rd_.tc_.solver == 0)
+                    {
 
-                    drd_.CalcTaskSpace();
+                        t0 = std::chrono::steady_clock::now();
 
-                    auto t2 = std::chrono::steady_clock::now();
+                        drd_.SetContact(1, 1);
+                        drd_.CalcContactConstraint();
+                        drd_.CalcGravCompensation();
 
-                    int ret1 = drd_.CalcTaskControlTorque(init_qp, false, false);
+                        t1 = std::chrono::steady_clock::now();
 
-                    auto t3 = std::chrono::steady_clock::now();
+                        drd_.CalcTaskSpace();
 
-                    int ret2 = drd_.CalcContactRedistribute(init_qp);
+                        t2 = std::chrono::steady_clock::now();
 
-                    auto t4 = std::chrono::steady_clock::now();
+                        ret1 = drd_.CalcTaskControlTorque(init_qp, true, false);
+
+                        t3 = std::chrono::steady_clock::now();
+
+                        ret2 = drd_.CalcContactRedistribute(init_qp);
+
+                        t4 = std::chrono::steady_clock::now();
+
+                        t5 = std::chrono::steady_clock::now();
+                    }
+                    else if (rd_.tc_.solver == 1)
+                    {
+                        t0 = std::chrono::steady_clock::now();
+
+                        drd_.SetContact(1, 1);
+                        // drd_.CalcContactConstraint();
+                        drd_.ReducedDynamicsCalculate();
+                        t1 = std::chrono::steady_clock::now();
+
+                        drd_.ReducedCalcContactConstraint();
+                        drd_.ReducedCalcGravCompensation();
+
+                        t2 = std::chrono::steady_clock::now();
+
+                        drd_.ReducedCalcTaskSpace();
+
+                        t3 = std::chrono::steady_clock::now();
+
+                        ret1 = drd_.ReducedCalcTaskControlTorque(init_qp, true, false);
+
+                        t4 = std::chrono::steady_clock::now();
+
+                        ret2 = drd_.ReducedCalcContactRedistribute(init_qp);
+
+                        t5 = std::chrono::steady_clock::now();
+                    }
+
+                    d1 = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+                    d2 = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+                    d3 = std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+                    d4 = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count();
+                    d5 = std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count();
 
                     rd_.torque_desired = drd_.torque_task_ + drd_.torque_grav_ + drd_.torque_contact_;
 
@@ -692,34 +798,67 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                     init_qp = false;
 
-                    int d1 = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
-                    int d2 = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
-                    int d3 = std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
-                    int d4 = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count();
+                    Vector3d plv_rpy = DyrosMath::rot2Euler(drd_.link_[drd_pl_id].rotm);
+                    Vector3d ub_rpy = DyrosMath::rot2Euler(drd_.link_[drd_ub_id].rotm);
 
-                    int drd_lh_id = drd_.getLinkID("l_wrist2_link");
-                    int drd_rh_id = drd_.getLinkID("r_wrist2_link");
-                    int drd_ub_id = drd_.getLinkID("upperbody_link");
-                    int drd_pl_id = drd_.getLinkID("pelvis_link");
-                    int drd_com_id = drd_.getLinkID("COM");
+                    Vector3d plv_rpy_traj = DyrosMath::rot2Euler(drd_.ts_[1].task_link_[0].rot_traj);
+                    Vector3d ub_rpy_traj = DyrosMath::rot2Euler(drd_.ts_[2].task_link_[0].rot_traj);
+
+                    // tf2::RotationMatrix plv_rot;
+
+                    for (int i = 0; i < 3; i++)
+                    {
+                        if (plv_rpy(i) > 0.5 * M_PI)
+                        {
+                            plv_rpy(i) -= M_PI;
+                        }
+                        else if (plv_rpy(i) < -0.5 * M_PI)
+                        {
+                            plv_rpy(i) += M_PI;
+                        }
+                        if (ub_rpy(i) > 0.5 * M_PI)
+                        {
+                            ub_rpy(i) -= M_PI;
+                        }
+                        else if (ub_rpy(i) < -0.5 * M_PI)
+                        {
+                            ub_rpy(i) += M_PI;
+                        }
+                        if (plv_rpy_traj(i) > 0.5 * M_PI)
+                        {
+                            plv_rpy_traj(i) -= M_PI;
+                        }
+                        else if (plv_rpy_traj(i) < -0.5 * M_PI)
+                        {
+                            plv_rpy_traj(i) += M_PI;
+                        }
+                        if (ub_rpy_traj(i) > 0.5 * M_PI)
+                        {
+                            ub_rpy_traj(i) -= M_PI;
+                        }
+                        else if (ub_rpy_traj(i) < -0.5 * M_PI)
+                        {
+                            ub_rpy_traj(i) += M_PI;
+                        }
+                    }
 
                     task_log << drd_.control_time_ - time_start_mode2 << " "
-                             << d1 << " " << d2 << " " << d3 << " " << d4 << " "
+                             << d1 << " " << d2 << " " << d3 << " " << d4 << " " << d5 << " "
                              << drd_.ts_[0].task_link_[0].pos_traj_(0) << " " << drd_.ts_[0].task_link_[0].pos_traj_(1) << " " << drd_.ts_[0].task_link_[0].pos_traj_(2) << " "
                              << drd_.link_[drd_com_id].xpos(0) << " " << drd_.link_[drd_com_id].xpos(1) << " " << drd_.link_[drd_com_id].xpos(2) << " "
-                             << drd_.ts_[2].task_link_[0].rpy_traj(0) << " " << drd_.ts_[2].task_link_[0].rpy_traj(1) << " " << drd_.ts_[2].task_link_[0].rpy_traj(2) << " "
-                             << drd_.link_[drd_pl_id].rpy(0) << " " << drd_.link_[drd_pl_id].rpy(1) << " " << drd_.link_[drd_pl_id].rpy(2) << " "
-                             << drd_.ts_[3].task_link_[0].rpy_traj(0) << " " << drd_.ts_[3].task_link_[0].rpy_traj(1) << " " << drd_.ts_[3].task_link_[0].rpy_traj(2) << " "
-                             << drd_.link_[drd_ub_id].rpy(0) << " " << drd_.link_[drd_ub_id].rpy(1) << " " << drd_.link_[drd_ub_id].rpy(2) << " "
-                             << drd_.ts_[1].task_link_[0].pos_traj_(0) << " " << drd_.ts_[1].task_link_[0].pos_traj_(1) << " " << drd_.ts_[1].task_link_[0].pos_traj_(2) << " "
+                             << plv_rpy_traj(0) << " " << plv_rpy_traj(1) << " " << plv_rpy_traj(2) << " "
+                             << plv_rpy(0) << " " << plv_rpy(1) << " " << plv_rpy(2) << " "
+                             << ub_rpy_traj(0) << " " << ub_rpy_traj(1) << " " << ub_rpy_traj(2) << " "
+                             << ub_rpy(0) << " " << ub_rpy(1) << " " << ub_rpy(2) << " "
+                             << drd_.ts_[3].task_link_[0].pos_traj_(0) << " " << drd_.ts_[3].task_link_[0].pos_traj_(1) << " " << drd_.ts_[3].task_link_[0].pos_traj_(2) << " "
                              << drd_.link_[drd_lh_id].xpos(0) << " " << drd_.link_[drd_lh_id].xpos(1) << " " << drd_.link_[drd_lh_id].xpos(2) << " "
-                             << drd_.ts_[1].task_link_[1].pos_traj_(0) << " " << drd_.ts_[1].task_link_[1].pos_traj_(1) << " " << drd_.ts_[1].task_link_[1].pos_traj_(2) << " "
+                             << drd_.ts_[3].task_link_[1].pos_traj_(0) << " " << drd_.ts_[3].task_link_[1].pos_traj_(1) << " " << drd_.ts_[3].task_link_[1].pos_traj_(2) << " "
                              << drd_.link_[drd_rh_id].xpos(0) << " " << drd_.link_[drd_rh_id].xpos(1) << " " << drd_.link_[drd_rh_id].xpos(2) << " "
                              << std::endl;
                 }
                 else if (rd_.tc_.mode == 3)
                 {
-                    static double time_start_mode3 = 0.0;
+                    static double time_start_mode2 = 0.0;
                     double ang2rad = 0.0174533;
                     drd_.UpdateKinematics(rd_.q_virtual_, rd_.q_dot_virtual_, rd_.q_ddot_virtual_);
                     drd_.control_time_ = rd_.control_time_;
@@ -733,21 +872,21 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                     if (rd_.tc_init)
                     {
 
-                        // if (task_log.is_open())
-                        // {
-                        //     std::cout << "file already opened " << std::endl;
-                        // }
-                        // else
-                        // {
-                        //     task_log.open(output_file.c_str(), fstream::out | fstream::app);
-                        //     task_log << "time d1 d2 d3 d4 d5 cm_tx cm_ty cm_tz cm_x cm_y cm_z pv_tr pv_tp pv_ty pv_r pv_p pv_y ub_tr ub_tp ub_ty ub_r ub_p ub_y lh_tx lh_ty lh_tz lh_x lh_y lh_z rh_tx rh_ty rh_tz rh_x rh_y rh_z" << std::endl;
-                        //     // task_log << "time com_pos_x com_pos_y com_pos_z ft0 ft1 ft2 ft3 ft4 ft5 ft6 ft7 ft8 ft9 ft10 ft11" << std::end5
-                        //     if (task_log.is_open())
-                        //     {
-                        //         std::cout << "open success " << std::endl;
-                        //         time_start_mode3 = drd_.control_time_;
-                        //     }
-                        // }
+                        if (task_log.is_open())
+                        {
+                            std::cout << "file already opened " << std::endl;
+                        }
+                        else
+                        {
+                            task_log.open(output_file.c_str(), fstream::out | fstream::app);
+                            task_log << "time d1 d2 d3 d4 d5 cm_tx cm_ty cm_tz cm_x cm_y cm_z pv_tr pv_tp pv_ty pv_r pv_p pv_y ub_tr ub_tp ub_ty ub_r ub_p ub_y lh_tx lh_ty lh_tz lh_x lh_y lh_z rh_tx rh_ty rh_tz rh_x rh_y rh_z" << std::endl;
+                            // task_log << "time com_pos_x com_pos_y com_pos_z ft0 ft1 ft2 ft3 ft4 ft5 ft6 ft7 ft8 ft9 ft10 ft11" << std::endl;
+                            if (task_log.is_open())
+                            {
+                                std::cout << "open success " << std::endl;
+                                time_start_mode2 = drd_.control_time_;
+                            }
+                        }
 
                         if (rd_.tc_.customTaskGain)
                         {
@@ -757,13 +896,18 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
                         init_qp = true;
 
-                        std::cout << "mode 3 init" << std::endl;
+                        if (rd_.tc_.solver == 0)
+                        {
+                            std::cout << "TASK MODE 3 : 2LEVEL TASK EXPERIMENT :::: ORIGINAL " << std::endl;
+                        }
+                        else if (rd_.tc_.solver == 1)
+                        {
+                            std::cout << "TASK MODE 3 : 2LEVEL TASK EXPERIMENT :::: REDUCED " << std::endl;
+                        }
                         rd_.tc_init = false;
                         rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
                         drd_.ClearTaskSpace();
                         // drd_.AddTaskSpace(DWBC::TASK_CUSTOM, 6);
-
-
                         drd_.AddTaskSpace(0, DWBC::TASK_LINK_POSITION, "COM", Vector3d::Zero());
                         drd_.ts_[0].task_link_[0].SetTaskGain(rd_.link_[0].pos_p_gain, rd_.link_[0].pos_d_gain, rd_.link_[0].pos_a_gain, rd_.link_[0].rot_p_gain, rd_.link_[0].rot_d_gain, rd_.link_[0].rot_a_gain);
                         drd_.ts_[0].task_link_[0].SetTrajectoryQuintic(rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[COM_id].x_init, Vector3d::Zero(), rd_.link_[Pelvis].x_desired, Vector3d::Zero());
@@ -786,35 +930,70 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         drd_.ts_[3].task_link_[1].SetTaskGain(rd_.link_[0].pos_p_gain, rd_.link_[0].pos_d_gain, rd_.link_[0].pos_a_gain, rd_.link_[0].rot_p_gain, rd_.link_[0].rot_d_gain, rd_.link_[0].rot_a_gain);
                         drd_.ts_[3].task_link_[1].SetTrajectoryQuintic(rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[Right_Hand].x_init, Vector3d::Zero(), rd_.link_[Right_Hand].x_init, Vector3d::Zero());
                         drd_.ts_[3].task_link_[1].SetTrajectoryRotation(rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[Right_Hand].rot_init, Vector3d::Zero(), rd_.link_[Right_Hand].rot_init, Vector3d::Zero());
-
-                        // drd_.AddTaskSpace(3, DWBC::TASK_LINK_ROTATION, "upperbody_link", Vector3d::Zero());
-                        // drd_.ts_[3].task_link_[0].SetTaskGain(rd_.link_[0].pos_p_gain, rd_.link_[0].pos_d_gain, rd_.link_[0].pos_a_gain, rd_.link_[0].rot_p_gain, rd_.link_[0].rot_d_gain, rd_.link_[0].rot_a_gain);
-                        // drd_.ts_[3].task_link_[0].SetTrajectoryRotation(rd_.tc_time_, rd_.tc_time_ + rd_.tc_.time, rd_.link_[Upper_Body].rot_init, Vector3d::Zero(), rd_.link_[Upper_Body].rot_desired, Vector3d::Zero());
                     }
 
-                    auto t0 = std::chrono::steady_clock::now();
+                    int d1, d2, d3, d4, d5;
+                    std::chrono::time_point<std::chrono::steady_clock> t0, t1, t2, t3, t4, t5;
 
-                    drd_.SetContact(1, 1);
-                    // drd_.CalcContactConstraint();
-                    drd_.ReducedDynamicsCalculate();
-                    auto t1 = std::chrono::steady_clock::now();
+                    int ret1, ret2;
 
-                    drd_.ReducedCalcContactConstraint();
-                    drd_.ReducedCalcGravCompensation();
+                    if (rd_.tc_.solver == 0)
+                    {
 
-                    auto t2 = std::chrono::steady_clock::now();
+                        t0 = std::chrono::steady_clock::now();
 
-                    drd_.ReducedCalcTaskSpace();
+                        drd_.SetContact(1, 1);
+                        drd_.CalcContactConstraint();
+                        drd_.CalcGravCompensation();
 
-                    auto t3 = std::chrono::steady_clock::now();
+                        t1 = std::chrono::steady_clock::now();
 
-                    int ret1 = drd_.ReducedCalcTaskControlTorque(init_qp, false, false);
+                        drd_.CalcTaskSpace();
 
-                    auto t4 = std::chrono::steady_clock::now();
+                        t2 = std::chrono::steady_clock::now();
 
-                    int ret2 = drd_.ReducedCalcContactRedistribute(init_qp);
+                        ret1 = drd_.CalcTaskControlTorque(init_qp, true, false);
 
-                    auto t5 = std::chrono::steady_clock::now();
+                        t3 = std::chrono::steady_clock::now();
+
+                        ret2 = drd_.CalcContactRedistribute(init_qp);
+
+                        t4 = std::chrono::steady_clock::now();
+
+                        t5 = std::chrono::steady_clock::now();
+                    }
+                    else if (rd_.tc_.solver == 1)
+                    {
+                        t0 = std::chrono::steady_clock::now();
+
+                        drd_.SetContact(1, 1);
+                        // drd_.CalcContactConstraint();
+                        drd_.ReducedDynamicsCalculate();
+                        t1 = std::chrono::steady_clock::now();
+
+                        drd_.ReducedCalcContactConstraint();
+                        drd_.ReducedCalcGravCompensation();
+
+                        t2 = std::chrono::steady_clock::now();
+
+                        drd_.ReducedCalcTaskSpace();
+
+                        t3 = std::chrono::steady_clock::now();
+
+                        ret1 = drd_.ReducedCalcTaskControlTorque(init_qp, true, false);
+
+                        t4 = std::chrono::steady_clock::now();
+
+                        ret2 = drd_.ReducedCalcContactRedistribute(init_qp);
+
+                        t5 = std::chrono::steady_clock::now();
+                    }
+
+                    d1 = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+                    d2 = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+                    d3 = std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+                    d4 = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count();
+                    d5 = std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count();
 
                     rd_.torque_desired = drd_.torque_task_ + drd_.torque_grav_ + drd_.torque_contact_;
 
@@ -829,32 +1008,27 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
                         std::cout << "contact control error" << std::endl;
                     }
 
+                    init_qp = false;
+
                     int drd_lh_id = drd_.getLinkID("l_wrist2_link");
                     int drd_rh_id = drd_.getLinkID("r_wrist2_link");
                     int drd_ub_id = drd_.getLinkID("upperbody_link");
                     int drd_pl_id = drd_.getLinkID("pelvis_link");
                     int drd_com_id = drd_.getLinkID("COM");
-                    init_qp = false;
 
-                    int d1 = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
-                    int d2 = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
-                    int d3 = std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
-                    int d4 = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count();
-                    int d5 = std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count();
-
-                    // task_log << drd_.control_time_ - time_start_mode3 << " "
-                    //          << d1 << " " << d2 << " " << d3 << " " << d4 << " " << d5 << " "
-                    //          << drd_.ts_[0].task_link_[0].pos_traj_(0) << " " << drd_.ts_[0].task_link_[0].pos_traj_(1) << " " << drd_.ts_[0].task_link_[0].pos_traj_(2) << " "
-                    //          << drd_.link_[drd_com_id].xpos(0) << " " << drd_.link_[drd_com_id].xpos(1) << " " << drd_.link_[drd_com_id].xpos(2) << " "
-                    //          << drd_.ts_[2].task_link_[0].rpy_traj(0) << " " << drd_.ts_[2].task_link_[0].rpy_traj(1) << " " << drd_.ts_[2].task_link_[0].rpy_traj(2) << " "
-                    //          << drd_.link_[drd_pl_id].rpy(0) << " " << drd_.link_[drd_pl_id].rpy(1) << " " << drd_.link_[drd_pl_id].rpy(2) << " "
-                    //          << drd_.ts_[3].task_link_[0].rpy_traj(0) << " " << drd_.ts_[3].task_link_[0].rpy_traj(1) << " " << drd_.ts_[3].task_link_[0].rpy_traj(2) << " "
-                    //          << drd_.link_[drd_ub_id].rpy(0) << " " << drd_.link_[drd_ub_id].rpy(1) << " " << drd_.link_[drd_ub_id].rpy(2) << " "
-                    //          << drd_.ts_[2].task_link_[0].pos_traj_(0) << " " << drd_.ts_[2].task_link_[0].pos_traj_(1) << " " << drd_.ts_[2].task_link_[0].pos_traj_(2) << " "
-                    //          << drd_.link_[drd_lh_id].xpos(0) << " " << drd_.link_[drd_lh_id].xpos(1) << " " << drd_.link_[drd_lh_id].xpos(2) << " "
-                    //          << drd_.ts_[2].task_link_[1].pos_traj_(0) << " " << drd_.ts_[2].task_link_[1].pos_traj_(1) << " " << drd_.ts_[2].task_link_[1].pos_traj_(2) << " "
-                    //          << drd_.link_[drd_rh_id].xpos(0) << " " << drd_.link_[drd_rh_id].xpos(1) << " " << drd_.link_[drd_rh_id].xpos(2) << " "
-                    //          << std::endl;
+                    task_log << drd_.control_time_ - time_start_mode2 << " "
+                             << d1 << " " << d2 << " " << d3 << " " << d4 << " " << d5 << " "
+                             << drd_.ts_[0].task_link_[0].pos_traj_(0) << " " << drd_.ts_[0].task_link_[0].pos_traj_(1) << " " << drd_.ts_[0].task_link_[0].pos_traj_(2) << " "
+                             << drd_.link_[drd_com_id].xpos(0) << " " << drd_.link_[drd_com_id].xpos(1) << " " << drd_.link_[drd_com_id].xpos(2) << " "
+                             << drd_.ts_[2].task_link_[0].rpy_traj(0) << " " << drd_.ts_[2].task_link_[0].rpy_traj(1) << " " << drd_.ts_[2].task_link_[0].rpy_traj(2) << " "
+                             << drd_.link_[drd_pl_id].rpy(0) << " " << drd_.link_[drd_pl_id].rpy(1) << " " << drd_.link_[drd_pl_id].rpy(2) << " "
+                             << drd_.ts_[3].task_link_[0].rpy_traj(0) << " " << drd_.ts_[3].task_link_[0].rpy_traj(1) << " " << drd_.ts_[3].task_link_[0].rpy_traj(2) << " "
+                             << drd_.link_[drd_ub_id].rpy(0) << " " << drd_.link_[drd_ub_id].rpy(1) << " " << drd_.link_[drd_ub_id].rpy(2) << " "
+                             << drd_.ts_[1].task_link_[0].pos_traj_(0) << " " << drd_.ts_[1].task_link_[0].pos_traj_(1) << " " << drd_.ts_[1].task_link_[0].pos_traj_(2) << " "
+                             << drd_.link_[drd_lh_id].xpos(0) << " " << drd_.link_[drd_lh_id].xpos(1) << " " << drd_.link_[drd_lh_id].xpos(2) << " "
+                             << drd_.ts_[1].task_link_[1].pos_traj_(0) << " " << drd_.ts_[1].task_link_[1].pos_traj_(1) << " " << drd_.ts_[1].task_link_[1].pos_traj_(2) << " "
+                             << drd_.link_[drd_rh_id].xpos(0) << " " << drd_.link_[drd_rh_id].xpos(1) << " " << drd_.link_[drd_rh_id].xpos(2) << " "
+                             << std::endl;
                 }
                 else if (rd_.tc_.mode == 5)
                 {
@@ -1557,6 +1731,18 @@ void TocabiController::RequestThread3()
 
 void TocabiController::GetTaskCommand(tocabi_msgs::TaskCommand &msg)
 {
+    rd_.pc_mode = false;
+    rd_.tc_ = msg;
+    rd_.tc_time_ = rd_.control_time_;
+    rd_.tc_run = true;
+    rd_.tc_init = true;
+    rd_.link_[Right_Foot].SetInitialWithPosition();
+    rd_.link_[Left_Foot].SetInitialWithPosition();
+    rd_.link_[Right_Hand].SetInitialWithPosition();
+    rd_.link_[Left_Hand].SetInitialWithPosition();
+    rd_.link_[Pelvis].SetInitialWithPosition();
+    rd_.link_[Upper_Body].SetInitialWithPosition();
+    rd_.link_[COM_id].SetInitialWithPosition();
 }
 
 void TocabiController::PositionCommandCallback(const tocabi_msgs::positionCommandConstPtr &msg)
@@ -1591,20 +1777,12 @@ void TocabiController::PositionCommandCallback(const tocabi_msgs::positionComman
 
 void TocabiController::TaskCommandCallback(const tocabi_msgs::TaskCommandConstPtr &msg)
 {
-    rd_.pc_mode = false;
-    rd_.tc_ = *msg;
     std::cout << " CNTRL : task signal received mode :" << rd_.tc_.mode << std::endl;
     stm_.StatusPub("%f task Control mode : %d", (float)rd_.control_time_, rd_.tc_.mode);
-    rd_.tc_time_ = rd_.control_time_;
-    rd_.tc_run = true;
-    rd_.tc_init = true;
-    rd_.link_[Right_Foot].SetInitialWithPosition();
-    rd_.link_[Left_Foot].SetInitialWithPosition();
-    rd_.link_[Right_Hand].SetInitialWithPosition();
-    rd_.link_[Left_Hand].SetInitialWithPosition();
-    rd_.link_[Pelvis].SetInitialWithPosition();
-    rd_.link_[Upper_Body].SetInitialWithPosition();
-    rd_.link_[COM_id].SetInitialWithPosition();
+
+    tocabi_msgs::TaskCommand _msg = *msg;
+
+    GetTaskCommand(_msg);
 
     // double pos_p = 400.0;
     // double pos_d = 40.0;
@@ -1705,6 +1883,21 @@ void TocabiController::TaskQueCommandCallback(const tocabi_msgs::TaskCommandQueC
     rd_.tc_q_ = *msg;
     rd_.task_que_signal_ = true;
     std::cout << "task que received ... but doing nothing .." << std::endl;
+
+    if (!rd_.semode)
+    {
+
+        if (dc_.useSimVirtual)
+        {
+            std::cout << " CNTRL : Task control on sim v" << std::endl;
+        }
+        else
+        {
+
+            std::cout << " CNTRL : State Estimate is not running. disable task command" << std::endl;
+            rd_.tc_run = false;
+        }
+    }
 }
 
 void TocabiController::QueCustomController()
