@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tocabi_controller)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-O)
+add_compile_options(-O -fPIC)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -17,6 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
   tocabi_description
   tocabi_msgs
 )
+find_package(dwbc REQUIRED)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 find_package(tocabi_cc QUIET)
 find_package(tocabi_avatar QUIET)
@@ -72,6 +74,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${tocabi_cc_INCLUDE_DIRS}
   ${tocabi_avatar_INCLUDE_DIRS}
+  ${dwbc_DIRS}
 )
 
 add_library(${PROJECT_NAME}_lib
@@ -98,7 +101,9 @@ target_link_libraries(${PROJECT_NAME}_lib
   ${catkin_LIBRARIES}
   ${tocabi_cc_LIBRARIES}
   ${tocabi_avatar_LIBRARIES}
+  dwbc 
   -lpthread
+  Eigen3::Eigen
 )
 
 ## Specify libraries to link a library or executable target against

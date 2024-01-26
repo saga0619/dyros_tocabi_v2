@@ -134,8 +134,8 @@ void *StateManager::StateThread()
     tv_us1.tv_sec = 0;
     tv_us1.tv_nsec = 10000;
 
-    initializeJointMLP();
-    loadJointVelNetwork("/home/dyros/joint_vel_net/");
+    // initializeJointMLP();
+    // loadJointVelNetwork("/home/dyros/joint_vel_net/");
 
     while (true)
     {
@@ -203,9 +203,14 @@ void *StateManager::StateThread()
         StateEstimate();
 
         // global kinematics update : 127 us //w/o march native 125 us
-        UpdateKinematics(model_global_, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
 
-        UpdateCMM(rd_, link_);
+        static int uk_cnt = 0;
+
+        // if (uk_cnt < 10)
+        UpdateKinematics(model_global_, link_, q_virtual_, q_dot_virtual_, q_ddot_virtual_);
+        // uk_cnt++;
+
+        // UpdateCMM(rd_, link_);
 
         // check signal
         static bool grav_sig = false;
@@ -434,7 +439,7 @@ void *StateManager::LoggerThread()
     {
         std::cout << "Logger : log folder : " << log_folder << "  Start Time : " << start_time.str() << std::endl;
 
-        std::cout << "Logger : ON | record interval : "<< record_seconds<<" s | torque : "
+        std::cout << "Logger : ON | record interval : " << record_seconds << " s | torque : "
                   << switch_torqueLog
                   << " | toruqeCommand : " << switch_torqueCommandLog
                   << " | torqueActual : " << switch_torqueActualLog
@@ -445,7 +450,6 @@ void *StateManager::LoggerThread()
                   << " | posDesired : " << switch_posDesiredLog
                   << " | velDesired : " << switch_velDesiredLog
                   << " | sensorLog : " << switch_sensorLog << std::endl;
-
     }
 
     ofstream torqueLog;
@@ -471,7 +475,6 @@ void *StateManager::LoggerThread()
     }
 
     clock_gettime(CLOCK_MONOTONIC, &ts);
-
 
     int record_tick = record_seconds * 2000;
 
@@ -506,7 +509,6 @@ void *StateManager::LoggerThread()
                     velLog.close();
                 if (switch_sensorLog)
                     sensorLog.close();
-
 
                 // std::stringstream sstr;
 
@@ -662,7 +664,6 @@ void *StateManager::LoggerThread()
                          << "log_" << std::setfill('0') << std::setw(3) << s_count - 1 << std::setw(0) << ".zip " << previous_logging_folder << "*; rm -rf " << previous_logging_folder << "; }&";
 
                     int status = system(sstr.str().c_str());
-
                 }
 
                 if (switch_torqueLog)
@@ -2044,8 +2045,14 @@ void StateManager::StateEstimate()
         Eigen::Vector6d RF_fixed_contact_vel, LF_fixed_contact_vel;
         Eigen::Vector3d RF_P_cpm, LF_P_cpm;
 
-        link_[Right_Foot].GetPointPos(model_global_, q_virtual_, q_dot_virtual_, RF_contactpoint_internal_pos, RF_global_contact_pos, RF_global_contact_vel);
-        link_[Left_Foot].GetPointPos(model_global_, q_virtual_, q_dot_virtual_, LF_contactpoint_internal_pos, LF_global_contact_pos, LF_global_contact_vel);
+        RF_global_contact_pos = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_global_, q_virtual_, link_[Right_Foot].id, RF_contactpoint_internal_pos, true);
+        RF_global_contact_vel = RigidBodyDynamics::CalcPointVelocity6D(model_global_, q_virtual_, q_dot_virtual_, link_[Right_Foot].id, RF_contactpoint_internal_pos, false);
+        
+        LF_global_contact_pos = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_global_, q_virtual_, link_[Left_Foot].id, LF_contactpoint_internal_pos, false);
+        LF_global_contact_vel = RigidBodyDynamics::CalcPointVelocity6D(model_global_, q_virtual_, q_dot_virtual_, link_[Left_Foot].id, LF_contactpoint_internal_pos, false);
+
+        // link_[Right_Foot].GetPointPos(model_global_, q_virtual_, q_dot_virtual_, RF_contactpoint_internal_pos, RF_global_contact_pos, RF_global_contact_vel);
+        // link_[Left_Foot].GetPointPos(model_global_, q_virtual_, q_dot_virtual_, LF_contactpoint_internal_pos, LF_global_contact_pos, LF_global_contact_vel);
 
         link_local_[Right_Foot].GetPointPos(model_local_, q_virtual_local_yaw_initialized, q_dot_virtual_local_, RF_contactpoint_internal_pos, RF_fixed_contact_pos, RF_fixed_contact_vel);
         link_local_[Left_Foot].GetPointPos(model_local_, q_virtual_local_yaw_initialized, q_dot_virtual_local_, LF_contactpoint_internal_pos, LF_fixed_contact_pos, LF_fixed_contact_vel);
@@ -2058,9 +2065,14 @@ void StateManager::StateEstimate()
         //     //local_RF_Contact = RF_Contact;
         // }
         // else
+        //force dual contact!
+        // {
+        //     local_LF_contact = rd_gl_.ee_[0].contact;
+        //     local_RF_Contact = rd_gl_.ee_[1].contact;
+        // }
         {
-            local_LF_contact = rd_gl_.ee_[0].contact;
-            local_RF_Contact = rd_gl_.ee_[1].contact;
+            local_LF_contact = 1;
+            local_RF_Contact = 1;
         }
 
         bool left_change, right_change;

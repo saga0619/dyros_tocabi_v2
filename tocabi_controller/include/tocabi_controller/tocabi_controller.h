@@ -12,6 +12,7 @@
 #ifdef COMPILE_TOCABI_AVATAR
 #include "avatar.h"
 #endif
+#include <libdwbc/dwbc.h>
 
 class TocabiController
 {
@@ -27,6 +28,7 @@ public:
     StateManager &stm_;
     RobotData &rd_;
 
+    DWBC::RobotData drd_;
 #ifdef COMPILE_TOCABI_CC
     CustomController &my_cc;
 #endif
