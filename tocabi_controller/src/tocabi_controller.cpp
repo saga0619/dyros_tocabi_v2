@@ -1601,7 +1601,7 @@ void *TocabiController::Thread1() // Thread1, running with 2Khz.
 
             Eigen::VectorXd cf_from_torque;
             // cf_from_torque.resize(rd_.contact_index * 6);
-            cf_from_torque = WBC::getContactForce(rd_, rd_.torque_desired);
+            // cf_from_torque = WBC::getContactForce(rd_, rd_.torque_desired);
             // std::cout << cf_from_torque.transpose() << std::endl;
 
             // std::cout << rd_.LF_CF_FT.transpose() << rd_.RF_CF_FT.transpose() << std::endl;
