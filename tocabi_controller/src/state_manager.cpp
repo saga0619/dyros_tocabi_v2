@@ -2999,6 +2999,11 @@ void StateManager::GuiCommandCallback(const std_msgs::StringConstPtr &msg)
         *foo = 1;
         // CAUTION
     }
+    else if (msg->data == "printdata")
+    {
+        modechange_flag = !modechange_flag;
+        std::cout << "MODECHANE FLAG!" << modechange_flag << std::endl;
+    }
 
     // Controlling GUI
 }

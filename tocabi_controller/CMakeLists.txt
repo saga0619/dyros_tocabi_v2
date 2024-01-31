@@ -2,12 +2,11 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tocabi_controller)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-O -fPIC)
+add_compile_options(-O)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
-  eigen_conversions
   sensor_msgs
   std_msgs
   mujoco_ros_msgs
@@ -77,12 +76,12 @@ include_directories(
   ${dwbc_DIRS}
 )
 
-add_library(${PROJECT_NAME}_lib
+add_library(${PROJECT_NAME}_lib STATIC
   src/state_manager.cpp
   src/tocabi_controller.cpp
 )
 
-link_directories(${CATKIN_DEVEL_PREFIX}/lib})
+link_directories(${CATKIN_DEVEL_PREFIX}/lib)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

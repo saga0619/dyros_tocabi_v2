@@ -258,6 +258,8 @@ public:
 
     Eigen::VectorQd nn_estimated_q_dot_pre_;
 
+    bool modechange_flag = false;
+
     ////////////////////////////MLP//////////////////////////////
 };
 
