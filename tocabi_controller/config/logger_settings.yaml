@@ -1,0 +1,12 @@
+logger_switch:
+  torqueLog: false
+  torqueCommandLog: false
+  torqueActualLog: false
+  maskLog: false 
+  ecatStatusLog: false 
+  posLog: true 
+  velLog: true 
+  posDesiredLog: false 
+  velDesiredLog: false 
+  sensorLog: false 
+  record_seconds: 60

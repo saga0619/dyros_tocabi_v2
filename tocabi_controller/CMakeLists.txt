@@ -7,7 +7,6 @@ add_compile_options(-O)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
-  eigen_conversions
   sensor_msgs
   std_msgs
   mujoco_ros_msgs
@@ -17,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   tocabi_description
   tocabi_msgs
 )
+find_package(dwbc REQUIRED)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 find_package(tocabi_cc QUIET)
 find_package(tocabi_avatar QUIET)
@@ -72,14 +73,15 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${tocabi_cc_INCLUDE_DIRS}
   ${tocabi_avatar_INCLUDE_DIRS}
+  ${dwbc_DIRS}
 )
 
-add_library(${PROJECT_NAME}_lib
+add_library(${PROJECT_NAME}_lib STATIC
   src/state_manager.cpp
   src/tocabi_controller.cpp
 )
 
-link_directories(${CATKIN_DEVEL_PREFIX}/lib})
+link_directories(${CATKIN_DEVEL_PREFIX}/lib)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -98,7 +100,9 @@ target_link_libraries(${PROJECT_NAME}_lib
   ${catkin_LIBRARIES}
   ${tocabi_cc_LIBRARIES}
   ${tocabi_avatar_LIBRARIES}
+  dwbc 
   -lpthread
+  Eigen3::Eigen
 )
 
 ## Specify libraries to link a library or executable target against

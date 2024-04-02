@@ -1,0 +1,46 @@
+<launch>
+    <arg name="hand" default="false" />
+    <arg name="gui" default="true" />
+    <arg name="controller" default="true" />
+    <arg name="log" default="false"/>
+    <arg name="node_start_delay" default="0.2" />  
+
+    <node name="tocabi_controller_shm_reset" pkg="tocabi_controller" type="shm_reset" output="screen"/>
+    
+    <group if="$(arg hand)">
+        <param name="tocabi_controller/urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi_with_redhands.urdf" />
+    </group>
+    <group unless="$(arg hand)">
+        <param name="tocabi_controller/urdf_path" type="string" value="$(find tocabi_description)/robots/dyros_tocabi.urdf" />
+    </group>
+    <group if="$(arg hand)">
+        <param name="mujoco_ros/model_file" type="string" value="$(find tocabi_description)/mujoco_model/dyros_tocabi_with_redhands.xml" />
+    </group>
+    <group unless="$(arg hand)">
+        <param name="mujoco_ros/model_file" type="string" value="$(find tocabi_description)/mujoco_model/dyros_tocabi.xml" />
+    </group>
+
+    <rosparam command="load" file="$(find tocabi_description)/setting/setting_simulation_positionPDgain.yaml" ns="/tocabi_controller" />
+    <rosparam command="load" file="$(find tocabi_description)/setting/setting_simulation_parameters.yaml" ns="/tocabi_controller" />
+    <param name="tocabi_controller/sim_mode" value="true" />
+
+    <!-- <group if="$(arg controller)">
+        <node name="tocabi_controller" pkg="tocabi_controller" type="tocabi_controller" output="screen" required="true" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' "/>
+    </group> -->
+
+    <!-- <node name="tocabi_controller" pkg="tocabi_controller" type="tocabi_controller" output="screen" required="true">
+        <param name="sim_mode" value="true"/>
+        <rosparam command="load" file="$(find tocabi_description)/setting/setting_simulation_positionPDgain.yaml"/>
+        <rosparam command="load" file="$(find tocabi_description)/setting/setting_simulation_parameters.yaml"/>
+    </node> -->
+
+    <node name="mujoco_ros" pkg="mujoco_ros" type="mujoco_ros" output="screen" required="true" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+        <param name="license" type="string" value="$(env HOME)/mjkey.txt" />
+        <param name="use_shm" value="true" />
+    </node>
+
+    <group if="$(arg gui)">
+        <node name="tocabi_gui" pkg="tocabi_gui" type="tocabi_gui" />
+    </group>
+
+</launch>
